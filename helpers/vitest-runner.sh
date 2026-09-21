@@ -15,6 +15,26 @@ VITEST_BIN="./node_modules/.bin/vitest"
 if [ ! -f "$VITEST_BIN" ]; then
   VITEST_BIN="../../node_modules/.bin/vitest"
 fi
+if [ ! -f "$VITEST_BIN" ]; then
+  VITEST_BIN="../../../node_modules/.bin/vitest"
+fi
+if [ ! -f "$VITEST_BIN" ]; then
+  REPO_ROOT="$PWD"
+  while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
+    REPO_ROOT="$(dirname "$REPO_ROOT")"
+  done
+  if [ -f "$REPO_ROOT/pnpm-lock.yaml" ]; then
+    echo "📦 [vitest-runner] Vitest binary missing; restoring dependencies in $REPO_ROOT..."
+    (cd "$REPO_ROOT" && pnpm install --prefer-offline 2>/dev/null || pnpm install --no-frozen-lockfile)
+  fi
+  if [ -f "./node_modules/.bin/vitest" ]; then
+    VITEST_BIN="./node_modules/.bin/vitest"
+  elif [ -f "../../node_modules/.bin/vitest" ]; then
+    VITEST_BIN="../../node_modules/.bin/vitest"
+  elif [ -f "../../../node_modules/.bin/vitest" ]; then
+    VITEST_BIN="../../../node_modules/.bin/vitest"
+  fi
+fi
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
   echo "🎯 [enact] No targets specified, running unit test suite"

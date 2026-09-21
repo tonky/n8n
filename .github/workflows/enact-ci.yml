@@ -386,6 +386,9 @@ jobs:
       with:
         key: ${{ runner.os }}-${{ matrix.technology }}-${{ hashFiles('**/go.sum', '**/Cargo.lock', '**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/package-lock.json', '**/pnpm-lock.yaml') }}
         path: |-
+          node_modules
+          ~/.local/share/pnpm/store
+          ~/.cache/pnpm
           /tmp/go-build
           /tmp/go/pkg/mod
           ~/.cargo/registry/index
@@ -468,6 +471,16 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
         ENVE_CACHE_CONCURRENCY: '16'
+    - name: Install Project Dependencies
+      if: ${{ matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright' }}
+      run: |-
+        if [ -f "pnpm-lock.yaml" ] && [ ! -d "node_modules/.bin" ]; then
+          echo "📦 Installing project dependencies via pnpm..."
+          pnpm install --prefer-offline 2>/dev/null || pnpm install --no-frozen-lockfile
+        elif [ -f "package-lock.json" ] && [ ! -d "node_modules/.bin" ]; then
+          echo "📦 Installing project dependencies via npm..."
+          npm ci 2>/dev/null || npm install
+        fi
     - name: Execute Component Task
       run: ${{ matrix.command }}
       env:

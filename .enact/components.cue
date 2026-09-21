@@ -65,7 +65,7 @@ pipeline: {
 				}]
 			}
 			test: {
-				command: "node scripts/generate-migration-index.mjs && NODE_OPTIONS=\"--max-old-space-size=512\" NODE_COMPILE_CACHE=\"/tmp/.node_compile_cache\" ./node_modules/.bin/vitest run --maxWorkers 2 {relative_targets}"
+				command: "node scripts/generate-migration-index.mjs && ../../../helpers/vitest-runner.sh {relative_targets}"
 			}
 		}
 
