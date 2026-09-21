@@ -5,6 +5,7 @@ import {
 	CONFIG_EVALUATIONS_ENABLED_VARIANT,
 	CONFIG_EVALUATIONS_FLAG,
 	EVAL_COLLECTIONS_FLAG,
+	FLEXIBLE_GROUPS_CANVAS_FLAG,
 	INSTANCE_AI_FOLDER_EXPLORATION_ENABLED_VARIANT,
 	INSTANCE_AI_FOLDER_EXPLORATION_FLAG,
 	INSTANCE_AI_MCP_CONNECTIONS_ENABLED_VARIANT,
@@ -161,7 +162,9 @@ export class PostHogClient {
 	private async fetchFlagsFromPostHog(
 		user: Pick<PublicUser, 'id' | 'createdAt'>,
 	): Promise<FeatureFlagData> {
-		if (!this.postHog) return { featureFlags: {}, featureFlagPayloads: {} };
+		if (!this.postHog) {
+			return { featureFlags: {}, featureFlagPayloads: {} };
+		}
 
 		const { instanceId } = this.instanceSettings;
 		const fullId = [instanceId, user.id].join('#');
@@ -179,6 +182,7 @@ export class PostHogClient {
 			},
 			...(instanceId && { groups: { [POSTHOG_GROUP_TYPE_INSTANCE]: instanceId } }),
 		});
+
 		const data = this.resolveFeatureFlagData(evaluatedFlags);
 
 		if (Object.keys(data.featureFlags).length > 0) {
@@ -254,6 +258,10 @@ export class PostHogClient {
 		if (this.globalConfig.instanceAi.folderExplorationEnabled) {
 			overrides[INSTANCE_AI_FOLDER_EXPLORATION_FLAG] =
 				INSTANCE_AI_FOLDER_EXPLORATION_ENABLED_VARIANT;
+		}
+
+		if (this.globalConfig.workflows.flexibleGroupsEnabled) {
+			overrides[FLEXIBLE_GROUPS_CANVAS_FLAG] = true;
 		}
 
 		if (Object.keys(overrides).length === 0) {
