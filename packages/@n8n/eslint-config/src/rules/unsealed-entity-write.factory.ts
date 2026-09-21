@@ -122,10 +122,13 @@ const payloadTypeVerdict = (type: ts.Type, policedKey: string): PayloadVerdict =
 	if (type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return 'opaque';
 	// An index signature (`Record<string, unknown>`) carries the key without declaring it.
 	if (type.getStringIndexType() !== undefined) return 'opaque';
+	// A caller can instantiate `T` with a subtype that adds the key, so a constraint without
+	// it proves nothing. Only a constraint that already requires the key is a certain write.
 	const parameter = asTypeParameter(type);
 	if (parameter) {
 		const constraint = parameter.getConstraint();
-		return constraint === undefined ? 'opaque' : payloadTypeVerdict(constraint, policedKey);
+		if (constraint === undefined) return 'opaque';
+		return payloadTypeVerdict(constraint, policedKey) === 'policed' ? 'policed' : 'opaque';
 	}
 	const policed = type.getProperty(policedKey);
 	if (policed === undefined) return 'clean';
@@ -163,9 +166,8 @@ const chainedSetPayload = (call: TSESTree.CallExpression): TSESTree.Node | undef
 /**
  * Builds a rule that seals one entity's content writes to the token-gated methods on its
  * repository. Type-aware where a program is available, with the syntactic name/literal
- * checks as a floor. Ceiling: SQL built from non-literal strings, and a repository
- * resolved from a runtime value (`getRepository(name)`), which types as `Repository<any>`.
- * The runtime `assertClearedFor` gate in the repository is the enforcing half.
+ * checks as a floor. Ceiling: SQL and entity targets built from non-literal strings, which
+ * only resolve at runtime. The `assertClearedFor` gate in the repository is the enforcing half.
  */
 export const createUnsealedEntityWriteRule = (config: SealedEntityWriteConfig) => {
 	const {
@@ -261,9 +263,28 @@ export const createUnsealedEntityWriteRule = (config: SealedEntityWriteConfig) =
 			const targetsTable = (node: TSESTree.Node | undefined): boolean =>
 				node !== undefined && stringValue(node)?.toLowerCase() === tableName;
 
+			// `getRepository(x)` names its entity in the argument; the call itself resolves to a
+			// plain `Repository` the checker cannot tie back to the entity.
+			const repositoryTarget = (node: TSESTree.Node): TSESTree.Node | undefined => {
+				if (node.type !== AST_NODE_TYPES.CallExpression) return undefined;
+				const callee =
+					node.callee.type === AST_NODE_TYPES.ChainExpression
+						? node.callee.expression
+						: node.callee;
+				if (callee.type !== AST_NODE_TYPES.MemberExpression) return undefined;
+				const method = memberName(callee);
+				return method === 'getRepository' || method === 'getTreeRepository'
+					? node.arguments[0]
+					: undefined;
+			};
+
 			const targetsEntity = (node: TSESTree.Node | undefined): boolean => {
 				if (!node) return false;
 				if (isEntityIdentifier(node) || targetsTable(node)) return true;
+				const target = repositoryTarget(node);
+				if (target !== undefined && (isEntityIdentifier(target) || targetsTable(target))) {
+					return true;
+				}
 				const typed = typeServices();
 				return typed !== null && refersToEntity(typed.typeOf(node), typed.checker, entitySymbols);
 			};

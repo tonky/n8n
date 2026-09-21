@@ -35,6 +35,7 @@ declare class EntityManager {
 	update<T>(target: new () => T, criteria: unknown, partial: DeepPartial<T>): Promise<unknown>;
 	createQueryBuilder(): SelectQueryBuilder<unknown>;
 	getRepository<T>(target: new () => T): Repository<T>;
+	getRepository(target: string): Repository<unknown>;
 	query(sql: string, params?: unknown[]): Promise<unknown>;
 }
 declare class Repository<T> {
@@ -291,5 +292,12 @@ ruleTester.run('no-unsealed-workflow-entity-write', NoUnsealedWorkflowEntityWrit
 			errors: unsealed,
 		},
 		{ ...typed("manager.save('workflow_entity', { nodes: [] });"), errors: unsealed },
+		{ ...typed("manager.getRepository('workflow_entity').save(wf);"), errors: unsealed },
+		{
+			...typed(
+				"function patch<T extends Pick<WorkflowEntity, 'active'>>(p: T) { return repo.update(id, p); }",
+			),
+			errors: opaque,
+		},
 	],
 });

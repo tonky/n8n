@@ -35,6 +35,7 @@ declare class EntityManager {
 	update<T>(target: new () => T, criteria: unknown, partial: DeepPartial<T>): Promise<unknown>;
 	createQueryBuilder(): SelectQueryBuilder<unknown>;
 	getRepository<T>(target: new () => T): Repository<T>;
+	getRepository(target: string): Repository<unknown>;
 	query(sql: string, params?: unknown[]): Promise<unknown>;
 }
 declare class Repository<T> {
@@ -127,6 +128,8 @@ ruleTester.run('no-unsealed-credentials-entity-write', NoUnsealedCredentialsEnti
 		typed("manager.query('UPDATE workflow_entity SET nodes = $1 WHERE id = $2', [[], id]);"),
 		typed("manager.query('SELECT data FROM credentials_entity WHERE id = $1', [id]);"),
 		typed("manager.query('DELETE FROM credentials_entity WHERE id = $1', [id]);"),
+		// Another entity reached by table name.
+		typed("manager.getRepository('workflow_entity').save(wf);"),
 		// A key the seal can resolve, and one that is not the policed key.
 		typed('const key = "data" as const; repo.update(id, { [key]: "" });'),
 		// Test files are exempt even with type information.
@@ -267,10 +270,23 @@ ruleTester.run('no-unsealed-credentials-entity-write', NoUnsealedCredentialsEnti
 			),
 			errors: unsealed,
 		},
-		// An unconstrained payload type parameter cannot be ruled out.
+		// An unconstrained payload type parameter cannot be ruled out, and neither can one whose
+		// constraint omits `type` — a caller can still instantiate it with one.
 		{
 			...typed('function patch<T>(p: T) { return repo.update(id, p); }'),
 			errors: opaque,
+		},
+		{
+			...typed(
+				"function patch<T extends Pick<CredentialsEntity, 'data'>>(p: T) { return repo.update(id, p); }",
+			),
+			errors: opaque,
+		},
+		// A repository resolved from the table name.
+		{ ...typed("manager.getRepository('credentials_entity').save(cred);"), errors: unsealed },
+		{
+			...typed("manager.getRepository('credentials_entity').update(id, { type: 'slackApi' });"),
+			errors: unsealed,
 		},
 		// TypeORM accepts the table name in place of the entity class.
 		{ ...typed("manager.save('credentials_entity', { type: 'slackApi' });"), errors: unsealed },
