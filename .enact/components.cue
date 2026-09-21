@@ -9,6 +9,8 @@ pipeline: {
 			".enact",
 			"bin",
 			"helpers",
+			"patches",
+			"scripts",
 			"package.json",
 			"pnpm-lock.yaml",
 			"pnpm-workspace.yaml",
