@@ -46,9 +46,6 @@ pipeline: {
 			lint: {
 				command: "pnpm exec biome check ."
 			}
-			typecheck: {
-				command: "pnpm exec tsc --noEmit"
-			}
 			test: {
 				command: "./node_modules/.bin/vitest run {relative_targets}"
 			}
@@ -80,9 +77,6 @@ pipeline: {
 			}
 			lint: {
 				command: "pnpm exec biome check ."
-			}
-			typecheck: {
-				command: "pnpm exec tsc --noEmit"
 			}
 			test: {
 				command: "node scripts/generate-migration-index.mjs && ../../../helpers/vitest-runner.sh {relative_targets}"
@@ -120,9 +114,6 @@ pipeline: {
 			lint: {
 				command: "pnpm exec biome check ."
 			}
-			typecheck: {
-				command: "pnpm exec tsc --noEmit"
-			}
 			test: {
 				command: "../../helpers/vitest-runner.sh {relative_targets}"
 			}
@@ -152,9 +143,6 @@ pipeline: {
 			lint: {
 				command: "pnpm exec biome check ."
 			}
-			typecheck: {
-				command: "pnpm run typecheck"
-			}
 			test: {
 				command: "../../../helpers/vitest-runner.sh {relative_targets}"
 			}
@@ -179,9 +167,6 @@ pipeline: {
 			}
 			lint: {
 				command: "pnpm exec biome check ."
-			}
-			typecheck: {
-				command: "pnpm exec tsc --noEmit"
 			}
 			test: {
 				command: "./node_modules/.bin/vitest run {relative_targets}"

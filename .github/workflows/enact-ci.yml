@@ -137,7 +137,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
-        key: ${{ runner.os }}-typescript-${{ hashFiles('**/pnpm-lock.yaml') }}
+        key: ${{ runner.os }}-typescript-${{ hashFiles('**/go.sum', '**/Cargo.lock', '**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/package-lock.json', '**/pnpm-lock.yaml') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
@@ -167,7 +167,30 @@ jobs:
         if [ "${{ inputs.no_cache }}" = "true" ]; then
           NO_CACHE_ARG="--no-cache"
         fi
-        enact run --pipeline .enact $UPDATED_ARG $NO_CACHE_ARG check-and-lint
+        BASE_ARG=""
+        BASE_REF="${{ inputs.base_ref || github.base_ref || github.event.pull_request.base.ref }}"
+        if [ -z "$BASE_REF" ]; then
+          if [ "${{ github.ref_name }}" != "perf/ci-modernization" ] && [ "${{ github.ref_name }}" != "${{ github.event.repository.default_branch || 'master' }}" ]; then
+            git fetch --no-tags --depth=1 origin perf/ci-modernization 2>/dev/null || true
+            if git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
+              BASE_REF="perf/ci-modernization"
+            fi
+          fi
+          if [ -z "$BASE_REF" ]; then
+            BASE_REF="${{ github.event.repository.default_branch || 'master' }}"
+          fi
+        fi
+        if [ -n "$BASE_REF" ]; then
+          if ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
+            git fetch --no-tags --depth=1 origin "$BASE_REF" 2>/dev/null || true
+          fi
+          if git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
+            BASE_ARG="--base $BASE_REF"
+          elif git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
+            BASE_ARG="--base origin/$BASE_REF"
+          fi
+        fi
+        enact run --pipeline .enact $BASE_ARG $UPDATED_ARG $NO_CACHE_ARG check-and-lint
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.ENACT_R2_ACCESS_KEY_ID || env.ENACT_R2_ACCESS_KEY_ID }}
         AWS_REGION: auto

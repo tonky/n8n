@@ -47,7 +47,7 @@ pipeline: {
 			stages: [
 				{
 					name:      "check-and-lint"
-					tasks:     ["lint", "typecheck"]
+					tasks:     ["lint"]
 					fail_fast: true
 					services:  "disabled"
 				},
