@@ -484,6 +484,9 @@ jobs:
           echo "📦 Installing project dependencies via npm..."
           $RUN_PREFIX npm ci 2>/dev/null || $RUN_PREFIX npm install
         fi
+      env:
+        ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Execute Component Task
       run: ${{ matrix.command }}
       env:

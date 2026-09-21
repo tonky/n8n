@@ -163,7 +163,7 @@ pipeline: {
 			technology:  "playwright"
 			root:        "packages/testing/playwright"
 			watch_paths: ["packages/testing/playwright/**"]
-			depends_on:  []
+			depends_on:  ["@n8n/core"]
 			workspace_scope: {
 				include: [
 					"packages/testing",

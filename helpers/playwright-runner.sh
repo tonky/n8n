@@ -13,6 +13,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VITEST_BIN="$REPO_ROOT/packages/cli/node_modules/.bin/vitest"
 
+# Ensure workspace build artifacts exist for internal packages
+if [ -d "$REPO_ROOT/packages/@n8n" ]; then
+  TSC_BIN="$REPO_ROOT/node_modules/.bin/tsc"
+  if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/node-decorators.js" ]; then
+    echo "📦 [playwright-runner] Compiling @n8n/vitest-config..."
+    if [ -x "$TSC_BIN" ]; then
+      (cd "$REPO_ROOT/packages/@n8n/vitest-config" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+    else
+      (cd "$REPO_ROOT/packages/@n8n/vitest-config" && pnpm build) || true
+    fi
+  fi
+
+  echo "📦 [playwright-runner] Compiling workspace dependencies via turbo..."
+  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=@n8n/playwright^...) || true
+fi
+
 TARGETS=("$@")
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
