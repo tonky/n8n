@@ -131,7 +131,7 @@ pipeline: {
 				}]
 			}
 			test: {
-				command: "NODE_OPTIONS=\"--max-old-space-size=512\" NODE_COMPILE_CACHE=\"/tmp/.node_compile_cache\" ./node_modules/.bin/vitest run --maxWorkers 2 {relative_targets}"
+				command: "../../../helpers/vitest-runner.sh {relative_targets}"
 			}
 		}
 
@@ -168,6 +168,8 @@ pipeline: {
 				include: [
 					"packages/testing",
 					"packages/cli",
+					"packages/workflow",
+					"packages/core",
 				]
 				include_dependencies: true
 			}

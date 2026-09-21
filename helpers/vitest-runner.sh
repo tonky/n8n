@@ -8,7 +8,7 @@ export TZ=UTC
 export PGTZ=UTC
 export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
 export NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-/tmp/.node_compile_cache}"
-export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=512"
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 MAX_WORKERS="${MAX_WORKERS:-2}"
 
 REPO_ROOT="$PWD"
@@ -25,7 +25,7 @@ fi
 # Ensure workspace build artifacts exist for internal packages
 if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   TSC_BIN="$REPO_ROOT/node_modules/.bin/tsc"
-  if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/node-decorators.js" ]; then
+  if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/frontend.js" ]; then
     echo "📦 [vitest-runner] Compiling @n8n/vitest-config..."
     if [ -x "$TSC_BIN" ]; then
       (cd "$REPO_ROOT/packages/@n8n/vitest-config" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true

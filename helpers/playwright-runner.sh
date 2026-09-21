@@ -16,7 +16,7 @@ VITEST_BIN="$REPO_ROOT/packages/cli/node_modules/.bin/vitest"
 # Ensure workspace build artifacts exist for internal packages
 if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   TSC_BIN="$REPO_ROOT/node_modules/.bin/tsc"
-  if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/node-decorators.js" ]; then
+  if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/frontend.js" ]; then
     echo "📦 [playwright-runner] Compiling @n8n/vitest-config..."
     if [ -x "$TSC_BIN" ]; then
       (cd "$REPO_ROOT/packages/@n8n/vitest-config" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
@@ -26,7 +26,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   fi
 
   echo "📦 [playwright-runner] Compiling workspace dependencies via turbo..."
-  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=@n8n/playwright^...) || true
+  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=n8n-playwright^...) || true
 fi
 
 TARGETS=("$@")
