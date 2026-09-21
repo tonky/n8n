@@ -21,6 +21,7 @@ pipeline: {
 			"pnpm-workspace.yaml",
 			"turbo.json",
 			"tsconfig.json",
+			"biome.jsonc",
 		]
 	}
 
@@ -41,6 +42,12 @@ pipeline: {
 					match: ["packages/core/**/*.ts"]
 					engine: "typescript"
 				}]
+			}
+			lint: {
+				command: "pnpm exec biome check ."
+			}
+			typecheck: {
+				command: "pnpm exec tsc --noEmit"
 			}
 			test: {
 				command: "./node_modules/.bin/vitest run {relative_targets}"
@@ -70,6 +77,12 @@ pipeline: {
 					match: ["packages/@n8n/db/**/*.ts"]
 					engine: "typescript"
 				}]
+			}
+			lint: {
+				command: "pnpm exec biome check ."
+			}
+			typecheck: {
+				command: "pnpm exec tsc --noEmit"
 			}
 			test: {
 				command: "node scripts/generate-migration-index.mjs && ../../../helpers/vitest-runner.sh {relative_targets}"
@@ -104,6 +117,12 @@ pipeline: {
 					engine: "typescript"
 				}]
 			}
+			lint: {
+				command: "pnpm exec biome check ."
+			}
+			typecheck: {
+				command: "pnpm exec tsc --noEmit"
+			}
 			test: {
 				command: "../../helpers/vitest-runner.sh {relative_targets}"
 			}
@@ -130,6 +149,12 @@ pipeline: {
 					engine: "typescript"
 				}]
 			}
+			lint: {
+				command: "pnpm exec biome check ."
+			}
+			typecheck: {
+				command: "pnpm run typecheck"
+			}
 			test: {
 				command: "../../../helpers/vitest-runner.sh {relative_targets}"
 			}
@@ -151,6 +176,12 @@ pipeline: {
 					match: ["packages/nodes-base/**/*.ts"]
 					engine: "typescript"
 				}]
+			}
+			lint: {
+				command: "pnpm exec biome check ."
+			}
+			typecheck: {
+				command: "pnpm exec tsc --noEmit"
 			}
 			test: {
 				command: "./node_modules/.bin/vitest run {relative_targets}"

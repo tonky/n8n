@@ -46,8 +46,8 @@ pipeline: {
 			}
 			stages: [
 				{
-					name:      "preflight"
-					tasks:     ["fmt", "lint", "typecheck"]
+					name:      "check-and-lint"
+					tasks:     ["lint", "typecheck"]
 					fail_fast: true
 					services:  "disabled"
 				},

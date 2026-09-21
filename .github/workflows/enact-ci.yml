@@ -35,6 +35,147 @@ env:
   UV_CACHE_DIR: /tmp/.cache/uv
   XDG_CACHE_HOME: /tmp/.cache
 jobs:
+  check-and-lint:
+    name: 'Stage: Check & Lint'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository (sparse)
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: '1'
+        fetch-tags: 'false'
+        filter: blob:none
+        lfs: 'false'
+        show-progress: 'false'
+        sparse-checkout: |-
+          .enact
+          .github
+          setup
+          bin
+          enve.cue
+          enve.lock
+          package.json
+          pnpm-lock.yaml
+          pnpm-workspace.yaml
+          biome.json
+          biome.jsonc
+          tsconfig.json
+          turbo.json
+          packages/core
+          packages/@n8n/db
+          packages/cli
+          packages/frontend/editor-ui
+          packages/nodes-base
+          packages/testing/playwright
+        sparse-checkout-cone-mode: 'false'
+        submodules: 'false'
+    - name: Restore enact CLI binary cache
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
+        path: ~/.cargo/bin/enact
+        restore-keys: ${{ runner.os }}-enact-cli-
+    - name: Restore enact Task CAS Cache
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
+        path: .enact/cache
+        restore-keys: ${{ runner.os }}-enact-tasks-
+    - name: Ensure enve & enact CLI on PATH
+      run: |-
+        git config --global --add safe.directory "*" 2>/dev/null || true
+        mkdir -p "$HOME/.cargo/bin" "$HOME/.local/share/enve/store"
+        if command -v sudo >/dev/null 2>&1; then
+          sudo mkdir -p -m 0755 /nix /nix/store 2>/dev/null || true
+          sudo chown -R $(id -u):$(id -g) /nix 2>/dev/null || true
+        fi
+        if [ -d "/nix" ] && [ ! -e "/nix/store" ]; then
+          ln -sfn "$HOME/.local/share/enve/store" /nix/store 2>/dev/null || true
+        fi
+        BIN_DIR="${GITHUB_WORKSPACE:-$PWD}/bin"
+        if [ -d "$BIN_DIR" ]; then
+          cp -f "$BIN_DIR"/* "$HOME/.cargo/bin/" 2>/dev/null || true
+          chmod +x "$HOME/.cargo/bin"/* "$BIN_DIR"/* 2>/dev/null || true
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+        fi
+        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+        export PATH="$BIN_DIR:$HOME/.cargo/bin:$PATH"
+    - name: Restore Nix Store (L1 GHA Cache)
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
+        path: |-
+          /nix/store
+          ~/.local/share/enve/store
+        restore-keys: |
+          ${{ runner.os }}-nix-store-
+    - name: Pull Dependencies via enve
+      run: |-
+        if [ -f "enve.lock" ]; then
+          if [ -n "$ENACT_R2_BUCKET" ]; then
+            enve cache pull enve.lock --cache "$ENACT_R2_BUCKET" --insecure -j 16
+          fi
+          enve run $([ -f enve.lock ] && echo --locked) -- true
+        fi
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.ENACT_R2_ACCESS_KEY_ID || env.ENACT_R2_ACCESS_KEY_ID }}
+        AWS_REGION: auto
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
+        ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
+        ENVE_CACHE_CONCURRENCY: '16'
+    - name: Restore typescript build & compiler cache
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        key: ${{ runner.os }}-typescript-${{ hashFiles('**/pnpm-lock.yaml') }}
+        path: |-
+          ~/.local/share/pnpm/store
+          ~/.cache/pnpm
+        restore-keys: ${{ runner.os }}-typescript-
+    - name: Install Project Dependencies
+      run: |-
+        RUN_PREFIX=""
+        if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
+          RUN_PREFIX="enve run $([ -f enve.lock ] && echo --locked) -- "
+        fi
+        if [ -f "pnpm-lock.yaml" ]; then
+          echo "📦 Installing project dependencies via pnpm..."
+          $RUN_PREFIX pnpm install --frozen-lockfile --prefer-offline --config.audit=false 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile --prefer-offline --config.audit=false
+        fi
+      env:
+        ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Execute Stage [Check & Lint]
+      run: |-
+        UPDATED_ARG=""
+        if [ "${{ inputs.all }}" = "true" ]; then
+          UPDATED_ARG="--all"
+        elif [ -n "${{ inputs.updated }}" ]; then
+          UPDATED_ARG="--updated ${{ inputs.updated }}"
+        fi
+        NO_CACHE_ARG=""
+        if [ "${{ inputs.no_cache }}" = "true" ]; then
+          NO_CACHE_ARG="--no-cache"
+        fi
+        enact run --pipeline .enact $UPDATED_ARG $NO_CACHE_ARG check-and-lint
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.ENACT_R2_ACCESS_KEY_ID || env.ENACT_R2_ACCESS_KEY_ID }}
+        AWS_REGION: auto
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
+        ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
+    - name: Upload Telemetry for [check-and-lint]
+      if: always()
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
+      with:
+        if-no-files-found: ignore
+        name: telemetry-stage-check-and-lint
+        path: |-
+          .enact/telemetry.json
+          .enact/summary.html
   detect:
     name: Detect Affected Components
     runs-on: ubuntu-latest
@@ -60,14 +201,14 @@ jobs:
         submodules: 'false'
     - name: Restore enact CLI binary cache
       continue-on-error: true
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v4
       with:
         key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
         path: ~/.cargo/bin/enact
         restore-keys: ${{ runner.os }}-enact-cli-
     - name: Restore enact Task CAS Cache
       continue-on-error: true
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v4
       with:
         key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
         path: .enact/cache
@@ -139,117 +280,11 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET }}
-  preflight:
-    name: 'Stage: preflight'
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository (sparse)
-      uses: actions/checkout@v7
-      with:
-        fetch-depth: '1'
-        fetch-tags: 'false'
-        filter: blob:none
-        lfs: 'false'
-        show-progress: 'false'
-        sparse-checkout: |-
-          .enact
-          .github
-          setup
-          bin
-          enve.cue
-          enve.lock
-        sparse-checkout-cone-mode: 'false'
-        submodules: 'false'
-    - name: Restore enact CLI binary cache
-      continue-on-error: true
-      uses: actions/cache@v6
-      with:
-        key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
-        path: ~/.cargo/bin/enact
-        restore-keys: ${{ runner.os }}-enact-cli-
-    - name: Restore enact Task CAS Cache
-      continue-on-error: true
-      uses: actions/cache@v6
-      with:
-        key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
-        path: .enact/cache
-        restore-keys: ${{ runner.os }}-enact-tasks-
-    - name: Ensure enve & enact CLI on PATH
-      run: |-
-        git config --global --add safe.directory "*" 2>/dev/null || true
-        mkdir -p "$HOME/.cargo/bin" "$HOME/.local/share/enve/store"
-        if command -v sudo >/dev/null 2>&1; then
-          sudo mkdir -p -m 0755 /nix /nix/store 2>/dev/null || true
-          sudo chown -R $(id -u):$(id -g) /nix 2>/dev/null || true
-        fi
-        if [ -d "/nix" ] && [ ! -e "/nix/store" ]; then
-          ln -sfn "$HOME/.local/share/enve/store" /nix/store 2>/dev/null || true
-        fi
-        BIN_DIR="${GITHUB_WORKSPACE:-$PWD}/bin"
-        if [ -d "$BIN_DIR" ]; then
-          cp -f "$BIN_DIR"/* "$HOME/.cargo/bin/" 2>/dev/null || true
-          chmod +x "$HOME/.cargo/bin"/* "$BIN_DIR"/* 2>/dev/null || true
-          echo "$BIN_DIR" >> "$GITHUB_PATH"
-        fi
-        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-        export PATH="$BIN_DIR:$HOME/.cargo/bin:$PATH"
-    - name: Restore Nix Store (L1 GHA Cache)
-      continue-on-error: true
-      uses: actions/cache@v6
-      with:
-        key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
-        path: |-
-          /nix/store
-          ~/.local/share/enve/store
-        restore-keys: |
-          ${{ runner.os }}-nix-store-
-    - name: Pull Dependencies via enve
-      run: |-
-        if [ -f "enve.lock" ]; then
-          if [ -n "$ENACT_R2_BUCKET" ]; then
-            enve cache pull enve.lock --cache "$ENACT_R2_BUCKET" --insecure -j 16
-          fi
-          enve run $([ -f enve.lock ] && echo --locked) -- true
-        fi
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.ENACT_R2_ACCESS_KEY_ID || env.ENACT_R2_ACCESS_KEY_ID }}
-        AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
-        ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
-        ENVE_CACHE_CONCURRENCY: '16'
-    - name: Execute Stage [preflight]
-      run: |-
-        UPDATED_ARG=""
-        if [ "${{ inputs.all }}" = "true" ]; then
-          UPDATED_ARG="--all"
-        elif [ -n "${{ inputs.updated }}" ]; then
-          UPDATED_ARG="--updated ${{ inputs.updated }}"
-        fi
-        NO_CACHE_ARG=""
-        if [ "${{ inputs.no_cache }}" = "true" ]; then
-          NO_CACHE_ARG="--no-cache"
-        fi
-        enact run --pipeline .enact $UPDATED_ARG $NO_CACHE_ARG preflight
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.ENACT_R2_ACCESS_KEY_ID || env.ENACT_R2_ACCESS_KEY_ID }}
-        AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
-        ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
-    - name: Upload Telemetry for [preflight]
-      if: always()
-      continue-on-error: true
-      uses: actions/upload-artifact@v7
-      with:
-        if-no-files-found: ignore
-        name: telemetry-stage-preflight
-        path: |-
-          .enact/telemetry.json
-          .enact/summary.html
   summary:
     name: Telemetry & Summary
     needs:
     - detect
-    - preflight
+    - check-and-lint
     - test
     if: always()
     runs-on: ubuntu-latest
@@ -273,7 +308,7 @@ jobs:
         submodules: 'false'
     - name: Restore enact CLI binary cache
       continue-on-error: true
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v4
       with:
         key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
         path: ~/.cargo/bin/enact
@@ -349,7 +384,7 @@ jobs:
         submodules: 'false'
     - name: Restore enact CLI binary cache
       continue-on-error: true
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v4
       with:
         key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
         path: ~/.cargo/bin/enact
@@ -375,14 +410,14 @@ jobs:
         export PATH="$BIN_DIR:$HOME/.cargo/bin:$PATH"
     - name: Restore enact Task CAS Cache
       continue-on-error: true
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v4
       with:
         key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
         path: .enact/cache
         restore-keys: ${{ runner.os }}-enact-tasks-
     - name: Restore ${{ matrix.technology }} build & compiler cache
       continue-on-error: true
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v4
       with:
         key: ${{ runner.os }}-${{ matrix.technology }}-${{ hashFiles('**/go.sum', '**/Cargo.lock', '**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/package-lock.json', '**/pnpm-lock.yaml') }}
         path: |-
@@ -442,7 +477,7 @@ jobs:
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
     - name: Restore Nix Store (L1 GHA Cache)
       continue-on-error: true
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v4
       with:
         key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
         path: |-
@@ -479,10 +514,10 @@ jobs:
         fi
         if [ -f "pnpm-lock.yaml" ]; then
           echo "📦 Installing project dependencies via pnpm..."
-          $RUN_PREFIX pnpm install --prefer-offline 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile
+          $RUN_PREFIX pnpm install --frozen-lockfile --prefer-offline --config.audit=false 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile --prefer-offline --config.audit=false
         elif [ -f "package-lock.json" ]; then
           echo "📦 Installing project dependencies via npm..."
-          $RUN_PREFIX npm ci 2>/dev/null || $RUN_PREFIX npm install
+          $RUN_PREFIX npm ci --prefer-offline 2>/dev/null || $RUN_PREFIX npm install
         fi
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
