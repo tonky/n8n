@@ -2135,6 +2135,7 @@ async function ensurePreviewSessionAvailable(sessionId: string) {
 	const targetAgentId = agentId.value;
 	const isCurrent = () =>
 		requestId === latestPreviewValidationId &&
+		isPreviewActive.value &&
 		!isStaleAgentTarget(targetProjectId, targetAgentId) &&
 		effectiveSessionId.value === sessionId;
 	try {
