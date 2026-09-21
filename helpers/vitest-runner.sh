@@ -22,7 +22,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/node-decorators.js" ]; then
     echo "📦 [vitest-runner] Compiling @n8n/vitest-config..."
     if [ -x "$TSC_BIN" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/vitest-config" && "$TSC_BIN" -p tsconfig.build.json) || true
+      (cd "$REPO_ROOT/packages/@n8n/vitest-config" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
     else
       (cd "$REPO_ROOT/packages/@n8n/vitest-config" && pnpm build) || true
     fi
@@ -30,7 +30,25 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
 
   if [ -d "$REPO_ROOT/packages/@n8n/di" ] && [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
     echo "📦 [vitest-runner] Compiling workspace dependencies via turbo..."
-    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=@n8n/db^... --filter=n8n^...) || true
+    CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
+    FILTER_ARGS=()
+    if [ -n "$CURRENT_PKG" ]; then
+      FILTER_ARGS+=(--filter="${CURRENT_PKG}^...")
+    elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
+      FILTER_ARGS+=(--filter=@n8n/db^...)
+    fi
+    if [ -d "$REPO_ROOT/packages/cli" ] && [ "$CURRENT_PKG" != "@n8n/db" ]; then
+      FILTER_ARGS+=(--filter=n8n^...)
+    fi
+    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
+
+    # Self-healing fallback for critical TypeScript packages if turbo failed or was skipped
+    if [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
+      (cd "$REPO_ROOT/packages/@n8n/di" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+    fi
+    if [ -d "$REPO_ROOT/packages/@n8n/typeorm" ] && [ ! -f "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" ]; then
+      (cd "$REPO_ROOT/packages/@n8n/typeorm" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+    fi
   fi
 fi
 

@@ -14,6 +14,8 @@ pipeline: {
 			"packages/@n8n",
 			"packages/core",
 			"packages/workflow",
+			"packages/testing/containers",
+			"packages/testing/janitor",
 			"package.json",
 			"pnpm-lock.yaml",
 			"pnpm-workspace.yaml",
@@ -115,6 +117,10 @@ pipeline: {
 			watch_paths: ["packages/frontend/**"]
 			depends_on:  ["@n8n/core"]
 			workspace_scope: {
+				include: [
+					"packages/frontend",
+					"packages/modules",
+				]
 				include_dependencies: true
 			}
 			target_scope: {
@@ -159,6 +165,10 @@ pipeline: {
 			watch_paths: ["packages/testing/playwright/**"]
 			depends_on:  []
 			workspace_scope: {
+				include: [
+					"packages/testing",
+					"packages/cli",
+				]
 				include_dependencies: true
 			}
 			services: {
