@@ -1173,7 +1173,7 @@ describe('AgentExecutionService', () => {
 
 			await expect(
 				service.getThreadDetail('thread-1', 'project-1', 'agent-1', 'user-1'),
-			).rejects.toThrow('not found');
+			).resolves.toBeNull();
 			expect(agentExecutionRepository.findByThreadIdOrdered).not.toHaveBeenCalled();
 		});
 	});
