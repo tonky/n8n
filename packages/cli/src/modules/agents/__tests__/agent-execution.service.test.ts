@@ -1246,8 +1246,11 @@ describe('AgentExecutionService', () => {
 			expect(agentExecutionThreadRepository.delete).toHaveBeenCalledWith({ id: 'thread-1' });
 		});
 
-		it('does not clean SDK memory when the execution thread is not found', async () => {
-			agentExecutionThreadRepository.findOneBy.mockResolvedValue(null);
+		it.each([
+			{ name: 'not found', thread: null },
+			{ name: 'owned by another user', thread: makeThread({ ownerId: 'other-user' }) },
+		])('does not clean session data when the execution thread is $name', async ({ thread }) => {
+			agentExecutionThreadRepository.findOneBy.mockResolvedValue(thread);
 
 			const result = await service.deleteThread('project-1', 'agent-1', 'thread-1', 'user-1');
 
@@ -1257,8 +1260,11 @@ describe('AgentExecutionService', () => {
 				projectId: 'project-1',
 				agentId: 'agent-1',
 			});
+			expect(agentExecutionRepository.findBlobRefsByThreadId).not.toHaveBeenCalled();
 			expect(n8nMemory.getImplementation).not.toHaveBeenCalled();
 			expect(memoryBackend.deleteThread).not.toHaveBeenCalled();
+			expect(agentChatAttachmentService.deleteByThread).not.toHaveBeenCalled();
+			expect(agentExecutionLogStore.delete).not.toHaveBeenCalled();
 			expect(agentExecutionThreadRepository.delete).not.toHaveBeenCalled();
 		});
 	});
