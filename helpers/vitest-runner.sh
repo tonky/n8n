@@ -29,8 +29,8 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   fi
 
   if [ -d "$REPO_ROOT/packages/@n8n/di" ] && [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
-    echo "📦 [vitest-runner] Compiling workspace dependencies..."
-    (cd "$REPO_ROOT" && pnpm --filter=@n8n/db^... --filter=n8n^... build) || true
+    echo "📦 [vitest-runner] Compiling workspace dependencies via turbo..."
+    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=@n8n/db^... --filter=n8n^...) || true
   fi
 fi
 
