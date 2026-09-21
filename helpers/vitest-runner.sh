@@ -36,6 +36,21 @@ if [ ! -f "$VITEST_BIN" ]; then
   fi
 fi
 
+# Ensure @n8n/vitest-config is compiled if present
+REPO_ROOT_CHECK="$PWD"
+while [ "$REPO_ROOT_CHECK" != "/" ] && [ ! -f "$REPO_ROOT_CHECK/pnpm-lock.yaml" ]; do
+  REPO_ROOT_CHECK="$(dirname "$REPO_ROOT_CHECK")"
+done
+if [ -d "$REPO_ROOT_CHECK/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT_CHECK/packages/@n8n/vitest-config/dist/node-decorators.js" ]; then
+  echo "📦 [vitest-runner] Compiling @n8n/vitest-config..."
+  TSC_BIN="$REPO_ROOT_CHECK/node_modules/.bin/tsc"
+  if [ -x "$TSC_BIN" ]; then
+    (cd "$REPO_ROOT_CHECK/packages/@n8n/vitest-config" && "$TSC_BIN" -p tsconfig.build.json) || true
+  else
+    (cd "$REPO_ROOT_CHECK/packages/@n8n/vitest-config" && pnpm build) || true
+  fi
+fi
+
 if [ ${#TARGETS[@]} -eq 0 ]; then
   echo "🎯 [enact] No targets specified, running unit test suite"
   export N8N_LOG_LEVEL=silent
