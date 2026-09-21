@@ -1,0 +1,45 @@
+package enve
+
+import (
+	"github.com/tonky/enve/schema/v1:schema"
+	"github.com/tonky/enve/pkgs:pkgs"
+)
+
+devEnv: schema.#Environment & {
+	name: "n8n-platform-dev"
+	tools: [
+		pkgs.pnpm & {version: "12"},
+		pkgs.nodejs & {version: "24"},
+		pkgs.postgresql,
+		pkgs.redis,
+	]
+	services: {
+		postgres: {
+			command: "postgres -D \"$DATA_DIR\" -k /tmp -p 5432 -c shared_buffers=32MB -c work_mem=4MB -c max_connections=25 -c fsync=off -c synchronous_commit=off"
+			env: {
+				TZ:   "UTC"
+				PGTZ: "UTC"
+			}
+			lifecycle: {
+				postStart: "createdb -h 127.0.0.1 -p 5432 -U postgres n8n 2>/dev/null || true; psql -h 127.0.0.1 -p 5432 -U postgres -c \"ALTER DATABASE n8n SET timezone TO 'UTC';\" -c \"ALTER ROLE postgres SET timezone TO 'UTC';\" || true"
+			}
+		}
+		redis: {}
+	}
+	env: {
+		TZ:                     "UTC"
+		PGTZ:                   "UTC"
+		DB_TYPE:                "postgresdb"
+		DB_POSTGRESDB_HOST:     "127.0.0.1"
+		DB_POSTGRESDB_PORT:     "5432"
+		DB_POSTGRESDB_DATABASE: "n8n"
+		DB_POSTGRESDB_USER:     "postgres"
+		DB_POSTGRESDB_PASSWORD: ""
+		PGUSER:                 "postgres"
+		PGDATABASE:             "n8n"
+		QUEUE_BULL_REDIS_HOST:  "127.0.0.1"
+		QUEUE_BULL_REDIS_PORT:          "6379"
+		TESTCONTAINERS_ENABLED:         "false"
+		COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+	}
+}

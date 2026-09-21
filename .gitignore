@@ -95,3 +95,10 @@ stryker.log
 # Generated migration indexes (scripts/generate-migration-index.mjs)
 packages/@n8n/db/src/migrations/sqlite/index.ts
 packages/@n8n/db/src/migrations/postgresdb/index.ts
+
+# enact & enve local directories
+.enve/
+.enact/cache/
+.enact/runs/
+.enact/telemetry/
+.enact/summary.html

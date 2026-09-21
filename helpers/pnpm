@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -eo pipefail
+export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
+export COREPACK_ENABLE_AUTO_PIN=0
+export COREPACK_ENABLE_PROJECT_SPEC=0
+for p in $(which -a pnpm); do
+  case "$p" in
+    *corepack*|*/helpers/pnpm*) continue ;;
+    *) exec "$p" "$@" ;;
+  esac
+done
+echo "Error: No native pnpm found in PATH" >&2
+exit 1
