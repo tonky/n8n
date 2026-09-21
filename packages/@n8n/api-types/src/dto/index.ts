@@ -426,7 +426,9 @@ export {
 	UpdateSecuritySettingsDto,
 } from './security-settings/security-settings.dto';
 export {
+	SecurityPolicyPublicDto,
 	UpdateSecurityPolicyDto,
+	securityPolicyPublicSchema,
 	type SecurityPolicyResponse,
 } from './security-settings/security-policy.dto';
 
