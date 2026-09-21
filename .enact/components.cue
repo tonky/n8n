@@ -7,6 +7,8 @@ pipeline: {
 	workspace_scope: {
 		include: [
 			".enact",
+			"bin",
+			"helpers",
 			"package.json",
 			"pnpm-lock.yaml",
 			"pnpm-workspace.yaml",

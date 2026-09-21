@@ -360,19 +360,28 @@ import (
 	let defaultDataDir = ".enve/data/postgres"
 	let defaultDb = "postgres"
 	let defaultUser = "postgres"
-	let defaultSocketDir = "/tmp"
 	let defaultTimeout = "2500ms"
 
 	port:        #Port | *defaultPort
 	dataDir:     string | *defaultDataDir
-	socketDir:   string | *defaultSocketDir
+	// With the data, not in `/tmp`: a socket left behind by a crashed postmaster
+	// otherwise blocks the next start of an unrelated project on the same port, which
+	// is what the supervisor's stale-socket sweep exists to paper over.
+	socketDir:   string | *dataDir
 	database:    string | *defaultDb
 	user:        string | *defaultUser
 	timeout:     #Duration | *defaultTimeout
 	command:     string | *"postgres -D \(dataDir) -k \(socketDir) -p \(port)"
 	lifecycle: {
 		init: [
-			*"initdb -D $DATA_DIR -U postgres --auth-local=trust --auth-host=trust" | string,
+			*"initdb -D \"$DATA_DIR\" -U postgres --auth-local=trust --auth-host=trust" | string,
+		]
+		// Postgres runs its checkpointer and walwriter as child processes, so the group
+		// SIGTERM that stops every other service reaches them directly and the postmaster
+		// reads that as a crash rather than a shutdown. Without this it never checkpoints,
+		// and every later boot pays for an automatic recovery.
+		preStop: [
+			*"pg_ctl stop -D \"$DATA_DIR\" -m fast" | string,
 		]
 	}
 	environment: {
@@ -422,8 +431,36 @@ import (
 	}
 }
 
+#ValkeyService: #Service & {
+	package: #PackageRef | *"valkey"
+
+	let defaultPort = 6379
+	let defaultDataDir = ".enve/data/valkey"
+	let defaultTimeout = "1500ms"
+
+	port:        #Port | *defaultPort
+	dataDir:     string | *defaultDataDir
+	timeout:     #Duration | *defaultTimeout
+	command:     string | *"valkey-server --port \(port) --dir \(dataDir) --daemonize no"
+	// Valkey answers the Redis protocol, so its clients read the Redis variables.
+	environment: {
+		REDIS_PORT: "\(port)"
+		REDIS_URL:  "redis://localhost:\(port)/0"
+	}
+	let servicePort = port
+	healthCheck: {
+		port:      #Port | *servicePort
+		timeout:   #Duration | *"800ms"
+	}
+	readinessProbe: {
+		port:      #Port | *servicePort
+		command:   string | *"valkey-cli -p \(servicePort) ping"
+		timeout:   #Duration | *defaultTimeout
+	}
+}
+
 #MySQLService: #Service & {
-	package: #PackageRef | *"mariadb"
+	package: #PackageRef | *"mysql"
 
 	let defaultPort = 3306
 	let defaultDataDir = ".enve/data/mysql"
@@ -437,7 +474,11 @@ import (
 			*"mysqld --initialize-insecure --datadir=\"$DATA_DIR\"" | string,
 		]
 	}
-	command:     string | *"mysqld --datadir=\(dataDir) --port=\(port)"
+	// Every path under the data directory: the socket and the pid file both default
+	// into a shared location (`/tmp/mysql.sock`), which a second instance would take
+	// from the first. `--mysqlx=OFF` closes the X protocol listener, whose own
+	// default port (33060) is not the one this service was given.
+	command:     string | *"mysqld --datadir=\"\(dataDir)\" --port=\(port) --socket=\"\(dataDir)/mysql.sock\" --pid-file=\"\(dataDir)/mysqld.pid\" --mysqlx=OFF --bind-address=127.0.0.1"
 	environment: {
 		MYSQL_TCP_PORT: "\(port)"
 	}
@@ -448,7 +489,7 @@ import (
 	}
 	readinessProbe: {
 		port:      #Port | *servicePort
-		command:   string | *"mysqladmin ping -h 127.0.0.1 -P \(servicePort)"
+		command:   string | *"mysqladmin ping -h 127.0.0.1 -P \(servicePort) -u root"
 		timeout:   #Duration | *defaultTimeout
 	}
 }
@@ -546,15 +587,20 @@ import (
 	package: #PackageRef | *"nginx"
 
 	let defaultPort = 8080
-	let defaultConfigFile = "/etc/nginx/nginx.conf"
 	let defaultRunDir = ".enve/data/nginx"
 	let defaultTimeout = "2000ms"
 
 	port:          #Port | *defaultPort
-	configFile:    string | *defaultConfigFile
 	runDir:        string | *defaultRunDir
+	// The config lives with the service, not at `/etc/nginx/nginx.conf`: the host's file
+	// is absent on a clean machine and, where it exists, asks for port 80 and writes to
+	// /var/log/nginx. Declaring `nginx` under `services:` has enve write one; a project
+	// that configures nginx itself supplies its own through `files:`.
+	configFile:    string | *"\(runDir)/nginx.conf"
 	timeout:       #Duration | *defaultTimeout
-	command:       string | *"nginx -p \(runDir) -c \(configFile) -g 'daemon off;'"
+	// `-e stderr` because nginx opens its compiled-in `logs/error.log` before it reads a
+	// line of the config, and that directory does not exist under a fresh prefix.
+	command:       string | *"nginx -p \"\(runDir)\" -c \"\(configFile)\" -e stderr -g \"daemon off;\""
 	let servicePort = port
 	healthCheck: {
 		port:      #Port | *servicePort
@@ -567,66 +613,50 @@ import (
 	}
 }
 
-#MinioService: #Service & {
-	package: #PackageRef | *"minio"
+#GarageService: #Service & {
+	package: #PackageRef | *"garage"
 
-	let defaultPort = 9000
-	let defaultConsolePort = 9001
-	let defaultDataDir = ".enve/data/minio"
-	let defaultTimeout = "3000ms"
-
-	port:               #Port | *defaultPort
-	consolePort:        #Port | *defaultConsolePort
-	dataDir:            string | *defaultDataDir
-	timeout:            #Duration | *defaultTimeout
-	command:            string | *"minio server \(dataDir) --address :\(port) --console-address :\(consolePort)"
-	environment: {
-		MINIO_PORT:          "\(port)"
-		MINIO_CONSOLE_PORT:  "\(consolePort)"
-		MINIO_ROOT_USER:     "minioadmin"
-		MINIO_ROOT_PASSWORD: "minioadmin"
-		S3_ENDPOINT:         "http://localhost:\(port)"
-	}
-	let servicePort = port
-	healthCheck: {
-		port:      #Port | *servicePort
-		path:      string | *"http://127.0.0.1:\(servicePort)/minio/health/live"
-		timeout:   #Duration | *"1500ms"
-	}
-	readinessProbe: {
-		port:      #Port | *servicePort
-		path:      string | *"http://127.0.0.1:\(servicePort)/minio/health/ready"
-		timeout:   #Duration | *defaultTimeout
-	}
-}
-
-#RedpandaService: #Service & {
-	package: #PackageRef | *"redpanda"
-
-	let defaultKafkaPort = 9092
-	let defaultAdminPort = 9644
-	let defaultDataDir = ".enve/data/redpanda"
+	let defaultPort = 3900
+	let defaultDataDir = ".enve/data/garage"
 	let defaultTimeout = "4000ms"
 
-	port:        #Port | *defaultKafkaPort
-	adminPort:   #Port | *defaultAdminPort
-	dataDir:     string | *defaultDataDir
-	timeout:     #Duration | *defaultTimeout
-	command:     string | *"redpanda start --mode dev-container --kafka-addr 127.0.0.1:\(port) --admin-addr 127.0.0.1:\(adminPort) --dir \(dataDir) --smp 1 --memory 512M --reserve-memory 0M --check=false"
+	// Garage listens three times: S3 for clients, RPC between nodes, and the admin API
+	// readiness asks. Upstream puts the admin API on 3903; enve puts the two extra
+	// listeners beside the S3 port, so one declared port moves all three and two
+	// instances never collide. That arithmetic lives in the conventions layer, which is
+	// what a `garage: {}` declaration goes through, and it is what writes the config
+	// the server reads. These are its answers for the default port, spelled out
+	// because a CUE default cannot compute one — so a preset that sets `port` should
+	// set `rpcPort` and `adminPort` beside it rather than leave them at 3901/3902.
+	port:       #Port | *defaultPort
+	let defaultRpcPort = 3901
+	let defaultAdminPort = 3902
+	rpcPort:    #Port | *defaultRpcPort
+	adminPort:  #Port | *defaultAdminPort
+	dataDir:    string | *defaultDataDir
+	// Written by enve when `garage` is declared under `services:`. A project that
+	// configures garage itself supplies its own through `files:`.
+	configFile: string | *"\(dataDir)/garage.toml"
+	timeout:    #Duration | *defaultTimeout
+	command:    string | *"garage -c \"\(configFile)\" server"
+	// The variables seaweedfs exports, so code that reads them works against either.
 	environment: {
-		KAFKA_PORT:     "\(port)"
-		KAFKA_BROKERS:  "127.0.0.1:\(port)"
-		REDPANDA_ADMIN: "127.0.0.1:\(adminPort)"
+		AWS_ENDPOINT_URL:   "http://127.0.0.1:\(port)"
+		S3_ENDPOINT:        "http://127.0.0.1:\(port)"
+		AWS_DEFAULT_REGION: "garage"
 	}
 	let servicePort = port
+	let adminEndpoint = adminPort
 	healthCheck: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"1500ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"1500ms"
 	}
+	// `/health` answers as soon as the node is up and before a layout exists, which is what
+	// makes it usable: the layout is applied by `postStart`, after readiness has passed.
 	readinessProbe: {
-		port:      #Port | *adminPort
-		path:      string | *"http://127.0.0.1:\(adminPort)/v1/cluster/ready"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *adminEndpoint
+		path:    string | *"http://127.0.0.1:\(adminEndpoint)/health"
+		timeout: #Duration | *defaultTimeout
 	}
 }
 
@@ -634,11 +664,15 @@ import (
 	package: #PackageRef | *"tansu"
 
 	let defaultPort = 9092
-	let defaultEngine = "memory://tansu/"
+	let defaultDataDir = ".enve/data/tansu"
 	let defaultTimeout = "1500ms"
 
 	port:          #Port | *defaultPort
-	storageEngine: string | *defaultEngine
+	dataDir:       string | *defaultDataDir
+	// On disk rather than `memory://tansu/`, which lost every topic on restart. Tansu
+	// resolves the URL's path against its working directory, so the path stays relative
+	// and the `///` is load-bearing: `sqlite://<path>` reads `<path>` as the URL's host.
+	storageEngine: string | *"sqlite:///\(dataDir)/tansu.db"
 	timeout:       #Duration | *defaultTimeout
 	command:       string | *"tansu --listener-url tcp://127.0.0.1:\(port) --advertised-listener-url tcp://127.0.0.1:\(port) --storage-engine \(storageEngine)"
 	environment: {
