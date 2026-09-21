@@ -386,7 +386,6 @@ jobs:
       with:
         key: ${{ runner.os }}-${{ matrix.technology }}-${{ hashFiles('**/go.sum', '**/Cargo.lock', '**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/package-lock.json', '**/pnpm-lock.yaml') }}
         path: |-
-          node_modules
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
           /tmp/go-build
@@ -478,10 +477,10 @@ jobs:
         if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
           RUN_PREFIX="enve run $([ -f enve.lock ] && echo --locked) -- "
         fi
-        if [ -f "pnpm-lock.yaml" ] && [ ! -d "node_modules/.bin" ]; then
+        if [ -f "pnpm-lock.yaml" ]; then
           echo "📦 Installing project dependencies via pnpm..."
           $RUN_PREFIX pnpm install --prefer-offline 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile
-        elif [ -f "package-lock.json" ] && [ ! -d "node_modules/.bin" ]; then
+        elif [ -f "package-lock.json" ]; then
           echo "📦 Installing project dependencies via npm..."
           $RUN_PREFIX npm ci 2>/dev/null || $RUN_PREFIX npm install
         fi

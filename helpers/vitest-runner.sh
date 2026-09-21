@@ -16,6 +16,12 @@ while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
   REPO_ROOT="$(dirname "$REPO_ROOT")"
 done
 
+# Ensure local node_modules exists for the component
+if [ ! -d "node_modules" ] && [ -f "$REPO_ROOT/pnpm-lock.yaml" ]; then
+  echo "📦 [vitest-runner] Local node_modules missing, running pnpm install..."
+  (cd "$REPO_ROOT" && pnpm install --prefer-offline 2>/dev/null || pnpm install --no-frozen-lockfile) || true
+fi
+
 # Ensure workspace build artifacts exist for internal packages
 if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   TSC_BIN="$REPO_ROOT/node_modules/.bin/tsc"
