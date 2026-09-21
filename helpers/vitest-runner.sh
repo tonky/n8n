@@ -42,8 +42,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
       FILTER_ARGS+=(--filter="${CURRENT_PKG}^...")
     elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
       FILTER_ARGS+=(--filter=@n8n/db^...)
-    fi
-    if [ -d "$REPO_ROOT/packages/cli" ] && [ "$CURRENT_PKG" != "@n8n/db" ]; then
+    elif [ -d "$REPO_ROOT/packages/cli" ]; then
       FILTER_ARGS+=(--filter=n8n^...)
     fi
     (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
@@ -79,7 +78,8 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
   export N8N_LOG_LEVEL=silent
   export DB_SQLITE_POOL_SIZE=4
   export DB_TYPE=sqlite
-  exec run_vitest run
+  run_vitest run
+  exit $?
 fi
 
 UNITS=()

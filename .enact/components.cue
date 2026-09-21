@@ -82,7 +82,7 @@ pipeline: {
 			technology:  "typescript"
 			root:        "packages/cli"
 			watch_paths: ["packages/cli/**"]
-			depends_on:  ["@n8n/core", "@n8n/db"]
+			depends_on:  ["@n8n/core", "@n8n/db", "nodes-base"]
 			workspace_scope: {
 				include_dependencies: true
 			}
