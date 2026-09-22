@@ -30,6 +30,7 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
   ENVE_SERVICE_GID: '1000'
   ENVE_SERVICE_UID: '1000'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   GOCACHE: /tmp/go-build
   GOPATH: /tmp/go
   UV_CACHE_DIR: /tmp/.cache/uv
@@ -83,7 +84,7 @@ jobs:
       id: enact-cli-cache
       if: hashFiles('bin/enact') == ''
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
         path: ~/.cargo/bin/enact
@@ -91,7 +92,7 @@ jobs:
     - name: Restore enact Task CAS Cache
       id: enact-tasks-cache
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
         path: .enact/cache
@@ -118,7 +119,7 @@ jobs:
     - name: Restore Nix Store (L1 GHA Cache)
       id: nix-l1-cache
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
         path: |-
@@ -143,7 +144,7 @@ jobs:
     - name: Restore Node & TypeScript build cache
       id: node-l1-cache
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
@@ -237,7 +238,7 @@ jobs:
     - name: Save Node & TypeScript build cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.node-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
@@ -252,7 +253,7 @@ jobs:
     - name: Save Nix Store (L1 GHA Cache)
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
         path: |-
@@ -295,7 +296,7 @@ jobs:
       id: enact-cli-cache
       if: hashFiles('bin/enact') == ''
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
         path: ~/.cargo/bin/enact
@@ -303,7 +304,7 @@ jobs:
     - name: Restore enact Task CAS Cache
       id: enact-tasks-cache
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
         path: .enact/cache
@@ -405,7 +406,7 @@ jobs:
       id: enact-cli-cache
       if: hashFiles('bin/enact') == ''
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
         path: ~/.cargo/bin/enact
@@ -483,7 +484,7 @@ jobs:
       id: enact-cli-cache
       if: hashFiles('bin/enact') == ''
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
         path: ~/.cargo/bin/enact
@@ -510,7 +511,7 @@ jobs:
     - name: Restore enact Task CAS Cache
       id: enact-tasks-cache
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
         path: .enact/cache
@@ -519,7 +520,7 @@ jobs:
       id: node-l1-cache
       if: matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright'
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
@@ -538,7 +539,7 @@ jobs:
       id: playwright-l1-cache
       if: matrix.technology == 'playwright' || contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/**', '**/pnpm-lock.yaml', '**/package-lock.json') }}
         path: |-
@@ -549,7 +550,7 @@ jobs:
       id: python-l1-cache
       if: matrix.technology == 'python'
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-python-${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') }}
         path: |-
@@ -561,7 +562,7 @@ jobs:
       id: go-l1-cache
       if: matrix.technology == 'go'
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         path: |-
@@ -572,7 +573,7 @@ jobs:
       id: rust-l1-cache
       if: matrix.technology == 'rust'
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
         path: |-
@@ -627,7 +628,7 @@ jobs:
     - name: Restore Nix Store (L1 GHA Cache)
       id: nix-l1-cache
       continue-on-error: true
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
         path: |-
@@ -718,7 +719,7 @@ jobs:
     - name: Save Node & TypeScript build cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && (matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright') && steps.node-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
@@ -733,7 +734,7 @@ jobs:
     - name: Save Python build & venv cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && matrix.technology == 'python' && steps.python-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-python-${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') }}
         path: |-
@@ -743,7 +744,7 @@ jobs:
     - name: Save Go build cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && matrix.technology == 'go' && steps.go-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         path: |-
@@ -752,7 +753,7 @@ jobs:
     - name: Save Rust target & cargo cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && matrix.technology == 'rust' && steps.rust-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
         path: |-
@@ -763,7 +764,7 @@ jobs:
     - name: Save Playwright browser cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && (matrix.technology == 'playwright' || contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')) && steps.playwright-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/**', '**/pnpm-lock.yaml', '**/package-lock.json') }}
         path: |-
@@ -772,7 +773,7 @@ jobs:
     - name: Save Nix Store (L1 GHA Cache)
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
         path: |-
