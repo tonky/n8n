@@ -560,7 +560,7 @@ jobs:
           target/
         restore-keys: ${{ runner.os }}-rust-
     - name: Pre-warm Database Template Snapshot from Cloudflare R2
-      if: ${{ (secrets.ENACT_R2_BUCKET != '' || env.ENACT_R2_BUCKET != '') && (env.ENACT_SNAPSHOT_NAME != '' || contains(matrix.component, 'db') || matrix.technology == 'database') }}
+      if: ${{ env.ENACT_SNAPSHOT_NAME != '' || contains(matrix.component, 'db') || matrix.technology == 'database' }}
       continue-on-error: true
       run: |-
         if [ -n "$ENACT_R2_BUCKET" ]; then
@@ -578,7 +578,7 @@ jobs:
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
         ENACT_SNAPSHOT_NAME: ${{ matrix.snapshot_name || env.ENACT_SNAPSHOT_NAME }}
     - name: Pre-warm Playwright Browsers from Cloudflare R2
-      if: ${{ (secrets.ENACT_R2_BUCKET != '' || env.ENACT_R2_BUCKET != '') && (contains(matrix.component, 'e2e') || contains(matrix.component, 'playwright') || matrix.technology == 'playwright') }}
+      if: ${{ contains(matrix.component, 'e2e') || contains(matrix.component, 'playwright') || matrix.technology == 'playwright' }}
       continue-on-error: true
       run: |-
         if [ -n "$ENACT_R2_BUCKET" ]; then
@@ -660,7 +660,7 @@ jobs:
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
         PLAYWRIGHT_BROWSERS_PATH: /tmp/.cache/ms-playwright
     - name: Push Updated Dependencies to Cloudflare R2
-      if: success() && (secrets.ENACT_R2_BUCKET != '' || env.ENACT_R2_BUCKET != '')
+      if: success()
       continue-on-error: true
       run: |-
         if [ -n "$ENACT_R2_BUCKET" ]; then
