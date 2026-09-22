@@ -164,16 +164,12 @@ jobs:
         if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
           RUN_PREFIX="enve run $([ -f enve.lock ] && echo --locked) -- "
         fi
-        FILTER_ARG=""
-        if [ -n "${{ matrix.component_dir }}" ] && [ "${{ matrix.component_dir }}" != "." ]; then
-          FILTER_ARG="--filter ./${{ matrix.component_dir }}..."
-        fi
         if [ -f "pnpm-lock.yaml" ]; then
           echo "📦 Installing project dependencies via pnpm..."
           $RUN_PREFIX pnpm config set fetch-retries 2 2>/dev/null || true
           $RUN_PREFIX pnpm config set fetch-retry-maxtimeout 10000 2>/dev/null || true
           $RUN_PREFIX pnpm config set network-concurrency 16 2>/dev/null || true
-          $RUN_PREFIX pnpm install $FILTER_ARG --frozen-lockfile --offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install $FILTER_ARG --frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install $FILTER_ARG --no-frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink
+          $RUN_PREFIX pnpm install --frozen-lockfile --offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install --frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink
         elif [ -f "package-lock.json" ]; then
           echo "📦 Installing project dependencies via npm..."
           $RUN_PREFIX npm ci --prefer-offline 2>/dev/null || $RUN_PREFIX npm install
@@ -739,16 +735,12 @@ jobs:
         if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
           RUN_PREFIX="enve run $([ -f enve.lock ] && echo --locked) -- "
         fi
-        FILTER_ARG=""
-        if [ -n "${{ matrix.component_dir }}" ] && [ "${{ matrix.component_dir }}" != "." ]; then
-          FILTER_ARG="--filter ./${{ matrix.component_dir }}..."
-        fi
         if [ -f "pnpm-lock.yaml" ]; then
           echo "📦 Installing project dependencies via pnpm..."
           $RUN_PREFIX pnpm config set fetch-retries 2 2>/dev/null || true
           $RUN_PREFIX pnpm config set fetch-retry-maxtimeout 10000 2>/dev/null || true
           $RUN_PREFIX pnpm config set network-concurrency 16 2>/dev/null || true
-          $RUN_PREFIX pnpm install $FILTER_ARG --frozen-lockfile --offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install $FILTER_ARG --frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install $FILTER_ARG --no-frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink
+          $RUN_PREFIX pnpm install --frozen-lockfile --offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install --frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink
         elif [ -f "package-lock.json" ]; then
           echo "📦 Installing project dependencies via npm..."
           $RUN_PREFIX npm ci --prefer-offline 2>/dev/null || $RUN_PREFIX npm install
