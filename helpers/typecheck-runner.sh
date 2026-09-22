@@ -8,16 +8,15 @@ if [ -f "scripts/generate-migration-index.mjs" ]; then
   node scripts/generate-migration-index.mjs || true
 fi
 
-if [ -n "$CURRENT_PKG" ] && [ -f "../../turbo.json" ]; then
-  echo "🔍 [typecheck-runner] Running scoped typecheck via turbo for '$CURRENT_PKG'..."
-  pnpm turbo run typecheck --filter="${CURRENT_PKG}" --concurrency=2
-elif [ -n "$CURRENT_PKG" ] && [ -f "../../../turbo.json" ]; then
-  echo "🔍 [typecheck-runner] Running scoped typecheck via turbo for '$CURRENT_PKG'..."
-  pnpm turbo run typecheck --filter="${CURRENT_PKG}" --concurrency=2
-elif [ -f "tsconfig.json" ]; then
-  echo "🔍 [typecheck-runner] Running tsc --noEmit..."
-  pnpm exec tsc -p tsconfig.json --noEmit
+echo "🔍 [typecheck-runner] Running scoped TypeScript typecheck for '$CURRENT_PKG'..."
+if [ -x "./node_modules/.bin/tsc" ]; then
+  exec ./node_modules/.bin/tsc -p tsconfig.json --noEmit
+elif [ -x "../../node_modules/.bin/tsc" ]; then
+  exec ../../node_modules/.bin/tsc -p tsconfig.json --noEmit
+elif [ -x "../../../node_modules/.bin/tsc" ]; then
+  exec ../../../node_modules/.bin/tsc -p tsconfig.json --noEmit
+elif command -v pnpm >/dev/null 2>&1; then
+  exec pnpm exec tsc -p tsconfig.json --noEmit
 else
-  echo "🔍 [typecheck-runner] Running generic tsc --noEmit..."
-  tsc --noEmit
+  exec npx tsc -p tsconfig.json --noEmit
 fi
