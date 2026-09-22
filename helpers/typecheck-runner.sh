@@ -22,6 +22,32 @@ else
   TSC_BIN="pnpm exec tsc"
 fi
 
+# Pre-build local workspace dependencies checked out in the sparse cone
+if [ -f "package.json" ]; then
+  node -e '
+    const fs = require("fs");
+    const cp = require("child_process");
+    try {
+      const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+      const deps = Object.entries(pkg.dependencies || {})
+        .filter(([_, v]) => typeof v === "string" && v.startsWith("workspace:"))
+        .map(([k]) => k);
+      for (const dep of deps) {
+        try {
+          const realPath = fs.realpathSync(`node_modules/${dep}`);
+          if (fs.existsSync(`${realPath}/src`) && fs.existsSync(`${realPath}/package.json`)) {
+            const depPkg = JSON.parse(fs.readFileSync(`${realPath}/package.json`, "utf8"));
+            const buildScript = depPkg.scripts?.["build"] ? "build" : depPkg.scripts?.["build:unchecked"] ? "build:unchecked" : null;
+            if (buildScript) {
+              cp.execSync(`pnpm --filter=${dep} run ${buildScript}`, { stdio: "ignore" });
+            }
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+  ' 2>/dev/null || true
+fi
+
 # Pre-build referenced project configs so declaration files exist in dist/
 if [ -f "tsconfig.json" ]; then
   REFS=$(node -e '
