@@ -77,6 +77,7 @@ jobs:
         sparse-checkout-cone-mode: 'false'
         submodules: 'false'
     - name: Restore enact CLI binary cache
+      id: enact-cli-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -84,6 +85,7 @@ jobs:
         path: ~/.cargo/bin/enact
         restore-keys: ${{ runner.os }}-enact-cli-
     - name: Restore enact Task CAS Cache
+      id: enact-tasks-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -110,6 +112,7 @@ jobs:
         echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
         export PATH="$BIN_DIR:$HOME/.cargo/bin:$PATH"
     - name: Restore Nix Store (L1 GHA Cache)
+      id: nix-l1-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -122,7 +125,7 @@ jobs:
     - name: Pull Dependencies via enve
       run: |-
         if [ -f "enve.lock" ]; then
-          if [ -n "$ENACT_R2_BUCKET" ]; then
+          if [ "${{ steps.nix-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
             enve cache pull enve.lock --cache "$ENACT_R2_BUCKET" --insecure -j 16
           fi
           enve run $([ -f enve.lock ] && echo --locked) -- true
@@ -133,15 +136,19 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
         ENVE_CACHE_CONCURRENCY: '16'
-    - name: Restore typescript build & compiler cache
+    - name: Restore Node & TypeScript build cache
+      id: node-l1-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
-        key: ${{ runner.os }}-typescript-${{ hashFiles('**/go.sum', '**/Cargo.lock', '**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/package-lock.json', '**/pnpm-lock.yaml') }}
+        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
-        restore-keys: ${{ runner.os }}-typescript-
+          ~/.npm
+          node_modules/.cache
+          .turbo/cache
+        restore-keys: ${{ runner.os }}-node-
     - name: Install Project Dependencies
       run: |-
         RUN_PREFIX=""
@@ -150,6 +157,9 @@ jobs:
         fi
         if [ -f "pnpm-lock.yaml" ]; then
           echo "📦 Installing project dependencies via pnpm..."
+          $RUN_PREFIX pnpm config set fetch-retries 2 2>/dev/null || true
+          $RUN_PREFIX pnpm config set fetch-retry-maxtimeout 10000 2>/dev/null || true
+          $RUN_PREFIX pnpm config set network-concurrency 16 2>/dev/null || true
           $RUN_PREFIX pnpm install --frozen-lockfile --prefer-offline --config.audit=false 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile --prefer-offline --config.audit=false
         fi
       env:
@@ -196,6 +206,27 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
+    - name: Save Node & TypeScript build cache
+      if: github.event_name == 'push' && steps.node-l1-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        path: |-
+          ~/.local/share/pnpm/store
+          ~/.cache/pnpm
+          ~/.npm
+          node_modules/.cache
+          .turbo/cache
+    - name: Save Nix Store (L1 GHA Cache)
+      if: github.event_name == 'push' && steps.nix-l1-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
+        path: |-
+          /nix/store
+          ~/.local/share/enve/store
     - name: Upload Telemetry for [check-and-lint]
       if: always()
       continue-on-error: true
@@ -230,6 +261,7 @@ jobs:
         sparse-checkout-cone-mode: 'false'
         submodules: 'false'
     - name: Restore enact CLI binary cache
+      id: enact-cli-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -237,6 +269,7 @@ jobs:
         path: ~/.cargo/bin/enact
         restore-keys: ${{ runner.os }}-enact-cli-
     - name: Restore enact Task CAS Cache
+      id: enact-tasks-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -337,6 +370,7 @@ jobs:
         sparse-checkout-cone-mode: 'false'
         submodules: 'false'
     - name: Restore enact CLI binary cache
+      id: enact-cli-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -413,6 +447,7 @@ jobs:
         show-progress: 'false'
         submodules: 'false'
     - name: Restore enact CLI binary cache
+      id: enact-cli-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -439,33 +474,63 @@ jobs:
         echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
         export PATH="$BIN_DIR:$HOME/.cargo/bin:$PATH"
     - name: Restore enact Task CAS Cache
+      id: enact-tasks-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
         key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
         path: .enact/cache
         restore-keys: ${{ runner.os }}-enact-tasks-
-    - name: Restore ${{ matrix.technology }} build & compiler cache
+    - name: Restore Node & TypeScript build cache
+      id: node-l1-cache
+      if: matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright'
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
-        key: ${{ runner.os }}-${{ matrix.technology }}-${{ hashFiles('**/go.sum', '**/Cargo.lock', '**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/package-lock.json', '**/pnpm-lock.yaml') }}
+        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
+          ~/.npm
+          node_modules/.cache
+          .turbo/cache
+        restore-keys: ${{ runner.os }}-node-
+    - name: Restore Python build & venv cache
+      id: python-l1-cache
+      if: matrix.technology == 'python'
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        key: ${{ runner.os }}-python-${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') }}
+        path: |-
+          /tmp/.cache/uv
+          ~/.cache/pip
+          .venv
+        restore-keys: ${{ runner.os }}-python-
+    - name: Restore Go build cache
+      id: go-l1-cache
+      if: matrix.technology == 'go'
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        path: |-
           /tmp/go-build
           /tmp/go/pkg/mod
+        restore-keys: ${{ runner.os }}-go-
+    - name: Restore Rust target & cargo cache
+      id: rust-l1-cache
+      if: matrix.technology == 'rust'
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+        path: |-
           ~/.cargo/registry/index
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target/
-          /tmp/.cache/uv
-          ~/.cache/pip
-          ~/.npm
-          /tmp/.cache/ms-playwright
-          ~/.cache/enact/snapshots
-          .venv
-        restore-keys: ${{ runner.os }}-${{ matrix.technology }}-
+        restore-keys: ${{ runner.os }}-rust-
     - name: Pre-warm Database Template Snapshot from Cloudflare R2
       if: ${{ env.ENACT_SNAPSHOT_NAME != '' || contains(matrix.component, 'db') || matrix.technology == 'database' }}
       continue-on-error: true
@@ -506,6 +571,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
     - name: Restore Nix Store (L1 GHA Cache)
+      id: nix-l1-cache
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -518,13 +584,13 @@ jobs:
     - name: Pull Dependencies via enve
       run: |-
         if [ -f "enve.lock" ]; then
-          if [ -n "$ENACT_R2_BUCKET" ]; then
+          if [ "${{ steps.nix-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
             enve cache pull enve.lock --cache "$ENACT_R2_BUCKET" --insecure -j 16
           fi
           enve run $([ -f enve.lock ] && echo --locked) -- true
         fi
         if [ -n "${{ matrix.component_dir }}" ] && [ "${{ matrix.component_dir }}" != "." ] && [ -f "${{ matrix.component_dir }}/enve.lock" ]; then
-          if [ -n "$ENACT_R2_BUCKET" ]; then
+          if [ "${{ steps.nix-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
             enve cache pull "${{ matrix.component_dir }}/enve.lock" --cache "$ENACT_R2_BUCKET" --insecure -j 16
           fi
           (cd "${{ matrix.component_dir }}" && enve run $([ -f enve.lock ] && echo --locked) -- true)
@@ -544,6 +610,9 @@ jobs:
         fi
         if [ -f "pnpm-lock.yaml" ]; then
           echo "📦 Installing project dependencies via pnpm..."
+          $RUN_PREFIX pnpm config set fetch-retries 2 2>/dev/null || true
+          $RUN_PREFIX pnpm config set fetch-retry-maxtimeout 10000 2>/dev/null || true
+          $RUN_PREFIX pnpm config set network-concurrency 16 2>/dev/null || true
           $RUN_PREFIX pnpm install --frozen-lockfile --prefer-offline --config.audit=false 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile --prefer-offline --config.audit=false
         elif [ -f "package-lock.json" ]; then
           echo "📦 Installing project dependencies via npm..."
@@ -592,3 +661,54 @@ jobs:
         path: |-
           .enact/telemetry.json
           .enact/summary.html
+    - name: Save Node & TypeScript build cache
+      if: github.event_name == 'push' && (matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright') && steps.node-l1-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        path: |-
+          ~/.local/share/pnpm/store
+          ~/.cache/pnpm
+          ~/.npm
+          node_modules/.cache
+          .turbo/cache
+    - name: Save Python build & venv cache
+      if: github.event_name == 'push' && matrix.technology == 'python' && steps.python-l1-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ runner.os }}-python-${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') }}
+        path: |-
+          /tmp/.cache/uv
+          ~/.cache/pip
+          .venv
+    - name: Save Go build cache
+      if: github.event_name == 'push' && matrix.technology == 'go' && steps.go-l1-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        path: |-
+          /tmp/go-build
+          /tmp/go/pkg/mod
+    - name: Save Rust target & cargo cache
+      if: github.event_name == 'push' && matrix.technology == 'rust' && steps.rust-l1-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+        path: |-
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+          target/
+    - name: Save Nix Store (L1 GHA Cache)
+      if: github.event_name == 'push' && steps.nix-l1-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
+        path: |-
+          /nix/store
+          ~/.local/share/enve/store
