@@ -22,7 +22,7 @@ pipeline: {
 				cost_per_min: 0.016
 				cpus:         4.0
 				labels: [
-					"ubuntu-latest-4-cores",
+					"ubuntu-latest",
 				]
 				memory_mb: 16384
 			}
