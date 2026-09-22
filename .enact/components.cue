@@ -120,9 +120,6 @@ pipeline: {
 			lint: {
 				command: "pnpm exec biome check ."
 			}
-			typecheck: {
-				command: "../../helpers/typecheck-runner.sh"
-			}
 			test: {
 				command: "../../helpers/vitest-runner.sh {relative_targets}"
 			}

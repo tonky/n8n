@@ -315,12 +315,18 @@ kafka:          { pname: "tansu" }
 
 	let defaultPort = 19000
 	let defaultDataDir = ".enve/data/seaweedfs"
-	let defaultTimeout = "6000ms"
+	// `weed server` is four servers and S3 is the last to listen: ~3.2s measured, so
+	// the old 4s health budget lost the coin toss as soon as raft took a little longer.
+	let defaultTimeout = "15000ms"
 
 	port:        schema.#Port | *defaultPort
 	dataDir:     string | *defaultDataDir
 	timeout:     schema.#Duration | *defaultTimeout
-	command:     string | *"weed server -s3 -s3.port=\(port) -dir=\(dataDir)"
+	// -master.raftHashicorp: under the legacy raft a resumed single-node master answers
+	// its own clients with `Not current leader` forever, so the second boot never serves.
+	// -ip pins the advertised address: `weed` otherwise records whichever non-loopback
+	// address it found into its raft state.
+	command:     string | *"weed server -ip=127.0.0.1 -master.raftHashicorp -s3 -s3.port=\(port) -dir=\(dataDir)"
 	environment: {
 		S3_PORT:     "\(port)"
 		S3_ENDPOINT: "http://127.0.0.1:\(port)"
@@ -328,12 +334,12 @@ kafka:          { pname: "tansu" }
 	let servicePort = port
 	healthCheck: {
 		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"4000ms"
+		timeout:   schema.#Duration | *"12000ms"
 	}
 	readinessProbe: {
 		port:      schema.#Port | *servicePort
 		command:   string | *"curl -s -f -o /dev/null http://127.0.0.1:\(servicePort)/"
-		timeout:   schema.#Duration | *defaultTimeout
+		timeout:   schema.#Duration | *"12000ms"
 	}
 }
 

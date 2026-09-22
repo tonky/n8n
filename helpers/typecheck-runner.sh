@@ -8,22 +8,42 @@ if [ -f "scripts/generate-migration-index.mjs" ]; then
   node scripts/generate-migration-index.mjs 2>/dev/null || true
 fi
 
-# Pre-warm upstream declarations into dist/ using turbo cache and fast unchecked builds
-if [ -n "$CURRENT_PKG" ]; then
-  pnpm turbo run build:unchecked --filter="${CURRENT_PKG}^..." --filter="!n8n-editor-ui" 2>/dev/null || true
+# Locate local repository TypeScript compiler
+TSC_BIN=""
+if [ -x "./node_modules/.bin/tsc" ]; then
+  TSC_BIN="./node_modules/.bin/tsc"
+elif [ -x "../../node_modules/.bin/tsc" ]; then
+  TSC_BIN="../../node_modules/.bin/tsc"
+elif [ -x "../../../node_modules/.bin/tsc" ]; then
+  TSC_BIN="../../../node_modules/.bin/tsc"
+elif command -v tsc >/dev/null 2>&1; then
+  TSC_BIN="tsc"
+else
+  TSC_BIN="pnpm exec tsc"
+fi
+
+# Pre-build referenced project configs so declaration files exist in dist/
+if [ -f "tsconfig.json" ]; then
+  REFS=$(node -e '
+    const fs = require("fs");
+    try {
+      const raw = fs.readFileSync("tsconfig.json", "utf8");
+      const clean = raw.replace(/^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1");
+      const json = JSON.parse(clean);
+      const valid = (json.references || []).map(r => r.path).filter(p => fs.existsSync(p));
+      console.log(valid.join(" "));
+    } catch (e) {
+      process.exit(0);
+    }
+  ' 2>/dev/null || true)
+
+  if [ -n "$REFS" ]; then
+    echo "📦 [typecheck-runner] Building local project references for '$CURRENT_PKG'..."
+    $TSC_BIN -b $REFS 2>/dev/null || true
+  fi
 fi
 
 echo "🔍 [typecheck-runner] Running scoped TypeScript typecheck for '$CURRENT_PKG'..."
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=6144}"
 
-if [ -x "./node_modules/.bin/tsc" ]; then
-  exec ./node_modules/.bin/tsc -p tsconfig.json --noEmit
-elif [ -x "../../node_modules/.bin/tsc" ]; then
-  exec ../../node_modules/.bin/tsc -p tsconfig.json --noEmit
-elif [ -x "../../../node_modules/.bin/tsc" ]; then
-  exec ../../../node_modules/.bin/tsc -p tsconfig.json --noEmit
-elif command -v pnpm >/dev/null 2>&1; then
-  exec pnpm exec tsc -p tsconfig.json --noEmit
-else
-  exec npx tsc -p tsconfig.json --noEmit
-fi
+exec $TSC_BIN -p tsconfig.json --noEmit

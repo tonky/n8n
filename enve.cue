@@ -5,7 +5,7 @@ import (
 	"github.com/tonky/enve/pkgs:pkgs"
 )
 
-devEnv: schema.#Environment & {
+profiles: dev: schema.#Profile & {
 	name: "n8n-platform-dev"
 	tools: [
 		pkgs.pnpm & {version: "12"},
@@ -16,7 +16,7 @@ devEnv: schema.#Environment & {
 	services: {
 		postgres: {
 			command: "postgres -D \"$DATA_DIR\" -k /tmp -p 5432 -c shared_buffers=32MB -c work_mem=4MB -c max_connections=25 -c fsync=off -c synchronous_commit=off"
-			env: {
+			environment: {
 				TZ:   "UTC"
 				PGTZ: "UTC"
 			}
@@ -26,20 +26,20 @@ devEnv: schema.#Environment & {
 		}
 		redis: {}
 	}
-	env: {
-		TZ:                     "UTC"
-		PGTZ:                   "UTC"
-		DB_TYPE:                "postgresdb"
-		DB_POSTGRESDB_HOST:     "127.0.0.1"
-		DB_POSTGRESDB_PORT:     "5432"
-		DB_POSTGRESDB_DATABASE: "n8n"
-		DB_POSTGRESDB_USER:     "postgres"
-		DB_POSTGRESDB_PASSWORD: ""
-		PGUSER:                 "postgres"
-		PGDATABASE:             "n8n"
-		QUEUE_BULL_REDIS_HOST:  "127.0.0.1"
-		QUEUE_BULL_REDIS_PORT:          "6379"
-		TESTCONTAINERS_ENABLED:         "false"
+	environment: {
+		TZ:                              "UTC"
+		PGTZ:                            "UTC"
+		DB_TYPE:                         "postgresdb"
+		DB_POSTGRESDB_HOST:              "127.0.0.1"
+		DB_POSTGRESDB_PORT:              "5432"
+		DB_POSTGRESDB_DATABASE:          "n8n"
+		DB_POSTGRESDB_USER:              "postgres"
+		DB_POSTGRESDB_PASSWORD:          ""
+		PGUSER:                          "postgres"
+		PGDATABASE:                      "n8n"
+		QUEUE_BULL_REDIS_HOST:           "127.0.0.1"
+		QUEUE_BULL_REDIS_PORT:           "6379"
+		TESTCONTAINERS_ENABLED:          "false"
 		COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
 	}
 }

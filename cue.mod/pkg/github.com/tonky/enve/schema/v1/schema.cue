@@ -561,12 +561,18 @@ import (
 
 	let defaultPort = 19000
 	let defaultDataDir = ".enve/data/seaweedfs"
-	let defaultTimeout = "6000ms"
+	// `weed server` is four servers and S3 is the last to listen: ~3.2s measured, so
+	// the old 4s health budget lost the coin toss as soon as raft took a little longer.
+	let defaultTimeout = "15000ms"
 
 	port:        #Port | *defaultPort
 	dataDir:     string | *defaultDataDir
 	timeout:     #Duration | *defaultTimeout
-	command:     string | *"weed server -s3 -s3.port=\(port) -dir=\(dataDir)"
+	// -master.raftHashicorp: under the legacy raft a resumed single-node master answers
+	// its own clients with `Not current leader` forever, so the second boot never serves.
+	// -ip pins the advertised address: `weed` otherwise records whichever non-loopback
+	// address it found into its raft state.
+	command:     string | *"weed server -ip=127.0.0.1 -master.raftHashicorp -s3 -s3.port=\(port) -dir=\(dataDir)"
 	environment: {
 		S3_PORT:     "\(port)"
 		S3_ENDPOINT: "http://127.0.0.1:\(port)"
@@ -574,12 +580,12 @@ import (
 	let servicePort = port
 	healthCheck: {
 		port:      #Port | *servicePort
-		timeout:   #Duration | *"4000ms"
+		timeout:   #Duration | *"12000ms"
 	}
 	readinessProbe: {
 		port:      #Port | *servicePort
 		command:   string | *"curl -s -f -o /dev/null http://127.0.0.1:\(servicePort)/"
-		timeout:   #Duration | *defaultTimeout
+		timeout:   #Duration | *"12000ms"
 	}
 }
 
@@ -738,9 +744,4 @@ import (
 // The profiles an enve file declares: `profiles: schema.#Profiles & {dev: …, ci: …}`.
 // `-p/--profile` selects one by key, and `dev` is selected when the flag is absent.
 #Profiles: [string]: #Profile
-
-// Deprecated spellings of #Profile, kept for one release so existing files keep
-// evaluating. `environment` now names only the OS environment variables a profile sets.
-#DevEnvironment: #Profile
-#Environment:    #Profile
 
