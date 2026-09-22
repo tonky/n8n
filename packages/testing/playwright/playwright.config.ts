@@ -37,11 +37,12 @@ const getTestEnv = () => {
 };
 
 // Calculate workers based on environment
-// The amount of workers to run, limited to 6 as higher causes instability in the local server
-// Use half the CPUs in local, full in CI (CI has no other processes so we can use more)
+// In CI, cap at 3 workers (leaving 1 dedicated core for n8n server, postgres & redis on 4-vCPU runners)
 const CPU_COUNT = os.cpus().length;
 const LOCAL_WORKERS = Math.min(6, Math.floor(CPU_COUNT / 2));
-const CI_WORKERS = CPU_COUNT;
+const CI_WORKERS = process.env.PLAYWRIGHT_WORKERS
+	? parseInt(process.env.PLAYWRIGHT_WORKERS, 10)
+	: Math.min(3, Math.max(1, CPU_COUNT - 1));
 const WORKERS = IS_DEV ? 1 : IS_CI ? CI_WORKERS : LOCAL_WORKERS;
 
 const BACKEND_URL = getBackendUrl();

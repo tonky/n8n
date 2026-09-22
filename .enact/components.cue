@@ -267,6 +267,10 @@ pipeline: {
 					engine: "typescript"
 				}]
 			}
+			resources: {
+				cpus:      4.0
+				memory_mb: 10240
+			}
 			test: {
 				command: "../../../helpers/playwright-runner.sh {relative_targets}"
 			}

@@ -28,6 +28,7 @@ concurrency:
   cancel-in-progress: true
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
   ENVE_SERVICE_GID: '1000'
   ENVE_SERVICE_UID: '1000'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -299,6 +300,7 @@ jobs:
         path: |-
           .enact/telemetry.json
           .enact/summary.html
+        retention-days: '1'
   detect:
     name: Detect Affected Components
     runs-on: ubuntu-latest
@@ -477,6 +479,7 @@ jobs:
         if-no-files-found: ignore
         name: enact-workflow-summary
         path: .enact/summary.html
+        retention-days: '1'
   test:
     name: Run Tests (${{ matrix.component }})
     needs:
@@ -571,7 +574,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/**', '**/pnpm-lock.yaml', '**/package-lock.json') }}
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/package.json', '**/pnpm-lock.yaml', '**/package-lock.json') }}
         path: |-
           ~/.cache/ms-playwright
           /tmp/.cache/ms-playwright
@@ -645,7 +648,7 @@ jobs:
           cp -r "$HOME/.cache/ms-playwright/." "/tmp/.cache/ms-playwright/" 2>/dev/null || true
         fi
         echo "PLAYWRIGHT_BROWSERS_PATH=/tmp/.cache/ms-playwright" >> "$GITHUB_ENV"
-        BROWSER_BIN=$(find /tmp/.cache/ms-playwright "$HOME/.cache/ms-playwright" -name "chrome-headless-shell" -type f -perm -111 2>/dev/null | head -n 1)
+        BROWSER_BIN=$(fd --type f --perm /111 "chrome-headless-shell" /tmp/.cache/ms-playwright "$HOME/.cache/ms-playwright" 2>/dev/null | head -n 1)
         if [ -n "$BROWSER_BIN" ]; then
           echo "BROWSER_BIN=$BROWSER_BIN" >> "$GITHUB_ENV"
           echo "🌐 Configured browser binary: $BROWSER_BIN"
@@ -746,8 +749,9 @@ jobs:
         path: |-
           .enact/telemetry.json
           .enact/summary.html
+        retention-days: '1'
     - name: Save Node & TypeScript build cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && (matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright') && steps.node-l1-cache.outputs.cache-hit != 'true'
+      if: github.event_name == 'push' && (matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright') && steps.node-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -796,7 +800,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/**', '**/pnpm-lock.yaml', '**/package-lock.json') }}
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/package.json', '**/pnpm-lock.yaml', '**/package-lock.json') }}
         path: |-
           ~/.cache/ms-playwright
           /tmp/.cache/ms-playwright

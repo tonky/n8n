@@ -134,10 +134,24 @@ const n8n = spawn('pnpm', ['start'], {
 let shuttingDown = false;
 function cleanupTempDir() {
 	try {
-		rmSync(userFolder, { recursive: true, force: true });
+		rmSync(userFolder, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 	} catch {
 		// best-effort
 	}
+}
+
+function waitForProcessExit(pid, timeoutMs = 1500) {
+	const start = Date.now();
+	while (Date.now() - start < timeoutMs) {
+		try {
+			process.kill(pid, 0);
+			const waitTill = Date.now() + 50;
+			while (Date.now() < waitTill) {}
+		} catch {
+			return true;
+		}
+	}
+	return false;
 }
 
 function shutdown(code) {
@@ -146,6 +160,7 @@ function shutdown(code) {
 	try {
 		// Negative pid → signal the whole process group.
 		process.kill(-n8n.pid, 'SIGTERM');
+		waitForProcessExit(n8n.pid, 1500);
 	} catch {
 		// Group may already be gone.
 	}
@@ -233,7 +248,9 @@ const playwrightEnv = {
 // fall back to `tests/e2e`.
 const userArgs = process.argv.slice(2);
 const hasExplicitPath = userArgs.some((a) => a.startsWith('tests/') || a.endsWith('.spec.ts'));
+const hasWorkersArg = userArgs.some((a) => a.startsWith('--workers'));
 const args = ['exec', 'playwright', 'test', '--project=e2e'];
+if (!hasWorkersArg) args.push('--workers=3');
 if (!hasExplicitPath) args.push('tests/e2e');
 args.push(...userArgs);
 
