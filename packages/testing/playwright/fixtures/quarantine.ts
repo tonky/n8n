@@ -6,6 +6,9 @@ const FETCH_TIMEOUT_MS = 10000;
 type QuarantineResponse = { quarantined?: string[] };
 
 async function fetchQuarantineList(): Promise<Set<string>> {
+	if (process.env.SKIP_QUARANTINE === 'true' || process.env.CURRENTS_RECORD_KEY) {
+		return new Set();
+	}
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 	try {

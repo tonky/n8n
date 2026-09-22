@@ -196,17 +196,18 @@ async function waitForN8n(timeoutMs = 120_000) {
 	let lastStatus = 'connection refused';
 	while (Date.now() < deadline) {
 		try {
-			const res = await fetch(`${backendUrl}/rest/e2e/reset`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: '{}',
-			});
-			lastStatus = `HTTP ${res.status}`;
-			// 404 with HTML => routes not loaded yet. Anything 2xx/4xx/5xx with
-			// JSON body means E2EController is registered and listening.
-			if (res.status !== 404) return;
-			const text = await res.text();
-			if (!text.includes('Cannot POST')) return;
+			// Check /healthz/readiness first: n8n unblocks readiness (200 OK)
+			// strictly after all TypeORM migrations and initializations finish.
+			const healthRes = await fetch(`${backendUrl}/healthz/readiness`).catch(() => null);
+			if (healthRes && healthRes.status === 200) {
+				const resetRes = await fetch(`${backendUrl}/rest/e2e/reset`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: '{}',
+				}).catch(() => null);
+				if (resetRes && resetRes.status !== 404) return;
+			}
+			lastStatus = healthRes ? `HTTP ${healthRes.status}` : 'connecting';
 		} catch (err) {
 			lastStatus = err.message ?? String(err);
 		}
@@ -241,6 +242,8 @@ const playwrightEnv = {
 	// We've already started + verified n8n; tell playwright.config.ts not to
 	// race us by spawning its own.
 	PLAYWRIGHT_SKIP_WEBSERVER: 'true',
+	SKIP_QUARANTINE: 'true',
+	CURRENTS_RECORD_KEY: process.env.CURRENTS_RECORD_KEY || 'local-ci-skip',
 };
 
 // Default scope: full e2e suite. Any CLI args (paths, --grep, --headed, etc.)

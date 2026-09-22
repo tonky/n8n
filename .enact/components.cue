@@ -44,6 +44,15 @@ pipeline: {
 			tier: "tiered"
 			mode: "read_write"
 		}
+		sqlite_e2e_template: {
+			path: "/tmp/n8n-e2e-template"
+			key: "sqlite-template-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}"
+			restore_keys: [
+				"sqlite-template-${{ runner.os }}-",
+			]
+			tier: "tiered"
+			mode: "read_write"
+		}
 	}
 
 	components: {
@@ -184,9 +193,9 @@ pipeline: {
 			}
 			tasks: {
 				lint: {
-					command: "pnpm exec biome check {relative_changed_files}"
+					command: "pnpm exec oxlint {relative_changed_files} --quiet"
 					filter: {
-						include: ["**/*.{ts,tsx,js,jsx,json,jsonc}"]
+						include: ["**/*.{ts,tsx,js,jsx,json,jsonc,vue}"]
 						on_empty: "skip"
 					}
 				}

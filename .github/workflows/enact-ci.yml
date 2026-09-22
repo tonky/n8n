@@ -164,12 +164,16 @@ jobs:
         if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
           RUN_PREFIX="enve run $([ -f enve.lock ] && echo --locked) -- "
         fi
+        FILTER_ARG=""
+        if [ -n "${{ matrix.component_dir }}" ] && [ "${{ matrix.component_dir }}" != "." ]; then
+          FILTER_ARG="--filter ./${{ matrix.component_dir }}..."
+        fi
         if [ -f "pnpm-lock.yaml" ]; then
           echo "📦 Installing project dependencies via pnpm..."
           $RUN_PREFIX pnpm config set fetch-retries 2 2>/dev/null || true
           $RUN_PREFIX pnpm config set fetch-retry-maxtimeout 10000 2>/dev/null || true
           $RUN_PREFIX pnpm config set network-concurrency 16 2>/dev/null || true
-          $RUN_PREFIX pnpm install --frozen-lockfile --offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install --frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink
+          $RUN_PREFIX pnpm install $FILTER_ARG --frozen-lockfile --offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install $FILTER_ARG --frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install $FILTER_ARG --no-frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink
         elif [ -f "package-lock.json" ]; then
           echo "📦 Installing project dependencies via npm..."
           $RUN_PREFIX npm ci --prefer-offline 2>/dev/null || $RUN_PREFIX npm install
@@ -203,6 +207,14 @@ jobs:
         key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
         path: ~/.cache/ms-playwright
         restore-keys: playwright-${{ runner.os }}-
+    - name: Restore Cache [sqlite_e2e_template]
+      id: cache-sqlite-e2e-template
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: sqlite-template-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
+        path: /tmp/n8n-e2e-template
+        restore-keys: sqlite-template-${{ runner.os }}-
     - name: Restore Cache [tsbuildinfo_frontend]
       id: cache-tsbuildinfo-frontend
       continue-on-error: true
@@ -259,6 +271,13 @@ jobs:
       with:
         key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
         path: ~/.cache/ms-playwright
+    - name: Save Cache [sqlite_e2e_template]
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-sqlite-e2e-template.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v6
+      with:
+        key: sqlite-template-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
+        path: /tmp/n8n-e2e-template
     - name: Save Cache [tsbuildinfo_frontend]
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-tsbuildinfo-frontend.outputs.cache-hit != 'true'
       continue-on-error: true
@@ -615,6 +634,30 @@ jobs:
           ~/.cargo/git/db
           target/
         restore-keys: ${{ runner.os }}-rust-
+    - name: Restore Cache [playwright_browsers]
+      id: cache-playwright-browsers
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        path: ~/.cache/ms-playwright
+        restore-keys: playwright-${{ runner.os }}-
+    - name: Restore Cache [sqlite_e2e_template]
+      id: cache-sqlite-e2e-template
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: sqlite-template-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
+        path: /tmp/n8n-e2e-template
+        restore-keys: sqlite-template-${{ runner.os }}-
+    - name: Restore Cache [tsbuildinfo_frontend]
+      id: cache-tsbuildinfo-frontend
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
+        path: packages/frontend/editor-ui/tsconfig.tsbuildinfo
+        restore-keys: tsbuildinfo-frontend-${{ runner.os }}-
     - name: Pre-warm Database Template Snapshot from Cloudflare R2
       if: ${{ env.ENACT_SNAPSHOT_NAME != '' || contains(matrix.component, 'db') || matrix.technology == 'database' }}
       continue-on-error: true
@@ -696,12 +739,16 @@ jobs:
         if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
           RUN_PREFIX="enve run $([ -f enve.lock ] && echo --locked) -- "
         fi
+        FILTER_ARG=""
+        if [ -n "${{ matrix.component_dir }}" ] && [ "${{ matrix.component_dir }}" != "." ]; then
+          FILTER_ARG="--filter ./${{ matrix.component_dir }}..."
+        fi
         if [ -f "pnpm-lock.yaml" ]; then
           echo "📦 Installing project dependencies via pnpm..."
           $RUN_PREFIX pnpm config set fetch-retries 2 2>/dev/null || true
           $RUN_PREFIX pnpm config set fetch-retry-maxtimeout 10000 2>/dev/null || true
           $RUN_PREFIX pnpm config set network-concurrency 16 2>/dev/null || true
-          $RUN_PREFIX pnpm install --frozen-lockfile --offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install --frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install --no-frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink
+          $RUN_PREFIX pnpm install $FILTER_ARG --frozen-lockfile --offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install $FILTER_ARG --frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink 2>/dev/null || $RUN_PREFIX pnpm install $FILTER_ARG --no-frozen-lockfile --prefer-offline --config.audit=false --config.minimum-release-age=0 --config.package-import-method=hardlink
         elif [ -f "package-lock.json" ]; then
           echo "📦 Installing project dependencies via npm..."
           $RUN_PREFIX npm ci --prefer-offline 2>/dev/null || $RUN_PREFIX npm install
@@ -813,3 +860,24 @@ jobs:
         path: |-
           /nix/store
           ~/.local/share/enve/store
+    - name: Save Cache [playwright_browsers]
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-playwright-browsers.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v6
+      with:
+        key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        path: ~/.cache/ms-playwright
+    - name: Save Cache [sqlite_e2e_template]
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-sqlite-e2e-template.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v6
+      with:
+        key: sqlite-template-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
+        path: /tmp/n8n-e2e-template
+    - name: Save Cache [tsbuildinfo_frontend]
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-tsbuildinfo-frontend.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v6
+      with:
+        key: tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
+        path: packages/frontend/editor-ui/tsconfig.tsbuildinfo
