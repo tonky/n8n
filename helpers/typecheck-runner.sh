@@ -3,6 +3,7 @@ set -euo pipefail
 
 # typecheck-runner.sh: Component-scoped TypeScript verification
 CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
+HAS_TYPECHECK=$(node -p "try { Boolean(require('./package.json').scripts.typecheck) } catch(e) { false }" 2>/dev/null || echo "false")
 
 if [ -f "scripts/generate-migration-index.mjs" ]; then
   node scripts/generate-migration-index.mjs 2>/dev/null || true
@@ -54,6 +55,10 @@ if [ -f "tsconfig.json" ]; then
 fi
 
 echo "🔍 [typecheck-runner] Running scoped TypeScript typecheck for '$CURRENT_PKG'..."
-export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=6144}"
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=8192}"
 
-exec $TSC_BIN -p tsconfig.json --noEmit
+if [ "$HAS_TYPECHECK" = "true" ] && command -v pnpm >/dev/null 2>&1; then
+  exec pnpm run typecheck
+else
+  exec $TSC_BIN -p tsconfig.json --noEmit
+fi

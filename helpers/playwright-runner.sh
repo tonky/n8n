@@ -4,7 +4,7 @@ set -eo pipefail
 export TZ=UTC
 export PGTZ=UTC
 export NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-/tmp/.node_compile_cache}"
-export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=512"
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/tmp/.cache/ms-playwright}"
 export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
 
