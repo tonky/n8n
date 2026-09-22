@@ -148,7 +148,9 @@ jobs:
           ~/.cache/pnpm
           ~/.npm
           node_modules/.cache
+          .turbo
           .turbo/cache
+          packages/*/dist
           packages/@n8n/*/dist
         restore-keys: ${{ runner.os }}-node-
     - name: Install Project Dependencies
@@ -230,7 +232,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
     - name: Save Node & TypeScript build cache
-      if: github.event_name == 'push' && steps.node-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.node-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v4
       with:
@@ -240,10 +242,12 @@ jobs:
           ~/.cache/pnpm
           ~/.npm
           node_modules/.cache
+          .turbo
           .turbo/cache
+          packages/*/dist
           packages/@n8n/*/dist
     - name: Save Nix Store (L1 GHA Cache)
-      if: github.event_name == 'push' && steps.nix-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v4
       with:
@@ -520,7 +524,9 @@ jobs:
           ~/.cache/pnpm
           ~/.npm
           node_modules/.cache
+          .turbo
           .turbo/cache
+          packages/*/dist
           packages/@n8n/*/dist
         restore-keys: ${{ runner.os }}-node-
     - name: Restore Python build & venv cache
@@ -690,7 +696,7 @@ jobs:
           .enact/telemetry.json
           .enact/summary.html
     - name: Save Node & TypeScript build cache
-      if: github.event_name == 'push' && (matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright') && steps.node-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && (matrix.technology == 'typescript' || matrix.technology == 'node' || matrix.technology == 'playwright') && steps.node-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v4
       with:
@@ -700,10 +706,12 @@ jobs:
           ~/.cache/pnpm
           ~/.npm
           node_modules/.cache
+          .turbo
           .turbo/cache
+          packages/*/dist
           packages/@n8n/*/dist
     - name: Save Python build & venv cache
-      if: github.event_name == 'push' && matrix.technology == 'python' && steps.python-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && matrix.technology == 'python' && steps.python-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v4
       with:
@@ -713,7 +721,7 @@ jobs:
           ~/.cache/pip
           .venv
     - name: Save Go build cache
-      if: github.event_name == 'push' && matrix.technology == 'go' && steps.go-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && matrix.technology == 'go' && steps.go-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v4
       with:
@@ -722,7 +730,7 @@ jobs:
           /tmp/go-build
           /tmp/go/pkg/mod
     - name: Save Rust target & cargo cache
-      if: github.event_name == 'push' && matrix.technology == 'rust' && steps.rust-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && matrix.technology == 'rust' && steps.rust-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v4
       with:
@@ -733,7 +741,7 @@ jobs:
           ~/.cargo/git/db
           target/
     - name: Save Nix Store (L1 GHA Cache)
-      if: github.event_name == 'push' && steps.nix-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v4
       with:
