@@ -37,7 +37,7 @@ if [ -f "package.json" ]; then
           const realPath = fs.realpathSync(`node_modules/${dep}`);
           if (fs.existsSync(`${realPath}/src`) && fs.existsSync(`${realPath}/package.json`)) {
             const depPkg = JSON.parse(fs.readFileSync(`${realPath}/package.json`, "utf8"));
-            const buildScript = depPkg.scripts?.["build"] ? "build" : depPkg.scripts?.["build:unchecked"] ? "build:unchecked" : null;
+            const buildScript = depPkg.scripts?.["build:server"] ? "build:server" : depPkg.scripts?.["build:unchecked"] ? "build:unchecked" : depPkg.scripts?.["build"] ? "build" : null;
             if (buildScript) {
               cp.execSync(`pnpm --filter=${dep} run ${buildScript}`, { stdio: "ignore" });
             }

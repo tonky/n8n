@@ -35,16 +35,24 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   fi
 
   if [ -d "$REPO_ROOT/packages/@n8n/di" ] && [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
-    echo "📦 [vitest-runner] Fast-compiling @n8n/di..."
-    if [ -x "$TSC_BIN" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/di" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+    echo "📦 [vitest-runner] Compiling workspace dependencies via turbo..."
+    CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
+    FILTER_ARGS=()
+    if [ -n "$CURRENT_PKG" ]; then
+      FILTER_ARGS+=(--filter="${CURRENT_PKG}^...")
+    elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
+      FILTER_ARGS+=(--filter=@n8n/db^...)
+    elif [ -d "$REPO_ROOT/packages/cli" ]; then
+      FILTER_ARGS+=(--filter=n8n^...)
     fi
-  fi
+    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
 
-  if [ -d "$REPO_ROOT/packages/@n8n/typeorm" ] && [ ! -f "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" ]; then
-    echo "📦 [vitest-runner] Fast-compiling @n8n/typeorm..."
-    if [ -x "$TSC_BIN" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/typeorm" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+    # Self-healing fallback for critical TypeScript packages if turbo failed or was skipped
+    if [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
+      (cd "$REPO_ROOT/packages/@n8n/di" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+    fi
+    if [ -d "$REPO_ROOT/packages/@n8n/typeorm" ] && [ ! -f "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" ]; then
+      (cd "$REPO_ROOT/packages/@n8n/typeorm" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
     fi
   fi
 fi
