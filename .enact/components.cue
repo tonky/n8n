@@ -44,7 +44,7 @@ pipeline: {
 				}]
 			}
 			lint: {
-				command: "pnpm exec biome check ."
+				command: "pnpm exec biome check {relative_changed_files}"
 			}
 			typecheck: {
 				command: "../../helpers/typecheck-runner.sh"
@@ -79,7 +79,7 @@ pipeline: {
 				}]
 			}
 			lint: {
-				command: "pnpm exec biome check ."
+				command: "pnpm exec biome check {relative_changed_files}"
 			}
 			typecheck: {
 				command: "../../../helpers/typecheck-runner.sh"
@@ -118,7 +118,7 @@ pipeline: {
 				}]
 			}
 			lint: {
-				command: "pnpm exec biome check ."
+				command: "pnpm exec biome check {relative_changed_files}"
 			}
 			typecheck: {
 				command: "../../helpers/typecheck-runner.sh"
@@ -150,7 +150,7 @@ pipeline: {
 				}]
 			}
 			lint: {
-				command: "pnpm exec biome check ."
+				command: "pnpm exec biome check {relative_changed_files}"
 			}
 			typecheck: {
 				command: "../../../helpers/typecheck-runner.sh"
@@ -178,7 +178,7 @@ pipeline: {
 				}]
 			}
 			lint: {
-				command: "pnpm exec biome check ."
+				command: "pnpm exec biome check {relative_changed_files}"
 			}
 			typecheck: {
 				command: "../../helpers/typecheck-runner.sh"

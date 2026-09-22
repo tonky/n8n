@@ -57,8 +57,11 @@ fi
 echo "🔍 [typecheck-runner] Running scoped TypeScript typecheck for '$CURRENT_PKG'..."
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=8192}"
 
-if [ "$HAS_TYPECHECK" = "true" ] && command -v pnpm >/dev/null 2>&1; then
+if [ -f "tsconfig.json" ]; then
+  mkdir -p node_modules/.cache
+  exec $TSC_BIN -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.cache/tsbuildinfo --noEmit
+elif [ "$HAS_TYPECHECK" = "true" ] && command -v pnpm >/dev/null 2>&1; then
   exec pnpm run typecheck
 else
-  exec $TSC_BIN -p tsconfig.json --noEmit
+  exec $TSC_BIN --noEmit
 fi

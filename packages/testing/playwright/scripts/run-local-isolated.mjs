@@ -36,7 +36,7 @@
  */
 
 import { spawn, spawnSync } from 'child_process';
-import { mkdtempSync, rmSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
 import { createServer } from 'net';
 import os from 'os';
 import path from 'path';
@@ -80,6 +80,17 @@ if (process.env.N8N_BASE_URL) {
 // key) inside it, so this also isolates the DB from any local n8n install.
 const userFolder = mkdtempSync(path.join(os.tmpdir(), 'n8n-test-isolated-'));
 
+const dbTemplateDir = path.join(os.tmpdir(), 'n8n-e2e-template', '.n8n');
+const userN8nDir = path.join(userFolder, '.n8n');
+if (existsSync(dbTemplateDir)) {
+	try {
+		cpSync(dbTemplateDir, userN8nDir, { recursive: true });
+		console.log('[run-local-isolated] Seeded SQLite database from template cache');
+	} catch (_) {
+		// fallback to fresh
+	}
+}
+
 // Caller-supplied n8n env (same convention as `pnpm test:local`).
 const callerTestEnv = (() => {
 	try {
@@ -98,6 +109,11 @@ const n8nEnv = {
 	N8N_USER_FOLDER: userFolder,
 	N8N_LOG_LEVEL: process.env.N8N_LOG_LEVEL ?? 'info',
 	N8N_RESTRICT_FILE_ACCESS_TO: '',
+	N8N_RUNNERS_MODE: 'disabled',
+	N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true',
+	N8N_UNVERIFIED_PACKAGES_ENABLED: 'true',
+	N8N_VERSION_CHECK_ENABLED: 'false',
+	N8N_DIAGNOSTICS_ENABLED: 'false',
 	...callerTestEnv,
 };
 
@@ -186,6 +202,13 @@ async function waitForN8n(timeoutMs = 120_000) {
 
 try {
 	await waitForN8n();
+	if (!existsSync(dbTemplateDir) && existsSync(userN8nDir)) {
+		try {
+			mkdirSync(path.dirname(dbTemplateDir), { recursive: true });
+			cpSync(userN8nDir, dbTemplateDir, { recursive: true });
+			console.log('[run-local-isolated] Cached migrated SQLite database as template');
+		} catch (_) {}
+	}
 	try {
 		await fetch(`${backendUrl}/workflow/new`);
 	} catch (_) {}

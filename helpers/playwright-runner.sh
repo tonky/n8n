@@ -37,9 +37,20 @@ fi
 
 if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
   mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
-  if [ -z "$(fd -t x chrome "$PLAYWRIGHT_BROWSERS_PATH" 2>/dev/null || true)" ]; then
+  HAS_BROWSER=""
+  if compgen -G "$PLAYWRIGHT_BROWSERS_PATH/chromium-*" >/dev/null 2>&1; then
+    HAS_BROWSER="true"
+  elif [ -d "$HOME/.cache/ms-playwright" ] && compgen -G "$HOME/.cache/ms-playwright/chromium-*" >/dev/null 2>&1; then
+    echo "📦 [playwright-runner] Copying restored browsers from $HOME/.cache/ms-playwright to $PLAYWRIGHT_BROWSERS_PATH..."
+    cp -r "$HOME/.cache/ms-playwright/." "$PLAYWRIGHT_BROWSERS_PATH/" 2>/dev/null || true
+    HAS_BROWSER="true"
+  fi
+
+  if [ -z "$HAS_BROWSER" ]; then
     echo "🌐 [playwright-runner] Playwright browser not found in $PLAYWRIGHT_BROWSERS_PATH, installing chromium..."
     pnpm --filter=n8n-playwright exec playwright install chromium || true
+  else
+    echo "✅ [playwright-runner] Playwright browser already warm in $PLAYWRIGHT_BROWSERS_PATH"
   fi
 fi
 
