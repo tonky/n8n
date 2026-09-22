@@ -1,13 +1,7 @@
 import { isValidTimeZone } from '@n8n/api-types';
 import { GlobalConfig } from '@n8n/config';
 import type { User } from '@n8n/db';
-import {
-	DbLock,
-	DbLockService,
-	parseListQuerySortBy,
-	sql,
-	SharedWorkflowRepository,
-} from '@n8n/db';
+import { parseListQuerySortBy, sql, SharedWorkflowRepository } from '@n8n/db';
 import { Container, Service } from '@n8n/di';
 import type { SelectQueryBuilder } from '@n8n/typeorm';
 import { DataSource, LessThanOrEqual, Repository } from '@n8n/typeorm';
@@ -103,7 +97,6 @@ export class InsightsByPeriodRepository extends Repository<InsightsByPeriod> {
 	constructor(
 		dataSource: DataSource,
 		private readonly sharedWorkflowRepository: SharedWorkflowRepository,
-		private readonly dbLockService: DbLockService,
 	) {
 		super(InsightsByPeriod, dataSource.manager);
 	}
@@ -332,8 +325,7 @@ export class InsightsByPeriodRepository extends Repository<InsightsByPeriod> {
 				DROP TABLE rows_to_compact;
 			`;
 
-			// One batch transaction at a time across all instances.
-			const result = await this.dbLockService.withLock(DbLock.INSIGHTS_COMPACTION, async (trx) => {
+			const result = await this.manager.transaction(async (trx) => {
 				await trx.query(getBatchAndStoreInTemporaryTable);
 
 				await trx.query<Array<{ type: any; value: number }>>(upsertEvents);
