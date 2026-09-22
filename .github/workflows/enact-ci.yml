@@ -52,6 +52,7 @@ jobs:
           .github
           setup
           bin
+          helpers
           enve.cue
           enve.lock
           package.json
@@ -63,7 +64,6 @@ jobs:
           turbo.json
           patches
           scripts
-          helpers
           packages/@n8n
           packages/core
           packages/workflow
@@ -165,6 +165,24 @@ jobs:
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Verify Workspace Package Integrity
+      run: |-
+        if [ -f "scripts/check-workspace-private-deps.mjs" ]; then
+          echo "🔍 Checking workspace package dependencies..."
+          node scripts/check-workspace-private-deps.mjs
+        fi
+    - name: Verify Pipeline Contracts & Sparse Cones (enact ci-verify)
+      run: |-
+        ENACT_BIN=""
+        if [ -x "bin/enact" ]; then
+          ENACT_BIN="bin/enact"
+        elif command -v enact >/dev/null 2>&1; then
+          ENACT_BIN="enact"
+        fi
+        if [ -n "$ENACT_BIN" ]; then
+          echo "🔬 Running enact ci-verify..."
+          $ENACT_BIN ci-verify --pipeline .enact --test-sparse-cones
+        fi
     - name: Execute Stage [Check & Lint]
       run: |-
         UPDATED_ARG=""
