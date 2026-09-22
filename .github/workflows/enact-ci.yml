@@ -534,6 +534,17 @@ jobs:
         restore-keys: |-
           ${{ runner.os }}-node-${{ matrix.task_id }}-
           ${{ runner.os }}-node-
+    - name: Restore Playwright browser cache
+      id: playwright-l1-cache
+      if: matrix.technology == 'playwright' || contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/**', '**/pnpm-lock.yaml', '**/package-lock.json') }}
+        path: |-
+          ~/.cache/ms-playwright
+          /tmp/.cache/ms-playwright
+        restore-keys: ${{ runner.os }}-playwright-
     - name: Restore Python build & venv cache
       id: python-l1-cache
       if: matrix.technology == 'python'
@@ -592,17 +603,21 @@ jobs:
       if: ${{ contains(matrix.component, 'e2e') || contains(matrix.component, 'playwright') || matrix.technology == 'playwright' }}
       continue-on-error: true
       run: |-
-        if [ -n "$ENACT_R2_BUCKET" ]; then
+        if [ "${{ steps.playwright-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
           echo "🌐 Pre-warming Playwright browsers from Cloudflare R2..."
           mkdir -p "$HOME/.cache/ms-playwright" "/tmp/.cache/ms-playwright"
           curl -fsSL --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:auto:s3" "${ENACT_R2_BUCKET%/}/tools/playwright-browsers-linux-amd64.tar.zst" 2>/dev/null | tar -x --zstd -C "$HOME/.cache/ms-playwright" 2>/dev/null || true
           cp -r "$HOME/.cache/ms-playwright/." "/tmp/.cache/ms-playwright/" 2>/dev/null || true
-          echo "PLAYWRIGHT_BROWSERS_PATH=/tmp/.cache/ms-playwright" >> "$GITHUB_ENV"
-          BROWSER_BIN=$(find /tmp/.cache/ms-playwright "$HOME/.cache/ms-playwright" -name "chrome-headless-shell" -type f -perm -111 2>/dev/null | head -n 1)
-          if [ -n "$BROWSER_BIN" ]; then
-            echo "BROWSER_BIN=$BROWSER_BIN" >> "$GITHUB_ENV"
-            echo "🌐 Configured browser binary: $BROWSER_BIN"
-          fi
+        fi
+        mkdir -p "$HOME/.cache/ms-playwright" "/tmp/.cache/ms-playwright"
+        if [ -d "$HOME/.cache/ms-playwright" ] && [ ! -d "/tmp/.cache/ms-playwright/chromium-1234" ]; then
+          cp -r "$HOME/.cache/ms-playwright/." "/tmp/.cache/ms-playwright/" 2>/dev/null || true
+        fi
+        echo "PLAYWRIGHT_BROWSERS_PATH=/tmp/.cache/ms-playwright" >> "$GITHUB_ENV"
+        BROWSER_BIN=$(find /tmp/.cache/ms-playwright "$HOME/.cache/ms-playwright" -name "chrome-headless-shell" -type f -perm -111 2>/dev/null | head -n 1)
+        if [ -n "$BROWSER_BIN" ]; then
+          echo "BROWSER_BIN=$BROWSER_BIN" >> "$GITHUB_ENV"
+          echo "🌐 Configured browser binary: $BROWSER_BIN"
         fi
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.ENACT_R2_ACCESS_KEY_ID || env.ENACT_R2_ACCESS_KEY_ID }}
@@ -745,6 +760,15 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target/
+    - name: Save Playwright browser cache
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && (matrix.technology == 'playwright' || contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')) && steps.playwright-l1-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/**', '**/pnpm-lock.yaml', '**/package-lock.json') }}
+        path: |-
+          ~/.cache/ms-playwright
+          /tmp/.cache/ms-playwright
     - name: Save Nix Store (L1 GHA Cache)
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
