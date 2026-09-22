@@ -34,8 +34,21 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     fi
   fi
 
-  if [ -d "$REPO_ROOT/packages/@n8n/di" ] && [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
-    echo "📦 [vitest-runner] Compiling workspace dependencies via turbo..."
+  NEEDS_BUILD=0
+  for check_file in \
+    "$REPO_ROOT/packages/@n8n/di/dist/di.js" \
+    "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" \
+    "$REPO_ROOT/packages/@n8n/tournament/dist/index.js" \
+    "$REPO_ROOT/packages/@n8n/codemirror-lang-html/dist/index.js"; do
+    pkg_parent="$(dirname "$(dirname "$check_file")")"
+    if [ -d "$pkg_parent" ] && [ ! -f "$check_file" ]; then
+      NEEDS_BUILD=1
+      break
+    fi
+  done
+
+  if [ "$NEEDS_BUILD" -eq 1 ]; then
+    echo "📦 [vitest-runner] Compiling missing workspace dependencies via turbo..."
     CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
     FILTER_ARGS=()
     if [ -n "$CURRENT_PKG" ]; then
@@ -48,12 +61,12 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
 
     # Self-healing fallback for critical TypeScript packages if turbo failed or was skipped
-    if [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/di" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
-    fi
-    if [ -d "$REPO_ROOT/packages/@n8n/typeorm" ] && [ ! -f "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/typeorm" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
-    fi
+    for fallback_pkg in di typeorm tournament codemirror-lang-html; do
+      pkg_dir="$REPO_ROOT/packages/@n8n/$fallback_pkg"
+      if [ -d "$pkg_dir" ] && [ -x "$TSC_BIN" ] && [ ! -d "$pkg_dir/dist" ]; then
+        (cd "$pkg_dir" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+      fi
+    done
   fi
 fi
 

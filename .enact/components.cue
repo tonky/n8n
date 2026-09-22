@@ -195,11 +195,13 @@ pipeline: {
 			technology:  "playwright"
 			root:        "packages/testing/playwright"
 			watch_paths: ["packages/testing/playwright/**"]
-			depends_on:  ["@n8n/core"]
+			depends_on:  ["@n8n/core", "cli", "frontend", "nodes-base"]
 			workspace_scope: {
 				include: [
 					"packages/testing",
 					"packages/cli",
+					"packages/frontend",
+					"packages/nodes-base",
 					"packages/workflow",
 					"packages/core",
 				]

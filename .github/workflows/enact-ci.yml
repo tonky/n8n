@@ -72,8 +72,11 @@ jobs:
           packages/@n8n/db
           packages/cli
           packages/frontend/editor-ui
+          packages/frontend
+          packages/modules
           packages/nodes-base
           packages/testing/playwright
+          packages/testing
         sparse-checkout-cone-mode: 'false'
         submodules: 'false'
     - name: Restore enact CLI binary cache
