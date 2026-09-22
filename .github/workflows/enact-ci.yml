@@ -521,7 +521,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
-        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
@@ -531,7 +531,9 @@ jobs:
           .turbo/cache
           packages/*/dist
           packages/@n8n/*/dist
-        restore-keys: ${{ runner.os }}-node-
+        restore-keys: |-
+          ${{ runner.os }}-node-${{ matrix.task_id }}-
+          ${{ runner.os }}-node-
     - name: Restore Python build & venv cache
       id: python-l1-cache
       if: matrix.technology == 'python'
@@ -703,7 +705,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/save@v4
       with:
-        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm

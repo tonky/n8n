@@ -22,30 +22,14 @@ else
   TSC_BIN="pnpm exec tsc"
 fi
 
-# Pre-build local workspace dependencies checked out in the sparse cone
-if [ -f "package.json" ]; then
-  node -e '
-    const fs = require("fs");
-    const cp = require("child_process");
-    try {
-      const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-      const deps = Object.entries(pkg.dependencies || {})
-        .filter(([_, v]) => typeof v === "string" && v.startsWith("workspace:"))
-        .map(([k]) => k);
-      for (const dep of deps) {
-        try {
-          const realPath = fs.realpathSync(`node_modules/${dep}`);
-          if (fs.existsSync(`${realPath}/src`) && fs.existsSync(`${realPath}/package.json`)) {
-            const depPkg = JSON.parse(fs.readFileSync(`${realPath}/package.json`, "utf8"));
-            const buildScript = depPkg.scripts?.["build:server"] ? "build:server" : depPkg.scripts?.["build:unchecked"] ? "build:unchecked" : depPkg.scripts?.["build"] ? "build" : null;
-            if (buildScript) {
-              cp.execSync(`pnpm --filter=${dep} run ${buildScript}`, { stdio: "ignore" });
-            }
-          }
-        } catch (_) {}
-      }
-    } catch (_) {}
-  ' 2>/dev/null || true
+# Pre-build workspace dependencies checked out in the sparse cone via turbo
+REPO_ROOT="$PWD"
+while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
+  REPO_ROOT="$(dirname "$REPO_ROOT")"
+done
+
+if [ -n "$CURRENT_PKG" ] && [ -f "$REPO_ROOT/turbo.json" ]; then
+  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter="${CURRENT_PKG}^...") || true
 fi
 
 # Pre-build referenced project configs so declaration files exist in dist/

@@ -186,6 +186,9 @@ async function waitForN8n(timeoutMs = 120_000) {
 
 try {
 	await waitForN8n();
+	try {
+		await fetch(`${backendUrl}/workflow/new`);
+	} catch (_) {}
 	console.log('[run-local-isolated] n8n ready, launching playwright ...');
 } catch (err) {
 	console.error(`[run-local-isolated] ${err.message}`);
