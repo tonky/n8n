@@ -25,6 +25,27 @@ pipeline: {
 		]
 	}
 
+	caches: {
+		tsbuildinfo_frontend: {
+			path: "packages/frontend/editor-ui/tsconfig.tsbuildinfo"
+			key: "tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}"
+			restore_keys: [
+				"tsbuildinfo-frontend-${{ runner.os }}-",
+			]
+			tier: "tiered"
+			mode: "read_write"
+		}
+		playwright_browsers: {
+			path: "~/.cache/ms-playwright"
+			key: "playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}"
+			restore_keys: [
+				"playwright-${{ runner.os }}-",
+			]
+			tier: "tiered"
+			mode: "read_write"
+		}
+	}
+
 	components: {
 		"@n8n/core": {
 			name:        "@n8n/core"
@@ -45,6 +66,10 @@ pipeline: {
 			}
 			lint: {
 				command: "pnpm exec biome check {relative_changed_files}"
+				filter: {
+					include: ["**/*.{ts,tsx,js,jsx,json,jsonc}"]
+					on_empty: "skip"
+				}
 			}
 			typecheck: {
 				command: "../../helpers/typecheck-runner.sh"
@@ -80,6 +105,10 @@ pipeline: {
 			}
 			lint: {
 				command: "pnpm exec biome check {relative_changed_files}"
+				filter: {
+					include: ["**/*.{ts,tsx,js,jsx,json,jsonc}"]
+					on_empty: "skip"
+				}
 			}
 			typecheck: {
 				command: "../../../helpers/typecheck-runner.sh"
@@ -119,6 +148,10 @@ pipeline: {
 			}
 			lint: {
 				command: "pnpm exec biome check {relative_changed_files}"
+				filter: {
+					include: ["**/*.{ts,tsx,js,jsx,json,jsonc}"]
+					on_empty: "skip"
+				}
 			}
 			typecheck: {
 				command: "../../helpers/typecheck-runner.sh"
@@ -149,11 +182,17 @@ pipeline: {
 					engine: "typescript"
 				}]
 			}
-			lint: {
-				command: "pnpm exec biome check {relative_changed_files}"
-			}
-			typecheck: {
-				command: "../../../helpers/typecheck-runner.sh"
+			tasks: {
+				lint: {
+					command: "pnpm exec biome check {relative_changed_files}"
+					filter: {
+						include: ["**/*.{ts,tsx,js,jsx,json,jsonc}"]
+						on_empty: "skip"
+					}
+				}
+				typecheck: {
+					command: "../../../helpers/typecheck-runner.sh"
+				}
 			}
 			test: {
 				command: "../../../helpers/vitest-runner.sh {relative_targets}"
@@ -179,6 +218,10 @@ pipeline: {
 			}
 			lint: {
 				command: "pnpm exec biome check {relative_changed_files}"
+				filter: {
+					include: ["**/*.{ts,tsx,js,jsx,json,jsonc}"]
+					on_empty: "skip"
+				}
 			}
 			typecheck: {
 				command: "../../helpers/typecheck-runner.sh"

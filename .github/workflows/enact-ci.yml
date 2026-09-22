@@ -194,6 +194,22 @@ jobs:
           echo "🔬 Running enact ci-verify..."
           $ENACT_BIN ci-verify --pipeline .enact --test-sparse-cones
         fi
+    - name: Restore Cache [playwright_browsers]
+      id: cache-playwright-browsers
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        path: ~/.cache/ms-playwright
+        restore-keys: playwright-${{ runner.os }}-
+    - name: Restore Cache [tsbuildinfo_frontend]
+      id: cache-tsbuildinfo-frontend
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
+        path: packages/frontend/editor-ui/tsconfig.tsbuildinfo
+        restore-keys: tsbuildinfo-frontend-${{ runner.os }}-
     - name: Execute Stage [Check & Lint]
       run: |-
         UPDATED_ARG=""
@@ -235,6 +251,20 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
+    - name: Save Cache [playwright_browsers]
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-playwright-browsers.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v6
+      with:
+        key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        path: ~/.cache/ms-playwright
+    - name: Save Cache [tsbuildinfo_frontend]
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-tsbuildinfo-frontend.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@v6
+      with:
+        key: tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
+        path: packages/frontend/editor-ui/tsconfig.tsbuildinfo
     - name: Save Node & TypeScript build cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.node-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
