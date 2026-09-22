@@ -96,6 +96,7 @@ pipeline: {
 			root:        "packages/cli"
 			watch_paths: ["packages/cli/**"]
 			depends_on:  ["@n8n/core", "@n8n/db", "nodes-base"]
+			shards:      2
 			workspace_scope: {
 				include_dependencies: true
 			}
@@ -119,6 +120,9 @@ pipeline: {
 			}
 			lint: {
 				command: "pnpm exec biome check ."
+			}
+			typecheck: {
+				command: "../../helpers/typecheck-runner.sh"
 			}
 			test: {
 				command: "../../helpers/vitest-runner.sh {relative_targets}"

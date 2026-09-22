@@ -78,6 +78,7 @@ jobs:
         submodules: 'false'
     - name: Restore enact CLI binary cache
       id: enact-cli-cache
+      if: hashFiles('bin/enact') == ''
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -148,6 +149,7 @@ jobs:
           ~/.npm
           node_modules/.cache
           .turbo/cache
+          packages/@n8n/*/dist
         restore-keys: ${{ runner.os }}-node-
     - name: Install Project Dependencies
       run: |-
@@ -239,6 +241,7 @@ jobs:
           ~/.npm
           node_modules/.cache
           .turbo/cache
+          packages/@n8n/*/dist
     - name: Save Nix Store (L1 GHA Cache)
       if: github.event_name == 'push' && steps.nix-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
@@ -283,6 +286,7 @@ jobs:
         submodules: 'false'
     - name: Restore enact CLI binary cache
       id: enact-cli-cache
+      if: hashFiles('bin/enact') == ''
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -392,6 +396,7 @@ jobs:
         submodules: 'false'
     - name: Restore enact CLI binary cache
       id: enact-cli-cache
+      if: hashFiles('bin/enact') == ''
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -469,6 +474,7 @@ jobs:
         submodules: 'false'
     - name: Restore enact CLI binary cache
       id: enact-cli-cache
+      if: hashFiles('bin/enact') == ''
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:
@@ -515,6 +521,7 @@ jobs:
           ~/.npm
           node_modules/.cache
           .turbo/cache
+          packages/@n8n/*/dist
         restore-keys: ${{ runner.os }}-node-
     - name: Restore Python build & venv cache
       id: python-l1-cache
@@ -553,7 +560,7 @@ jobs:
           target/
         restore-keys: ${{ runner.os }}-rust-
     - name: Pre-warm Database Template Snapshot from Cloudflare R2
-      if: ${{ env.ENACT_SNAPSHOT_NAME != '' || contains(matrix.component, 'db') || matrix.technology == 'database' }}
+      if: ${{ (secrets.ENACT_R2_BUCKET != '' || env.ENACT_R2_BUCKET != '') && (env.ENACT_SNAPSHOT_NAME != '' || contains(matrix.component, 'db') || matrix.technology == 'database') }}
       continue-on-error: true
       run: |-
         if [ -n "$ENACT_R2_BUCKET" ]; then
@@ -571,7 +578,7 @@ jobs:
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
         ENACT_SNAPSHOT_NAME: ${{ matrix.snapshot_name || env.ENACT_SNAPSHOT_NAME }}
     - name: Pre-warm Playwright Browsers from Cloudflare R2
-      if: ${{ contains(matrix.component, 'e2e') || contains(matrix.component, 'playwright') || matrix.technology == 'playwright' }}
+      if: ${{ (secrets.ENACT_R2_BUCKET != '' || env.ENACT_R2_BUCKET != '') && (contains(matrix.component, 'e2e') || contains(matrix.component, 'playwright') || matrix.technology == 'playwright') }}
       continue-on-error: true
       run: |-
         if [ -n "$ENACT_R2_BUCKET" ]; then
@@ -653,7 +660,7 @@ jobs:
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
         PLAYWRIGHT_BROWSERS_PATH: /tmp/.cache/ms-playwright
     - name: Push Updated Dependencies to Cloudflare R2
-      if: success()
+      if: success() && (secrets.ENACT_R2_BUCKET != '' || env.ENACT_R2_BUCKET != '')
       continue-on-error: true
       run: |-
         if [ -n "$ENACT_R2_BUCKET" ]; then
@@ -694,6 +701,7 @@ jobs:
           ~/.npm
           node_modules/.cache
           .turbo/cache
+          packages/@n8n/*/dist
     - name: Save Python build & venv cache
       if: github.event_name == 'push' && matrix.technology == 'python' && steps.python-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true

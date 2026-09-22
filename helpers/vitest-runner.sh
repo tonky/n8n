@@ -35,24 +35,16 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   fi
 
   if [ -d "$REPO_ROOT/packages/@n8n/di" ] && [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
-    echo "📦 [vitest-runner] Compiling workspace dependencies via turbo..."
-    CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
-    FILTER_ARGS=()
-    if [ -n "$CURRENT_PKG" ]; then
-      FILTER_ARGS+=(--filter="${CURRENT_PKG}^...")
-    elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
-      FILTER_ARGS+=(--filter=@n8n/db^...)
-    elif [ -d "$REPO_ROOT/packages/cli" ]; then
-      FILTER_ARGS+=(--filter=n8n^...)
+    echo "📦 [vitest-runner] Fast-compiling @n8n/di..."
+    if [ -x "$TSC_BIN" ]; then
+      (cd "$REPO_ROOT/packages/@n8n/di" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
     fi
-    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
+  fi
 
-    # Self-healing fallback for critical TypeScript packages if turbo failed or was skipped
-    if [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/di" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
-    fi
-    if [ -d "$REPO_ROOT/packages/@n8n/typeorm" ] && [ ! -f "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/typeorm" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+  if [ -d "$REPO_ROOT/packages/@n8n/typeorm" ] && [ ! -f "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" ]; then
+    echo "📦 [vitest-runner] Fast-compiling @n8n/typeorm..."
+    if [ -x "$TSC_BIN" ]; then
+      (cd "$REPO_ROOT/packages/@n8n/typeorm" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
     fi
   fi
 fi
@@ -73,12 +65,19 @@ run_vitest() {
   fi
 }
 
+SHARD_OPTS=()
+if [ -n "${ENACT_SHARD_INDEX:-}" ] && [ -n "${ENACT_SHARD_TOTAL:-}" ]; then
+  SHARD_OPTS=(--shard="${ENACT_SHARD_INDEX}/${ENACT_SHARD_TOTAL}")
+elif [ -n "${SHARD:-}" ] && [ -n "${TOTAL_SHARDS:-}" ]; then
+  SHARD_OPTS=(--shard="${SHARD}/${TOTAL_SHARDS}")
+fi
+
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  echo "🎯 [enact] No targets specified, running unit test suite"
+  echo "🎯 [enact] No targets specified, running unit test suite ${SHARD_OPTS[*]:-}"
   export N8N_LOG_LEVEL=silent
   export DB_SQLITE_POOL_SIZE=4
   export DB_TYPE=sqlite
-  run_vitest run
+  run_vitest run "${SHARD_OPTS[@]}"
   exit $?
 fi
 
