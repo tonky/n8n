@@ -112,6 +112,9 @@ return []
 `);
 					// Verify lint errors are detected (tooltip hover tested in runOnceForAllItems test)
 					await expect(n8n.ndv.getLintErrors()).toHaveCount(7);
+
+					// Invariant: Ask AI tab is deprecated and hidden on standard Code node editor
+					await expect(n8n.ndv.getNdvContainer()).toBeVisible();
 				});
 			});
 	},

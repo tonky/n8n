@@ -31,6 +31,18 @@ fi
 
 TARGETS=("$@")
 
+if [ ${#TARGETS[@]} -eq 0 ] && [ -n "${ENACT_TARGETS_FILE:-}" ] && [ -f "$ENACT_TARGETS_FILE" ]; then
+  mapfile -t TARGETS < <(rg '\S' "$ENACT_TARGETS_FILE" || true)
+fi
+
+if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
+  mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
+  if [ -z "$(fd -t x chrome "$PLAYWRIGHT_BROWSERS_PATH" 2>/dev/null || true)" ]; then
+    echo "🌐 [playwright-runner] Playwright browser not found in $PLAYWRIGHT_BROWSERS_PATH, installing chromium..."
+    pnpm --filter=n8n-playwright exec playwright install chromium || true
+  fi
+fi
+
 if [ ${#TARGETS[@]} -eq 0 ]; then
   echo "🎯 [enact:playwright] Running Playwright package test suite..."
   exec "$VITEST_BIN" run --config "$REPO_ROOT/packages/testing/playwright/vitest.config.ts"
