@@ -159,6 +159,7 @@ jobs:
           .turbo/cache
           packages/*/dist
           packages/@n8n/*/dist
+          packages/frontend/@n8n/*/dist
         restore-keys: ${{ runner.os }}-node-
     - name: Install Project Dependencies
       run: |-
@@ -288,6 +289,7 @@ jobs:
           .turbo/cache
           packages/*/dist
           packages/@n8n/*/dist
+          packages/frontend/@n8n/*/dist
     - name: Save Nix Store (L1 GHA Cache)
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
@@ -581,6 +583,7 @@ jobs:
           .turbo/cache
           packages/*/dist
           packages/@n8n/*/dist
+          packages/frontend/@n8n/*/dist
         restore-keys: |-
           ${{ runner.os }}-node-${{ matrix.task_id }}-
           ${{ runner.os }}-node-
@@ -811,6 +814,7 @@ jobs:
           .turbo/cache
           packages/*/dist
           packages/@n8n/*/dist
+          packages/frontend/@n8n/*/dist
     - name: Save Python build & venv cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('pyproject.toml', 'requirements.txt') != '' && steps.python-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
