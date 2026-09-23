@@ -178,6 +178,7 @@ jobs:
           echo "📦 Installing project dependencies via npm..."
           $RUN_PREFIX npm ci --prefer-offline 2>/dev/null || $RUN_PREFIX npm install
         fi
+        git checkout -- pnpm-lock.yaml package-lock.json yarn.lock bun.lockb 2>/dev/null || true
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -781,6 +782,7 @@ jobs:
           echo "📦 Installing project dependencies via npm..."
           $RUN_PREFIX npm ci --prefer-offline 2>/dev/null || $RUN_PREFIX npm install
         fi
+        git checkout -- pnpm-lock.yaml package-lock.json yarn.lock bun.lockb 2>/dev/null || true
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
