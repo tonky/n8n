@@ -40,6 +40,7 @@ jobs:
   check-and-lint:
     name: 'Stage: Check & Lint'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
     - name: Checkout Repository (sparse)
       uses: actions/checkout@v7
@@ -197,22 +198,6 @@ jobs:
           echo "🔬 Running enact ci-verify..."
           $ENACT_BIN ci-verify --pipeline .enact --test-sparse-cones
         fi
-    - name: Restore Cache [playwright_browsers]
-      id: cache-playwright-browsers
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: ~/.cache/ms-playwright
-        restore-keys: playwright-${{ runner.os }}-
-    - name: Restore Cache [sqlite_e2e_template]
-      id: cache-sqlite-e2e-template
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
-        path: /tmp/n8n-e2e-template
-        restore-keys: sqlite-template-v2-${{ runner.os }}-
     - name: Restore Cache [tsbuildinfo_frontend]
       id: cache-tsbuildinfo-frontend
       continue-on-error: true
@@ -262,20 +247,6 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
-    - name: Save Cache [playwright_browsers]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-playwright-browsers.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: ~/.cache/ms-playwright
-    - name: Save Cache [sqlite_e2e_template]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-sqlite-e2e-template.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
-        path: /tmp/n8n-e2e-template
     - name: Save Cache [tsbuildinfo_frontend]
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-tsbuildinfo-frontend.outputs.cache-hit != 'true'
       continue-on-error: true
@@ -284,11 +255,11 @@ jobs:
         key: tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
         path: packages/frontend/editor-ui/tsconfig.tsbuildinfo
     - name: Save Node & TypeScript build cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.node-l1-cache.outputs.cache-hit != 'true'
+      if: github.event_name == 'push' && steps.node-l1-cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
-        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
@@ -321,6 +292,7 @@ jobs:
   detect:
     name: Detect Affected Components
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       matrix: ${{ steps.diff.outputs.matrix }}
     steps:
@@ -434,6 +406,7 @@ jobs:
     - test
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
     - name: Checkout Repository (sparse)
       uses: actions/checkout@v7
@@ -509,6 +482,7 @@ jobs:
       max-parallel: 16
       matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
     runs-on: ${{ matrix.runs_on }}
+    timeout-minutes: 10
     steps:
     - name: Checkout Repository (sparse)
       if: ${{ matrix.sparse_checkout != '' }}
@@ -636,6 +610,7 @@ jobs:
         restore-keys: ${{ runner.os }}-rust-
     - name: Restore Cache [playwright_browsers]
       id: cache-playwright-browsers
+      if: contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -644,6 +619,7 @@ jobs:
         restore-keys: playwright-${{ runner.os }}-
     - name: Restore Cache [sqlite_e2e_template]
       id: cache-sqlite-e2e-template
+      if: contains(matrix.component, 'cli') || contains(matrix.component, 'db')
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -652,6 +628,7 @@ jobs:
         restore-keys: sqlite-template-v2-${{ runner.os }}-
     - name: Restore Cache [tsbuildinfo_frontend]
       id: cache-tsbuildinfo-frontend
+      if: contains(matrix.component, 'frontend')
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -861,21 +838,21 @@ jobs:
           /nix/store
           ~/.local/share/enve/store
     - name: Save Cache [playwright_browsers]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-playwright-browsers.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && (contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e'))) && steps.cache-playwright-browsers.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
         path: ~/.cache/ms-playwright
     - name: Save Cache [sqlite_e2e_template]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-sqlite-e2e-template.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && (contains(matrix.component, 'cli') || contains(matrix.component, 'db'))) && steps.cache-sqlite-e2e-template.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
         path: /tmp/n8n-e2e-template
     - name: Save Cache [tsbuildinfo_frontend]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-tsbuildinfo-frontend.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && contains(matrix.component, 'frontend')) && steps.cache-tsbuildinfo-frontend.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:

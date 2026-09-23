@@ -30,7 +30,11 @@ while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
 done
 
 if [ -n "$CURRENT_PKG" ] && [ -f "$REPO_ROOT/turbo.json" ]; then
-  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter="${CURRENT_PKG}^...") || true
+  if [ -d "$REPO_ROOT/packages/workflow/dist" ] || compgen -G "$REPO_ROOT/packages/@n8n/*/dist" >/dev/null 2>&1; then
+    echo "📦 [typecheck-runner] Internal workspace packages already warm in dist/, skipping turbo build"
+  else
+    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter="${CURRENT_PKG}^...") || true
+  fi
 fi
 
 # Pre-build referenced project configs so declaration files exist in dist/
@@ -57,13 +61,14 @@ fi
 echo "🔍 [typecheck-runner] Running scoped TypeScript typecheck for '$CURRENT_PKG'..."
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=8192}"
 
+mkdir -p node_modules/.cache
+
 if [ -x "./node_modules/.bin/vue-tsc" ]; then
-  exec ./node_modules/.bin/vue-tsc --noEmit
-elif [ "$HAS_TYPECHECK" = "true" ] && command -v pnpm >/dev/null 2>&1; then
-  exec pnpm run typecheck
+  exec ./node_modules/.bin/vue-tsc --incremental --tsBuildInfoFile node_modules/.cache/vue-tsc.tsbuildinfo --noEmit
 elif [ -f "tsconfig.json" ]; then
-  mkdir -p node_modules/.cache
   exec $TSC_BIN -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.cache/tsbuildinfo --noEmit
+elif [ "$HAS_TYPECHECK" = "true" ] && command -v pnpm >/dev/null 2>&1; then
+  exec pnpm run typecheck -- --incremental --tsBuildInfoFile node_modules/.cache/tsbuildinfo
 else
-  exec $TSC_BIN --noEmit
+  exec $TSC_BIN --incremental --tsBuildInfoFile node_modules/.cache/tsbuildinfo --noEmit
 fi
