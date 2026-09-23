@@ -40,9 +40,10 @@ profiles: dev: schema.#Profile & {
 				N8N_DIAGNOSTICS_ENABLED:           "false"
 				N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
 				N8N_ENCRYPTION_KEY:                "e2e-test-encryption-key-n8n"
+				N8N_USER_FOLDER:                   "/tmp/n8n-runner"
 			}
 			readinessProbe: {
-				command: "curl -s -f http://127.0.0.1:5678/healthz || exit 1"
+				command: "curl -s -f --connect-timeout 1 --max-time 3 http://127.0.0.1:5678/healthz || exit 1"
 				port:    5678
 				timeout: "30s"
 			}
@@ -64,5 +65,6 @@ profiles: dev: schema.#Profile & {
 		TESTCONTAINERS_ENABLED:          "false"
 		COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
 		N8N_ENCRYPTION_KEY:              "e2e-test-encryption-key-n8n"
+		N8N_USER_FOLDER:                 "/tmp/n8n-runner"
 	}
 }
