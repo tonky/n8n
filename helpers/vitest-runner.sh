@@ -9,7 +9,8 @@ export PGTZ=UTC
 export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
 export NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-/tmp/.node_compile_cache}"
 export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
-MAX_WORKERS="${MAX_WORKERS:-2}"
+NPROCS=$(nproc 2>/dev/null || echo 2)
+MAX_WORKERS="${MAX_WORKERS:-${ENACT_SHARD_WORKERS:-$NPROCS}}"
 
 REPO_ROOT="$PWD"
 while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
@@ -35,37 +36,45 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     fi
   fi
 
-  NEEDS_BUILD=0
-  for check_file in \
-    "$REPO_ROOT/packages/@n8n/di/dist/di.js" \
-    "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" \
-    "$REPO_ROOT/packages/@n8n/tournament/dist/index.js" \
-    "$REPO_ROOT/packages/@n8n/codemirror-lang-html/dist/index.js"; do
-    pkg_parent="$(dirname "$(dirname "$check_file")")"
-    if [ -d "$pkg_parent" ] && [ ! -f "$check_file" ]; then
-      NEEDS_BUILD=1
-      break
-    fi
-  done
+  CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
+  FILTER_ARGS=()
+  if [ -n "$CURRENT_PKG" ]; then
+    FILTER_ARGS+=(--filter="${CURRENT_PKG}^...")
+  elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
+    FILTER_ARGS+=(--filter=@n8n/db^...)
+  elif [ -d "$REPO_ROOT/packages/cli" ]; then
+    FILTER_ARGS+=(--filter=n8n^...)
+  fi
+  if [ -f "$REPO_ROOT/packages/frontend/editor-ui/package.json" ]; then
+    FILTER_ARGS+=(--filter="!n8n-editor-ui")
+  fi
 
-  if [ "$NEEDS_BUILD" -eq 1 ]; then
-    echo "📦 [vitest-runner] Compiling missing workspace dependencies via turbo..."
-    CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
-    FILTER_ARGS=()
-    if [ -n "$CURRENT_PKG" ]; then
-      FILTER_ARGS+=(--filter="${CURRENT_PKG}^...")
-    elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
-      FILTER_ARGS+=(--filter=@n8n/db^...)
-    elif [ -d "$REPO_ROOT/packages/cli" ]; then
-      FILTER_ARGS+=(--filter=n8n^...)
+  TURBO_SUCCESS=false
+  if [ -f "$REPO_ROOT/turbo.json" ]; then
+    if (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}"); then
+      TURBO_SUCCESS=true
     fi
-    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
+  fi
 
-    # Self-healing fallback for critical TypeScript packages if turbo failed or was skipped
+  # Self-healing fallback for critical TypeScript packages if turbo was unconfigured or failed
+  if [ "$TURBO_SUCCESS" != "true" ]; then
+    echo "📦 [vitest-runner] Turbo build skipped or failed; compiling checked-out workspace packages directly..."
+    # Explicit fallback for @n8n/db
+    if [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
+      if [ -f "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" ]; then
+        node "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" 2>/dev/null || true
+      fi
+      if [ -x "$TSC_BIN" ]; then
+        (cd "$REPO_ROOT/packages/@n8n/db" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+      else
+        (cd "$REPO_ROOT/packages/@n8n/db" && pnpm build:unchecked) || true
+      fi
+    fi
+
     for fallback_pkg in di typeorm tournament codemirror-lang-html; do
       pkg_dir="$REPO_ROOT/packages/@n8n/$fallback_pkg"
-      if [ -d "$pkg_dir" ] && [ -x "$TSC_BIN" ] && [ ! -d "$pkg_dir/dist" ]; then
-        if [ -f "$pkg_dir/tsconfig.build.json" ]; then
+      if [ -d "$pkg_dir" ]; then
+        if [ -x "$TSC_BIN" ] && [ -f "$pkg_dir/tsconfig.build.json" ]; then
           (cd "$pkg_dir" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
         else
           (cd "$pkg_dir" && pnpm build) || true
