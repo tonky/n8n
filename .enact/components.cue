@@ -39,7 +39,7 @@ pipeline: {
 
 	caches: {
 		tsbuildinfo_frontend: {
-			path: "packages/frontend/editor-ui/tsconfig.tsbuildinfo"
+			path: "packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo"
 			key: "tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}"
 			restore_keys: [
 				"tsbuildinfo-frontend-${{ runner.os }}-",
@@ -47,11 +47,11 @@ pipeline: {
 			tier: "tiered"
 			mode: "read_write"
 		}
-		playwright_browsers: {
-			path: "~/.cache/ms-playwright"
-			key: "playwright-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}"
+		tsbuildinfo_cli: {
+			path: "packages/cli/node_modules/.cache/tsbuildinfo"
+			key: "tsbuildinfo-cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}"
 			restore_keys: [
-				"playwright-${{ runner.os }}-",
+				"tsbuildinfo-cli-${{ runner.os }}-",
 			]
 			tier: "tiered"
 			mode: "read_write"
