@@ -644,7 +644,7 @@ jobs:
           mkdir -p "$HOME/.cache/enact/snapshots"
           if [ ! -s "$HOME/.cache/enact/snapshots/$SNAPSHOT_NAME" ]; then
             echo "🌐 Pre-warming base template snapshot from Cloudflare R2..."
-            curl -fsSL --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:auto:s3" "${ENACT_R2_BUCKET%/}/snapshots/$SNAPSHOT_NAME" -o "$HOME/.cache/enact/snapshots/$SNAPSHOT_NAME" 2>/dev/null || true
+            curl -fsSL --connect-timeout 5 --max-time 60 --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:auto:s3" "${ENACT_R2_BUCKET%/}/snapshots/$SNAPSHOT_NAME" -o "$HOME/.cache/enact/snapshots/$SNAPSHOT_NAME" 2>/dev/null || true
           fi
         fi
       env:
@@ -660,7 +660,7 @@ jobs:
         if [ "${{ steps.playwright-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
           echo "🌐 Pre-warming Playwright browsers from Cloudflare R2..."
           mkdir -p "$HOME/.cache/ms-playwright" "/tmp/.cache/ms-playwright"
-          curl -fsSL --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:auto:s3" "${ENACT_R2_BUCKET%/}/tools/playwright-browsers-linux-amd64.tar.zst" 2>/dev/null | tar -x --zstd -C "$HOME/.cache/ms-playwright" 2>/dev/null || true
+          curl -fsSL --connect-timeout 5 --max-time 60 --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:auto:s3" "${ENACT_R2_BUCKET%/}/tools/playwright-browsers-linux-amd64.tar.zst" 2>/dev/null | tar -x --zstd -C "$HOME/.cache/ms-playwright" 2>/dev/null || true
           cp -r "$HOME/.cache/ms-playwright/." "/tmp/.cache/ms-playwright/" 2>/dev/null || true
         fi
         mkdir -p "$HOME/.cache/ms-playwright" "/tmp/.cache/ms-playwright"
