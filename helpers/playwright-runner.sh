@@ -8,6 +8,9 @@ export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/tmp/.cache/ms-playwright}"
 export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
 export N8N_ENCRYPTION_KEY="${N8N_ENCRYPTION_KEY:-e2e-test-encryption-key-n8n}"
+# Isolated Playwright runner uses local throwaway SQLite instance per spec
+export DB_TYPE=sqlite
+unset DB_POSTGRESDB_HOST DB_POSTGRESDB_PORT DB_POSTGRESDB_DATABASE DB_POSTGRESDB_USER DB_POSTGRESDB_PASSWORD
 
 # Find repo root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
