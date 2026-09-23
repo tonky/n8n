@@ -9,6 +9,7 @@ export PGTZ=UTC
 export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
 export NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-/tmp/.node_compile_cache}"
 export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
+export NODE_PATH="${REPO_ROOT}/node_modules:${REPO_ROOT}/packages/cli/node_modules:${REPO_ROOT}/packages/frontend/editor-ui/node_modules:${NODE_PATH:-}"
 MAX_WORKERS="${MAX_WORKERS:-2}"
 
 REPO_ROOT="$PWD"
@@ -64,7 +65,11 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     for fallback_pkg in di typeorm tournament codemirror-lang-html; do
       pkg_dir="$REPO_ROOT/packages/@n8n/$fallback_pkg"
       if [ -d "$pkg_dir" ] && [ -x "$TSC_BIN" ] && [ ! -d "$pkg_dir/dist" ]; then
-        (cd "$pkg_dir" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+        if [ -f "$pkg_dir/tsconfig.build.json" ]; then
+          (cd "$pkg_dir" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+        else
+          (cd "$pkg_dir" && pnpm build) || true
+        fi
       fi
     done
   fi

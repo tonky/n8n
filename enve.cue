@@ -31,7 +31,7 @@ profiles: dev: schema.#Profile & {
 		}
 		cli: {
 			name:    "cli"
-			command: "node packages/cli/bin/n8n start"
+			command: "sh -c '[ -f packages/cli/dist/config.js ] || pnpm turbo run build:unchecked --filter=n8n...; exec node packages/cli/bin/n8n start'"
 			port:    5678
 			dependsOn: [{service: "postgres"}, {service: "redis"}]
 			environment: {
@@ -43,7 +43,7 @@ profiles: dev: schema.#Profile & {
 			readinessProbe: {
 				command: "curl -s -f http://127.0.0.1:5678/healthz || exit 1"
 				port:    5678
-				timeout: "10s"
+				timeout: "30s"
 			}
 		}
 	}
