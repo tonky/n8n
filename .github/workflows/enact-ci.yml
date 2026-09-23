@@ -70,6 +70,7 @@ jobs:
           packages/workflow
           packages/testing/containers
           packages/testing/janitor
+          packages/@n8n
           packages/core
           packages/@n8n/db
           packages/cli

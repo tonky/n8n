@@ -27,6 +27,7 @@ pipeline: {
 			"packages/workflow",
 			"packages/testing/containers",
 			"packages/testing/janitor",
+			"packages/@n8n",
 			"package.json",
 			"pnpm-lock.yaml",
 			"pnpm-workspace.yaml",
