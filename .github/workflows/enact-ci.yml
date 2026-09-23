@@ -149,7 +149,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
@@ -160,7 +160,9 @@ jobs:
           packages/*/dist
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
-        restore-keys: ${{ runner.os }}-node-
+        restore-keys: |-
+          ${{ runner.os }}-node-stage-check-and-lint-
+          ${{ runner.os }}-node-
     - name: Install Project Dependencies
       run: |-
         RUN_PREFIX=""
