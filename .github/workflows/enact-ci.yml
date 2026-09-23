@@ -149,7 +149,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', 'bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
@@ -295,7 +295,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
-        key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', 'bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
@@ -602,7 +602,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', 'bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
@@ -622,7 +622,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/package.json', '**/pnpm-lock.yaml', '**/package-lock.json') }}
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/package.json', 'pnpm-workspace.yaml', 'package.json', 'pnpm-lock.yaml') }}
         path: |-
           ~/.cache/ms-playwright
           /tmp/.cache/ms-playwright
@@ -834,7 +834,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
-        key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('**/pnpm-lock.yaml', '**/package-lock.json', '**/yarn.lock', '**/bun.lockb') }}
+        key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', 'bun.lockb') }}
         path: |-
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
@@ -880,7 +880,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/package.json', '**/pnpm-lock.yaml', '**/package-lock.json') }}
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/packages/testing/playwright/package.json', 'pnpm-workspace.yaml', 'package.json', 'pnpm-lock.yaml') }}
         path: |-
           ~/.cache/ms-playwright
           /tmp/.cache/ms-playwright
