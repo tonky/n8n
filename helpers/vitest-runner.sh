@@ -44,7 +44,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   elif [ -d "$REPO_ROOT/packages/cli" ]; then
     FILTER_ARGS+=(--filter=n8n^...)
   fi
-  if [ -d "$REPO_ROOT/packages/frontend/editor-ui" ]; then
+  if [ -f "$REPO_ROOT/packages/frontend/editor-ui/package.json" ]; then
     FILTER_ARGS+=(--filter="!n8n-editor-ui")
   fi
 
@@ -58,30 +58,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   # Self-healing fallback for critical TypeScript packages if turbo was unconfigured or failed
   if [ "$TURBO_SUCCESS" != "true" ]; then
     echo "📦 [vitest-runner] Turbo build skipped or failed; compiling checked-out workspace packages directly..."
-    if [ -f "tsconfig.json" ] && [ -x "$TSC_BIN" ]; then
-      REFS=$(node -e '
-        const fs = require("fs");
-        try {
-          const raw = fs.readFileSync("tsconfig.json", "utf8");
-          const clean = raw.replace(/^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1");
-          const json = JSON.parse(clean);
-          const valid = (json.references || []).map(r => r.path).filter(p => fs.existsSync(p));
-          console.log(valid.join(" "));
-        } catch (e) {
-          process.exit(0);
-        }
-      ' 2>/dev/null || true)
-
-      if [ -n "$REFS" ]; then
-        if [ -f "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" ]; then
-          node "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" 2>/dev/null || true
-        fi
-        echo "📦 [vitest-runner] Building local project references for '${CURRENT_PKG:-local}'..."
-        $TSC_BIN -b $REFS 2>/dev/null || true
-      fi
-    fi
-
-    # Explicit fallback for critical packages
+    # Explicit fallback for @n8n/db
     if [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
       if [ -f "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" ]; then
         node "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" 2>/dev/null || true
