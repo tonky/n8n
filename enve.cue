@@ -45,7 +45,7 @@ profiles: dev: schema.#Profile & {
 			readinessProbe: {
 				command: "curl -s -f --connect-timeout 1 --max-time 3 http://127.0.0.1:5678/healthz || exit 1"
 				port:    5678
-				timeout: "30s"
+				timeout: "90s"
 			}
 		}
 	}
