@@ -30,11 +30,7 @@ while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
 done
 
 if [ -n "$CURRENT_PKG" ] && [ -f "$REPO_ROOT/turbo.json" ]; then
-  if [ -d "$REPO_ROOT/packages/workflow/dist" ] || compgen -G "$REPO_ROOT/packages/@n8n/*/dist" >/dev/null 2>&1; then
-    echo "📦 [typecheck-runner] Internal workspace packages already warm in dist/, skipping turbo build"
-  else
-    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter="${CURRENT_PKG}^...") || true
-  fi
+  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter="${CURRENT_PKG}^...") || true
 fi
 
 # Pre-build referenced project configs so declaration files exist in dist/
