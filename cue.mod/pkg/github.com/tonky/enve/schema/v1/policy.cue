@@ -39,7 +39,7 @@ package schema
 }
 
 #SecurityPolicy: {
-	name:        string & !=""
+	name:         string & !=""
 	description?: string
 
 	// Maximum allowable vulnerability threshold before build/CI failure

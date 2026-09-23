@@ -15,6 +15,7 @@ REPO_ROOT="$PWD"
 while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
   REPO_ROOT="$(dirname "$REPO_ROOT")"
 done
+export NODE_PATH="${REPO_ROOT}/node_modules:${REPO_ROOT}/packages/cli/node_modules:${REPO_ROOT}/packages/frontend/editor-ui/node_modules:${NODE_PATH:-}"
 
 # Ensure local node_modules exists for the component
 if [ ! -d "node_modules" ] && [ -f "$REPO_ROOT/pnpm-lock.yaml" ]; then
@@ -34,8 +35,21 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     fi
   fi
 
-  if [ -d "$REPO_ROOT/packages/@n8n/di" ] && [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
-    echo "📦 [vitest-runner] Compiling workspace dependencies via turbo..."
+  NEEDS_BUILD=0
+  for check_file in \
+    "$REPO_ROOT/packages/@n8n/di/dist/di.js" \
+    "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" \
+    "$REPO_ROOT/packages/@n8n/tournament/dist/index.js" \
+    "$REPO_ROOT/packages/@n8n/codemirror-lang-html/dist/index.js"; do
+    pkg_parent="$(dirname "$(dirname "$check_file")")"
+    if [ -d "$pkg_parent" ] && [ ! -f "$check_file" ]; then
+      NEEDS_BUILD=1
+      break
+    fi
+  done
+
+  if [ "$NEEDS_BUILD" -eq 1 ]; then
+    echo "📦 [vitest-runner] Compiling missing workspace dependencies via turbo..."
     CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
     FILTER_ARGS=()
     if [ -n "$CURRENT_PKG" ]; then
@@ -48,12 +62,16 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
 
     # Self-healing fallback for critical TypeScript packages if turbo failed or was skipped
-    if [ ! -f "$REPO_ROOT/packages/@n8n/di/dist/di.js" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/di" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
-    fi
-    if [ -d "$REPO_ROOT/packages/@n8n/typeorm" ] && [ ! -f "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" ]; then
-      (cd "$REPO_ROOT/packages/@n8n/typeorm" && [ -x "$TSC_BIN" ] && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
-    fi
+    for fallback_pkg in di typeorm tournament codemirror-lang-html; do
+      pkg_dir="$REPO_ROOT/packages/@n8n/$fallback_pkg"
+      if [ -d "$pkg_dir" ] && [ -x "$TSC_BIN" ] && [ ! -d "$pkg_dir/dist" ]; then
+        if [ -f "$pkg_dir/tsconfig.build.json" ]; then
+          (cd "$pkg_dir" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+        else
+          (cd "$pkg_dir" && pnpm build) || true
+        fi
+      fi
+    done
   fi
 fi
 
@@ -73,12 +91,19 @@ run_vitest() {
   fi
 }
 
+SHARD_OPTS=()
+if [ -n "${ENACT_SHARD_INDEX:-}" ] && [ -n "${ENACT_SHARD_TOTAL:-}" ]; then
+  SHARD_OPTS=(--shard="${ENACT_SHARD_INDEX}/${ENACT_SHARD_TOTAL}")
+elif [ -n "${SHARD:-}" ] && [ -n "${TOTAL_SHARDS:-}" ]; then
+  SHARD_OPTS=(--shard="${SHARD}/${TOTAL_SHARDS}")
+fi
+
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  echo "🎯 [enact] No targets specified, running unit test suite"
+  echo "🎯 [enact] No targets specified, running unit test suite ${SHARD_OPTS[*]:-}"
   export N8N_LOG_LEVEL=silent
   export DB_SQLITE_POOL_SIZE=4
   export DB_TYPE=sqlite
-  run_vitest run
+  run_vitest run "${SHARD_OPTS[@]}"
   exit $?
 fi
 

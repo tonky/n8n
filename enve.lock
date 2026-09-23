@@ -1,13 +1,14 @@
 {
   "nixpkgs": {
     "rev": "79b35bf0bda5cd110f856aa5b5b2c5ba4460dbf5",
-    "url": "github:NixOS/nixpkgs"
+    "url": "github:NixOS/nixpkgs",
+    "verified": false
   },
   "platforms": {
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "752f482f119d1ce45fb135fec1e4c3b7683780f22aa24bb640865b6fd03a5a2b",
-        "inventory_sha256": "2920de17f26b95c3e9647d34175f84943111570ff2e74baea0c12fdf6f0343ca",
+        "environment_sha256": "168f14db5da41fca6bb36cddcd1154520cb6980d6c7df489e4d4420bfd1bda2a",
+        "inventory_sha256": "f23f3e5e13c6c790064c38e1c3551bb1c042eaa7cd1b759b997e310e039bdeb2",
         "profile": null,
         "version": 1
       },
@@ -359,6 +360,17 @@
             "fwzl4in6i7pj30zp0rz3mx90cl6vg4km-libgcrypt-1.12.2-lib",
             "n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84",
             "xryrhsmmwrgdpqd5ic0fwkm64ghjmn4c-libgpg-error-1.61"
+          ]
+        },
+        {
+          "hash_name": "ggg53gq25nf1p6vlzyzkwj26csc5jfak-pnpm-12.3.4",
+          "nar_hash": "sha256:1nzm2r1445wh2yrj3pqcqyqj23gv19313pxihh6gnc7d0kbblz5j",
+          "nar_size": 52417880,
+          "references": [
+            "604gsr59rj7dzd0nrhp143rpvf7gyiaz-gcc-15.3.0-lib",
+            "ggg53gq25nf1p6vlzyzkwj26csc5jfak-pnpm-12.3.4",
+            "lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84",
+            "svx59425zxp552p2b8gm11qj5r09b56i-bash-5.3p15"
           ]
         },
         {
@@ -1063,6 +1075,17 @@
           ]
         },
         {
+          "hash_name": "1wih27l94wh0ff44yswzbiv0xylgpi3x-tbls-1.96.0",
+          "nar_hash": "sha256:1p7f58nv11r483iihqqb875vaq3vb9lsfg0q9s3pxg6v2i9cs0fh",
+          "nar_size": 98460472,
+          "references": [
+            "549nkjs10xhma2f9kx3rxw61kym0abjx-mailcap-2.1.54",
+            "9v00p4m9cdzn23gmy5m9d3a6c3gfwhl7-iana-etc-20251215",
+            "fh8svr4ds87z84iarfnxrlfpjlbmc816-tzdata-2026c",
+            "lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84"
+          ]
+        },
+        {
           "hash_name": "1xakvg5jqmaiawwk0n1sbhvsvrdya512-libunistring-1.4.1",
           "nar_hash": "sha256:170vjwm7wsa6kj6wyvg77m8fbkixw9x2mh3z9y4svppsr4dpi2d4",
           "nar_size": 2078944,
@@ -1246,6 +1269,12 @@
             "51hxzq3l1qd4gy0r4safnj1y9s0hgs68-ncurses-6.6",
             "lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84"
           ]
+        },
+        {
+          "hash_name": "549nkjs10xhma2f9kx3rxw61kym0abjx-mailcap-2.1.54",
+          "nar_hash": "sha256:1xbjd7qddfb3r809w1dyp7bhbpa8xvll9n295q1x38fa05v68spz",
+          "nar_size": 119360,
+          "references": []
         },
         {
           "hash_name": "55hn446yw91l71w3v648qci8iisv8m5a-libgpg-error-1.61",
@@ -1659,6 +1688,14 @@
           ]
         },
         {
+          "hash_name": "9v00p4m9cdzn23gmy5m9d3a6c3gfwhl7-iana-etc-20251215",
+          "nar_hash": "sha256:09l5qqk4528hji1b91ijihdl6hlrlyqz8szya4sp2hldvy65y12i",
+          "nar_size": 571168,
+          "references": [
+            "9v00p4m9cdzn23gmy5m9d3a6c3gfwhl7-iana-etc-20251215"
+          ]
+        },
+        {
           "hash_name": "9ycqykfw4zc1544kfimyz37k9a4zfv5n-nghttp3-1.16.0-dev",
           "nar_hash": "sha256:196arpvlzxjk293nzdn8vk218cdhnccsw0ly6pahx0ilcbasgkxr",
           "nar_size": 125992,
@@ -2017,17 +2054,6 @@
             "g909pi91zmvb7zp27cvn6ip27s2mr48q-systemd-minimal-libs-261.2",
             "lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84",
             "n48xbb1jl5vjvngr2icjlfjhripb8scb-util-linux-minimal-2.42.3-login"
-          ]
-        },
-        {
-          "hash_name": "ggg53gq25nf1p6vlzyzkwj26csc5jfak-pnpm-12.3.4",
-          "nar_hash": "sha256:1nzm2r1445wh2yrj3pqcqyqj23gv19313pxihh6gnc7d0kbblz5j",
-          "nar_size": 52417880,
-          "references": [
-            "604gsr59rj7dzd0nrhp143rpvf7gyiaz-gcc-15.3.0-lib",
-            "ggg53gq25nf1p6vlzyzkwj26csc5jfak-pnpm-12.3.4",
-            "lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84",
-            "svx59425zxp552p2b8gm11qj5r09b56i-bash-5.3p15"
           ]
         },
         {
@@ -3301,18 +3327,38 @@
         }
       ],
       "environment": {
+        "CLI_HOST": "127.0.0.1",
+        "CLI_PORT": "5678",
+        "CLI_URL": "http://127.0.0.1:5678",
+        "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",
+        "DB_POSTGRESDB_DATABASE": "n8n",
+        "DB_POSTGRESDB_HOST": "127.0.0.1",
+        "DB_POSTGRESDB_PASSWORD": "",
+        "DB_POSTGRESDB_PORT": "5432",
+        "DB_POSTGRESDB_USER": "postgres",
+        "DB_TYPE": "postgresdb",
+        "ENVE_SERVICE_CLI_HOST": "127.0.0.1",
+        "ENVE_SERVICE_CLI_PORT": "5678",
+        "ENVE_SERVICE_CLI_URL": "http://127.0.0.1:5678",
         "ENVE_SERVICE_POSTGRES_HOST": "127.0.0.1",
         "ENVE_SERVICE_POSTGRES_PORT": "5432",
         "ENVE_SERVICE_POSTGRES_URL": "http://127.0.0.1:5432",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6379",
         "ENVE_SERVICE_REDIS_URL": "http://127.0.0.1:6379",
+        "PGDATABASE": "n8n",
+        "PGTZ": "UTC",
+        "PGUSER": "postgres",
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5432",
         "POSTGRES_URL": "http://127.0.0.1:5432",
+        "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
+        "QUEUE_BULL_REDIS_PORT": "6379",
         "REDIS_HOST": "127.0.0.1",
         "REDIS_PORT": "6379",
-        "REDIS_URL": "http://127.0.0.1:6379"
+        "REDIS_URL": "http://127.0.0.1:6379",
+        "TESTCONTAINERS_ENABLED": "false",
+        "TZ": "UTC"
       },
       "tools": {
         "corepack-nodejs": {
@@ -3339,6 +3385,11 @@
           "bin": "bin",
           "closure": "7877p8x9ncrrlmhgzrc59bka0mfsw307-redis-8.10.1",
           "version": "8.10.1"
+        },
+        "tbls": {
+          "bin": "bin/tbls",
+          "closure": "1wih27l94wh0ff44yswzbiv0xylgpi3x-tbls-1.96.0",
+          "version": "1.96.0"
         }
       }
     }

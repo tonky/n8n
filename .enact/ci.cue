@@ -11,18 +11,18 @@ pipeline: {
 			"standard": {
 				available:    8
 				cost_per_min: 0.008
-				cpus:         2.0
+				cpus:         4.0
 				labels: [
 					"ubuntu-latest",
 				]
-				memory_mb: 7168
+				memory_mb: 14336
 			}
 			"4vcpu": {
 				available:    4
 				cost_per_min: 0.016
 				cpus:         4.0
 				labels: [
-					"ubuntu-latest-4-cores",
+					"ubuntu-latest",
 				]
 				memory_mb: 16384
 			}
@@ -47,13 +47,13 @@ pipeline: {
 			stages: [
 				{
 					name:      "check-and-lint"
-					tasks:     ["lint"]
+					tasks:     ["lint", "typecheck", "pack"]
 					fail_fast: true
 					services:  "disabled"
 				},
 				{
 					name:      "test"
-					tasks:     ["test"]
+					tasks:     ["test", "migrate", "schema_check", "smoke"]
 					fail_fast: false
 					services:  "on_demand"
 				},

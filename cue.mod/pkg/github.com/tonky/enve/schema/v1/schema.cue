@@ -17,7 +17,7 @@ import (
 // negative one, which no field here means, so the sign is ruled out where the type is
 // declared rather than in every field that uses it. Zero-versus-positive is a
 // per-field rule and lives in the deserializer.
-#Duration: (time.Duration & !~"^-") | #Unitless
+#Duration: time.Duration & !~"^-" | #Unitless
 #Host:     net.IP | string
 
 // A field removed in 0.12, declared only so `enve` can refuse it by name and print the
@@ -32,8 +32,8 @@ import (
 	hash?:     string
 }
 
-#Port:             int & > 0 & <= 65535
-#UnprivilegedPort: int & > 1024 & <= 65535
+#Port:             int & >0 & <=65535
+#UnprivilegedPort: int & >1024 & <=65535
 
 // SemVer 2.0.0 compliant version constraint (e.g. "1.24", "1.23.1", "3.13.0-rc.1", "22").
 #SemVer: string & =~"^[0-9]+(\\.[0-9]+)*(-[a-zA-Z0-9.]+)?(\\+[a-zA-Z0-9.]+)?$"
@@ -53,23 +53,23 @@ import (
 	name:    "\(pname)-\(version)"
 	builder: string
 	args?: [...string]
-	env?: [string]: _
+	env?: [string]:       _
 	inputDrvs?: [string]: _
-	outputs: [string]: #Output
+	outputs: [string]:    #Output
 	sandbox?: #BuildSandbox
 }
 
 #BuildIsolation: {
-    Auto: "auto"
-    Required: "required"
+	Auto:     "auto"
+	Required: "required"
 }
 #BuildIsolationMode: #BuildIsolation.Auto | #BuildIsolation.Required
 #BuildSandbox: *close({
-    isolation: #BuildIsolation.Auto
-    readOnly: []
+	isolation: #BuildIsolation.Auto
+	readOnly: []
 }) | close({
-    isolation: #BuildIsolation.Required
-    readOnly: [...string] | *[]
+	isolation: #BuildIsolation.Required
+	readOnly: [...string] | *[]
 })
 #BuildSpec: {
 	sandbox?:       #BuildSandbox
@@ -109,7 +109,7 @@ import (
 	command?:  string
 	interval?: #Duration
 	timeout?:  #Duration
-	retries?:  int & > 0 | *3
+	retries?:  int & >0 | *3
 
 	intervalMs?: #Removed
 	timeoutMs?:  #Removed
@@ -159,6 +159,14 @@ import (
 	onReload?:  #LifecycleHook
 	seed?:      #LifecycleHook
 }
+
+#ServiceActionSpec: {
+	run: string | [...string]
+	timeout?: #Duration
+	withServices?: bool | [...#DependencyRef | string] | *true
+}
+
+#ServiceAction: string | [...string] | #ServiceActionSpec
 
 #ServiceResources: {
 	cpu?:        string | float | int
@@ -295,42 +303,45 @@ import (
 
 // Environment restriction is opt-in and applies to native service children.
 #ServiceEnvironmentMode: {
-    Inherit: "inherit"
-    Restricted: "restricted"
+	Inherit:    "inherit"
+	Restricted: "restricted"
 }
 #ServiceEnvironmentPolicy: close({
-    mode: #ServiceEnvironmentMode.Inherit
+	mode: #ServiceEnvironmentMode.Inherit
 }) | close({
-    mode: #ServiceEnvironmentMode.Restricted
-    forward?: [...string & =~"^[A-Za-z_][A-Za-z0-9_]*$"]
+	mode: #ServiceEnvironmentMode.Restricted
+	forward?: [...string & =~"^[A-Za-z_][A-Za-z0-9_]*$"]
 })
 
 #Service: {
-	name?:           string
-	enabled?:        bool | *true
-	external?:       bool | *false
-	host?:           #Host | *"127.0.0.1"
-	url?:            string
-	package?:        #PackageRef
-	packages?:       [...#PackageRef]
-	image?:          string
-	command?:        string
-	build?:          #BuildSpec
-	directory?:      string | *"."
-	originDir?:      string
-	watch?:          [...string]
-	dataDir?:        string
-	files?:          [string]: #ServiceFile | string
-	lifecycle?:      #ServiceLifecycle
-	port?:           #Port
-	timeout?:        #Duration
+	name?:     string
+	enabled?:  bool | *true
+	external?: bool | *false
+	host?:     #Host | *"127.0.0.1"
+	url?:      string
+	package?:  #PackageRef
+	packages?: [...#PackageRef]
+	image?:     string
+	command?:   string
+	build?:     #BuildSpec
+	directory?: string | *"."
+	originDir?: string
+	watch?: [...string]
+	dataDir?: string
+	files?: [string]: #ServiceFile | string
+	lifecycle?:         #ServiceLifecycle
+	port?:              #Port
+	timeout?:           #Duration
 	environmentPolicy?: #ServiceEnvironmentPolicy
-	environment?:    [string]: _
+	environment?: [string]: _
+	test?: #ServiceAction
+	lint?: #ServiceAction
+	tasks?: [string]: #ServiceAction
 	// `string` is accepted by the schema only so that enve can refuse it with a message
 	// naming the service and the replacement; see model/depends_on.rs. It stays: a
 	// dependency written as a name is what every compose-shaped schema teaches.
-	dependsOn?:      [...#DependencyRef | string] | #ServiceDependencyMap
-	volumes?:        [...string]
+	dependsOn?: [...#DependencyRef | string] | #ServiceDependencyMap
+	volumes?: [...string]
 	healthCheck?:    #ServiceHealthCheck
 	readinessProbe?: #ServiceReadinessProbe
 	restartPolicy?:  #RestartPolicyMode
@@ -350,7 +361,7 @@ import (
 	prettier?:      bool | *false
 	ruff?:          bool | *false
 	golangci_lint?: bool | *false
-	custom?:        [string]: string
+	custom?: [string]: string
 }
 
 #PostgresService: #Service & {
@@ -362,16 +373,16 @@ import (
 	let defaultUser = "postgres"
 	let defaultTimeout = "2500ms"
 
-	port:        #Port | *defaultPort
-	dataDir:     string | *defaultDataDir
+	port:    #Port | *defaultPort
+	dataDir: string | *defaultDataDir
 	// With the data, not in `/tmp`: a socket left behind by a crashed postmaster
 	// otherwise blocks the next start of an unrelated project on the same port, which
 	// is what the supervisor's stale-socket sweep exists to paper over.
-	socketDir:   string | *dataDir
-	database:    string | *defaultDb
-	user:        string | *defaultUser
-	timeout:     #Duration | *defaultTimeout
-	command:     string | *"postgres -D \(dataDir) -k \(socketDir) -p \(port)"
+	socketDir: string | *dataDir
+	database:  string | *defaultDb
+	user:      string | *defaultUser
+	timeout:   #Duration | *defaultTimeout
+	command:   string | *"postgres -D \(dataDir) -k \(socketDir) -p \(port)"
 	lifecycle: {
 		init: [
 			*"initdb -D \"$DATA_DIR\" -U postgres --auth-local=trust --auth-host=trust" | string,
@@ -393,14 +404,14 @@ import (
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		command:   string | *"pg_isready -h 127.0.0.1 -p \(servicePort) -U \(user)"
-		timeout:   #Duration | *"1000ms"
+		port:    #Port | *servicePort
+		command: string | *"pg_isready -h 127.0.0.1 -p \(servicePort) -U \(user)"
+		timeout: #Duration | *"1000ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		command:   string | *"psql -h 127.0.0.1 -p \(servicePort) -U \(user) -d \(database) -c 'SELECT 1;'"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *servicePort
+		command: string | *"psql -h 127.0.0.1 -p \(servicePort) -U \(user) -d \(database) -c 'SELECT 1;'"
+		timeout: #Duration | *defaultTimeout
 	}
 }
 
@@ -411,23 +422,23 @@ import (
 	let defaultDataDir = ".enve/data/redis"
 	let defaultTimeout = "1500ms"
 
-	port:        #Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	timeout:     #Duration | *defaultTimeout
-	command:     string | *"redis-server --port \(port) --dir \(dataDir) --daemonize no"
+	port:    #Port | *defaultPort
+	dataDir: string | *defaultDataDir
+	timeout: #Duration | *defaultTimeout
+	command: string | *"redis-server --port \(port) --dir \(dataDir) --daemonize no"
 	environment: {
 		REDIS_PORT: "\(port)"
 		REDIS_URL:  "redis://localhost:\(port)/0"
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"800ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"800ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		command:   string | *"redis-cli -p \(servicePort) ping"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *servicePort
+		command: string | *"redis-cli -p \(servicePort) ping"
+		timeout: #Duration | *defaultTimeout
 	}
 }
 
@@ -438,10 +449,10 @@ import (
 	let defaultDataDir = ".enve/data/valkey"
 	let defaultTimeout = "1500ms"
 
-	port:        #Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	timeout:     #Duration | *defaultTimeout
-	command:     string | *"valkey-server --port \(port) --dir \(dataDir) --daemonize no"
+	port:    #Port | *defaultPort
+	dataDir: string | *defaultDataDir
+	timeout: #Duration | *defaultTimeout
+	command: string | *"valkey-server --port \(port) --dir \(dataDir) --daemonize no"
 	// Valkey answers the Redis protocol, so its clients read the Redis variables.
 	environment: {
 		REDIS_PORT: "\(port)"
@@ -449,13 +460,13 @@ import (
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"800ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"800ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		command:   string | *"valkey-cli -p \(servicePort) ping"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *servicePort
+		command: string | *"valkey-cli -p \(servicePort) ping"
+		timeout: #Duration | *defaultTimeout
 	}
 }
 
@@ -466,9 +477,9 @@ import (
 	let defaultDataDir = ".enve/data/mysql"
 	let defaultTimeout = "3500ms"
 
-	port:        #Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	timeout:     #Duration | *defaultTimeout
+	port:    #Port | *defaultPort
+	dataDir: string | *defaultDataDir
+	timeout: #Duration | *defaultTimeout
 	lifecycle: {
 		init: [
 			*"mysqld --initialize-insecure --datadir=\"$DATA_DIR\"" | string,
@@ -478,19 +489,19 @@ import (
 	// into a shared location (`/tmp/mysql.sock`), which a second instance would take
 	// from the first. `--mysqlx=OFF` closes the X protocol listener, whose own
 	// default port (33060) is not the one this service was given.
-	command:     string | *"mysqld --datadir=\"\(dataDir)\" --port=\(port) --socket=\"\(dataDir)/mysql.sock\" --pid-file=\"\(dataDir)/mysqld.pid\" --mysqlx=OFF --bind-address=127.0.0.1"
+	command: string | *"mysqld --datadir=\"\(dataDir)\" --port=\(port) --socket=\"\(dataDir)/mysql.sock\" --pid-file=\"\(dataDir)/mysqld.pid\" --mysqlx=OFF --bind-address=127.0.0.1"
 	environment: {
 		MYSQL_TCP_PORT: "\(port)"
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"1500ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"1500ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		command:   string | *"mysqladmin ping -h 127.0.0.1 -P \(servicePort) -u root"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *servicePort
+		command: string | *"mysqladmin ping -h 127.0.0.1 -P \(servicePort) -u root"
+		timeout: #Duration | *defaultTimeout
 	}
 }
 
@@ -503,12 +514,12 @@ import (
 	let defaultConfigFile = ".enve/config/clickhouse/config.xml"
 	let defaultTimeout = "3500ms"
 
-	port:        #Port | *defaultHttpPort
-	tcpPort:     #Port | *defaultTcpPort
-	dataDir:     string | *defaultDataDir
-	configFile:  string | *defaultConfigFile
-	timeout:     #Duration | *defaultTimeout
-	command:     string | *"clickhouse-server --config-file=\(defaultConfigFile)"
+	port:       #Port | *defaultHttpPort
+	tcpPort:    #Port | *defaultTcpPort
+	dataDir:    string | *defaultDataDir
+	configFile: string | *defaultConfigFile
+	timeout:    #Duration | *defaultTimeout
+	command:    string | *"clickhouse-server --config-file=\(defaultConfigFile)"
 	environment: {
 		CLICKHOUSE_DATA_DIR:  defaultDataDir
 		CLICKHOUSE_HTTP_PORT: "\(defaultHttpPort)"
@@ -516,14 +527,14 @@ import (
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		path:      string | *"http://127.0.0.1:\(servicePort)/ping"
-		timeout:   #Duration | *"1000ms"
+		port:    #Port | *servicePort
+		path:    string | *"http://127.0.0.1:\(servicePort)/ping"
+		timeout: #Duration | *"1000ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		command:   string | *"curl -s -f 'http://127.0.0.1:\(servicePort)/?query=SELECT+1'"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *servicePort
+		command: string | *"curl -s -f 'http://127.0.0.1:\(servicePort)/?query=SELECT+1'"
+		timeout: #Duration | *defaultTimeout
 	}
 }
 
@@ -535,24 +546,24 @@ import (
 	let defaultDbFilename = ".enve/data/temporal/temporal.db"
 	let defaultTimeout = "2500ms"
 
-	port:        #Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	dbFilename:  string | *defaultDbFilename
-	timeout:     #Duration | *defaultTimeout
-	command:     string | *"temporal server start-dev --port \(port) --headless --db-filename \(dbFilename)"
+	port:       #Port | *defaultPort
+	dataDir:    string | *defaultDataDir
+	dbFilename: string | *defaultDbFilename
+	timeout:    #Duration | *defaultTimeout
+	command:    string | *"temporal server start-dev --port \(port) --headless --db-filename \(dbFilename)"
 	environment: {
 		TEMPORAL_PORT: "\(port)"
 		TEMPORAL_HOST: "127.0.0.1"
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"1000ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"1000ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		command:   string | *"temporal operator cluster health --address 127.0.0.1:\(servicePort)"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *servicePort
+		command: string | *"temporal operator cluster health --address 127.0.0.1:\(servicePort)"
+		timeout: #Duration | *defaultTimeout
 	}
 }
 
@@ -560,26 +571,37 @@ import (
 	package: #PackageRef | *"seaweedfs"
 
 	let defaultPort = 19000
+	let defaultMasterPort = 19001
+	let defaultVolumePort = 19002
 	let defaultDataDir = ".enve/data/seaweedfs"
-	let defaultTimeout = "6000ms"
 
-	port:        #Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	timeout:     #Duration | *defaultTimeout
-	command:     string | *"weed server -s3 -s3.port=\(port) -dir=\(dataDir)"
+	// `weed server` is four servers and S3 is the last to listen: ~3.2s measured, so
+	// the old 4s health budget lost the coin toss as soon as raft took a little longer.
+	let defaultTimeout = "15000ms"
+
+	port:       #Port | *defaultPort
+	masterPort: #Port | *defaultMasterPort
+	volumePort: #Port | *defaultVolumePort
+	dataDir:    string | *defaultDataDir
+	timeout:    #Duration | *defaultTimeout
+	// -master.raftHashicorp: under the legacy raft a resumed single-node master answers
+	// its own clients with `Not current leader` forever, so the second boot never serves.
+	// -ip pins the advertised address: `weed` otherwise records whichever non-loopback
+	// address it found into its raft state.
+	command: string | *"weed server -ip=127.0.0.1 -master.raftHashicorp -s3 -s3.port=\(port) -master.port=\(masterPort) -volume.port=\(volumePort) -dir=\(dataDir)"
 	environment: {
 		S3_PORT:     "\(port)"
 		S3_ENDPOINT: "http://127.0.0.1:\(port)"
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"4000ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"12000ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		command:   string | *"curl -s -f -o /dev/null http://127.0.0.1:\(servicePort)/"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *servicePort
+		command: string | *"curl -s -f -o /dev/null http://127.0.0.1:\(servicePort)/"
+		timeout: #Duration | *"12000ms"
 	}
 }
 
@@ -590,26 +612,26 @@ import (
 	let defaultRunDir = ".enve/data/nginx"
 	let defaultTimeout = "2000ms"
 
-	port:          #Port | *defaultPort
-	runDir:        string | *defaultRunDir
+	port:   #Port | *defaultPort
+	runDir: string | *defaultRunDir
 	// The config lives with the service, not at `/etc/nginx/nginx.conf`: the host's file
 	// is absent on a clean machine and, where it exists, asks for port 80 and writes to
 	// /var/log/nginx. Declaring `nginx` under `services:` has enve write one; a project
 	// that configures nginx itself supplies its own through `files:`.
-	configFile:    string | *"\(runDir)/nginx.conf"
-	timeout:       #Duration | *defaultTimeout
+	configFile: string | *"\(runDir)/nginx.conf"
+	timeout:    #Duration | *defaultTimeout
 	// `-e stderr` because nginx opens its compiled-in `logs/error.log` before it reads a
 	// line of the config, and that directory does not exist under a fresh prefix.
-	command:       string | *"nginx -p \"\(runDir)\" -c \"\(configFile)\" -e stderr -g \"daemon off;\""
+	command: string | *"nginx -p \"\(runDir)\" -c \"\(configFile)\" -e stderr -g \"daemon off;\""
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"1000ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"1000ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		path:      string | *"http://127.0.0.1:\(servicePort)/"
-		timeout:   #Duration | *defaultTimeout
+		port:    #Port | *servicePort
+		path:    string | *"http://127.0.0.1:\(servicePort)/"
+		timeout: #Duration | *defaultTimeout
 	}
 }
 
@@ -628,12 +650,12 @@ import (
 	// the server reads. These are its answers for the default port, spelled out
 	// because a CUE default cannot compute one — so a preset that sets `port` should
 	// set `rpcPort` and `adminPort` beside it rather than leave them at 3901/3902.
-	port:       #Port | *defaultPort
+	port: #Port | *defaultPort
 	let defaultRpcPort = 3901
 	let defaultAdminPort = 3902
-	rpcPort:    #Port | *defaultRpcPort
-	adminPort:  #Port | *defaultAdminPort
-	dataDir:    string | *defaultDataDir
+	rpcPort:   #Port | *defaultRpcPort
+	adminPort: #Port | *defaultAdminPort
+	dataDir:   string | *defaultDataDir
 	// Written by enve when `garage` is declared under `services:`. A project that
 	// configures garage itself supplies its own through `files:`.
 	configFile: string | *"\(dataDir)/garage.toml"
@@ -667,8 +689,8 @@ import (
 	let defaultDataDir = ".enve/data/tansu"
 	let defaultTimeout = "1500ms"
 
-	port:          #Port | *defaultPort
-	dataDir:       string | *defaultDataDir
+	port:    #Port | *defaultPort
+	dataDir: string | *defaultDataDir
 	// On disk rather than `memory://tansu/`, which lost every topic on restart. Tansu
 	// resolves the URL's path against its working directory, so the path stays relative
 	// and the `///` is load-bearing: `sqlite://<path>` reads `<path>` as the URL's host.
@@ -681,12 +703,12 @@ import (
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"800ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"800ms"
 	}
 	readinessProbe: {
-		port:      #Port | *servicePort
-		timeout:   #Duration | *"1000ms"
+		port:    #Port | *servicePort
+		timeout: #Duration | *"1000ms"
 	}
 }
 
@@ -695,52 +717,46 @@ import (
 // A selectable configuration: the tools, services and environment variables
 // that `enve` applies. Selected with `-p/--profile`; see `profiles` in the enve file.
 #Profile: {
-	name?:             string | *""
-	build?:            #BuildSpec
-	tools?:            [...#PackageRef] | *[]
-	services?:         [string]: #Service
+	name?:  string | *""
+	build?: #BuildSpec
+	tools?: [...#PackageRef] | *[]
+	services?: [string]: #Service
 	disabledServices?: [...#Service]
-	hosts?:            [string]: string
-	ports?:            [...#Port]
-	gitHooks?:         #GitHooks
-	environment?:      [string]: _
-	shellHook?:        string
-	resources?:        _
-	telemetry?:        _
-	[string]:          _
+	hosts?: [string]: string
+	ports?: [...#Port]
+	gitHooks?: #GitHooks
+	environment?: [string]: _
+	shellHook?: string
+	resources?: _
+	telemetry?: _
+	[string]:   _
 }
 
 #CueOnlyDevEnvironment: {
-	name?:             string | *""
-	build?:            #BuildSpec
-	tools?:            [...#PackageRef] | *[]
-	services?:         [string]: #Service
+	name?:  string | *""
+	build?: #BuildSpec
+	tools?: [...#PackageRef] | *[]
+	services?: [string]: #Service
 	disabledServices?: [...#Service]
-	hosts?:            [string]: string
-	ports?:            [...#Port]
-	gitHooks?:         #GitHooks
-	environment?:      [string]: _
-	shellHook?:        string
-	resources?:        _
-	telemetry?:        _
-	[string]:          _
+	hosts?: [string]: string
+	ports?: [...#Port]
+	gitHooks?: #GitHooks
+	environment?: [string]: _
+	shellHook?: string
+	resources?: _
+	telemetry?: _
+	[string]:   _
 }
 
-#GoBuildSpec:     #BuildSpec
-#NodeBuildSpec:   #BuildSpec
+#GoBuildSpec:   #BuildSpec
+#NodeBuildSpec: #BuildSpec
 #PythonBuildSpec: #BuildSpec & {
 	format?: #PythonPackageFormatMode
 }
 #RustBuildSpec:   #BuildSpec
-#GleamBuildSpec: #BuildSpec
+#GleamBuildSpec:  #BuildSpec
 #ErlangBuildSpec: #BuildSpec
 
 // The profiles an enve file declares: `profiles: schema.#Profiles & {dev: …, ci: …}`.
 // `-p/--profile` selects one by key, and `dev` is selected when the flag is absent.
 #Profiles: [string]: #Profile
-
-// Deprecated spellings of #Profile, kept for one release so existing files keep
-// evaluating. `environment` now names only the OS environment variables a profile sets.
-#DevEnvironment: #Profile
-#Environment:    #Profile
-

@@ -5,12 +5,11 @@ pipeline: {
 		local: {
 			layout:   "topological"
 			services: "on_demand"
-			stages: [
-				{
-					name: "dev"
-					tasks: ["test"]
-				},
-			]
+			stages: {
+				dev: {
+					select: ["test"]
+				}
+			}
 		}
 	}
 }

@@ -36,7 +36,7 @@
  */
 
 import { spawn, spawnSync } from 'child_process';
-import { mkdtempSync, rmSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
 import { createServer } from 'net';
 import os from 'os';
 import path from 'path';
@@ -80,6 +80,17 @@ if (process.env.N8N_BASE_URL) {
 // key) inside it, so this also isolates the DB from any local n8n install.
 const userFolder = mkdtempSync(path.join(os.tmpdir(), 'n8n-test-isolated-'));
 
+const dbTemplateDir = path.join(os.tmpdir(), 'n8n-e2e-template', '.n8n');
+const userN8nDir = path.join(userFolder, '.n8n');
+if (existsSync(dbTemplateDir)) {
+	try {
+		cpSync(dbTemplateDir, userN8nDir, { recursive: true });
+		console.log('[run-local-isolated] Seeded SQLite database from template cache');
+	} catch (_) {
+		// fallback to fresh
+	}
+}
+
 // Caller-supplied n8n env (same convention as `pnpm test:local`).
 const callerTestEnv = (() => {
 	try {
@@ -98,6 +109,11 @@ const n8nEnv = {
 	N8N_USER_FOLDER: userFolder,
 	N8N_LOG_LEVEL: process.env.N8N_LOG_LEVEL ?? 'info',
 	N8N_RESTRICT_FILE_ACCESS_TO: '',
+	N8N_RUNNERS_MODE: 'disabled',
+	N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true',
+	N8N_UNVERIFIED_PACKAGES_ENABLED: 'true',
+	N8N_VERSION_CHECK_ENABLED: 'false',
+	N8N_DIAGNOSTICS_ENABLED: 'false',
 	...callerTestEnv,
 };
 
@@ -118,10 +134,24 @@ const n8n = spawn('pnpm', ['start'], {
 let shuttingDown = false;
 function cleanupTempDir() {
 	try {
-		rmSync(userFolder, { recursive: true, force: true });
+		rmSync(userFolder, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 	} catch {
 		// best-effort
 	}
+}
+
+function waitForProcessExit(pid, timeoutMs = 1500) {
+	const start = Date.now();
+	while (Date.now() - start < timeoutMs) {
+		try {
+			process.kill(pid, 0);
+			const waitTill = Date.now() + 50;
+			while (Date.now() < waitTill) {}
+		} catch {
+			return true;
+		}
+	}
+	return false;
 }
 
 function shutdown(code) {
@@ -130,6 +160,7 @@ function shutdown(code) {
 	try {
 		// Negative pid → signal the whole process group.
 		process.kill(-n8n.pid, 'SIGTERM');
+		waitForProcessExit(n8n.pid, 1500);
 	} catch {
 		// Group may already be gone.
 	}
@@ -165,17 +196,18 @@ async function waitForN8n(timeoutMs = 120_000) {
 	let lastStatus = 'connection refused';
 	while (Date.now() < deadline) {
 		try {
-			const res = await fetch(`${backendUrl}/rest/e2e/reset`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: '{}',
-			});
-			lastStatus = `HTTP ${res.status}`;
-			// 404 with HTML => routes not loaded yet. Anything 2xx/4xx/5xx with
-			// JSON body means E2EController is registered and listening.
-			if (res.status !== 404) return;
-			const text = await res.text();
-			if (!text.includes('Cannot POST')) return;
+			// Check /healthz/readiness first: n8n unblocks readiness (200 OK)
+			// strictly after all TypeORM migrations and initializations finish.
+			const healthRes = await fetch(`${backendUrl}/healthz/readiness`).catch(() => null);
+			if (healthRes && healthRes.status === 200) {
+				const resetRes = await fetch(`${backendUrl}/rest/e2e/reset`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: '{}',
+				}).catch(() => null);
+				if (resetRes && resetRes.status !== 404) return;
+			}
+			lastStatus = healthRes ? `HTTP ${healthRes.status}` : 'connecting';
 		} catch (err) {
 			lastStatus = err.message ?? String(err);
 		}
@@ -186,6 +218,16 @@ async function waitForN8n(timeoutMs = 120_000) {
 
 try {
 	await waitForN8n();
+	if (!existsSync(dbTemplateDir) && existsSync(userN8nDir)) {
+		try {
+			mkdirSync(path.dirname(dbTemplateDir), { recursive: true });
+			cpSync(userN8nDir, dbTemplateDir, { recursive: true });
+			console.log('[run-local-isolated] Cached migrated SQLite database as template');
+		} catch (_) {}
+	}
+	try {
+		await fetch(`${backendUrl}/workflow/new`);
+	} catch (_) {}
 	console.log('[run-local-isolated] n8n ready, launching playwright ...');
 } catch (err) {
 	console.error(`[run-local-isolated] ${err.message}`);
@@ -200,6 +242,8 @@ const playwrightEnv = {
 	// We've already started + verified n8n; tell playwright.config.ts not to
 	// race us by spawning its own.
 	PLAYWRIGHT_SKIP_WEBSERVER: 'true',
+	SKIP_QUARANTINE: 'true',
+	CURRENTS_RECORD_KEY: process.env.CURRENTS_RECORD_KEY || 'local-ci-skip',
 };
 
 // Default scope: full e2e suite. Any CLI args (paths, --grep, --headed, etc.)
@@ -207,7 +251,9 @@ const playwrightEnv = {
 // fall back to `tests/e2e`.
 const userArgs = process.argv.slice(2);
 const hasExplicitPath = userArgs.some((a) => a.startsWith('tests/') || a.endsWith('.spec.ts'));
+const hasWorkersArg = userArgs.some((a) => a.startsWith('--workers'));
 const args = ['exec', 'playwright', 'test', '--project=e2e'];
+if (!hasWorkersArg) args.push('--workers=3');
 if (!hasExplicitPath) args.push('tests/e2e');
 args.push(...userArgs);
 
