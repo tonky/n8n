@@ -35,33 +35,25 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     fi
   fi
 
-  NEEDS_BUILD=0
-  for check_file in \
-    "$REPO_ROOT/packages/@n8n/di/dist/di.js" \
-    "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" \
-    "$REPO_ROOT/packages/@n8n/tournament/dist/index.js" \
-    "$REPO_ROOT/packages/@n8n/codemirror-lang-html/dist/index.js"; do
-    pkg_parent="$(dirname "$(dirname "$check_file")")"
-    if [ -d "$pkg_parent" ] && [ ! -f "$check_file" ]; then
-      NEEDS_BUILD=1
-      break
-    fi
-  done
+  CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
+  FILTER_ARGS=()
+  if [ -n "$CURRENT_PKG" ]; then
+    FILTER_ARGS+=(--filter="${CURRENT_PKG}^..." --filter="!n8n-editor-ui")
+  elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
+    FILTER_ARGS+=(--filter=@n8n/db^...)
+  elif [ -d "$REPO_ROOT/packages/cli" ]; then
+    FILTER_ARGS+=(--filter=n8n^... --filter="!n8n-editor-ui")
+  fi
 
-  if [ "$NEEDS_BUILD" -eq 1 ]; then
-    echo "📦 [vitest-runner] Compiling missing workspace dependencies via turbo..."
-    CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
-    FILTER_ARGS=()
-    if [ -n "$CURRENT_PKG" ]; then
-      FILTER_ARGS+=(--filter="${CURRENT_PKG}^...")
-    elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
-      FILTER_ARGS+=(--filter=@n8n/db^...)
-    elif [ -d "$REPO_ROOT/packages/cli" ]; then
-      FILTER_ARGS+=(--filter=n8n^...)
+  TURBO_SUCCESS=false
+  if [ -f "$REPO_ROOT/turbo.json" ]; then
+    if (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}"); then
+      TURBO_SUCCESS=true
     fi
-    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
+  fi
 
-    # Self-healing fallback for critical TypeScript packages if turbo failed or was skipped
+  # Self-healing fallback for critical TypeScript packages if turbo was unconfigured or failed
+  if [ "$TURBO_SUCCESS" != "true" ]; then
     for fallback_pkg in di typeorm tournament codemirror-lang-html; do
       pkg_dir="$REPO_ROOT/packages/@n8n/$fallback_pkg"
       if [ -d "$pkg_dir" ] && [ -x "$TSC_BIN" ] && [ ! -d "$pkg_dir/dist" ]; then
