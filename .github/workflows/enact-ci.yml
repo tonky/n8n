@@ -398,7 +398,7 @@ jobs:
             BASE_ARG="--base origin/$BASE_REF"
           fi
         fi
-        MATRIX=$(enact affected --pipeline .enact $BASE_ARG $UPDATED_ARG $NO_CACHE_ARG --format json)
+        MATRIX=$(enact affected --pipeline .enact $BASE_ARG $UPDATED_ARG --no-cache --format json)
         echo "$MATRIX"
         echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
       env:
