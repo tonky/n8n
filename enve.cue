@@ -62,5 +62,6 @@ profiles: dev: schema.#Profile & {
 		QUEUE_BULL_REDIS_PORT:           "6379"
 		TESTCONTAINERS_ENABLED:          "false"
 		COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+		N8N_ENCRYPTION_KEY:              "e2e-test-encryption-key-n8n"
 	}
 }

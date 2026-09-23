@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
+process.env.N8N_ENCRYPTION_KEY = process.env.N8N_ENCRYPTION_KEY || 'e2e-test-encryption-key-n8n';
 const DB_PKG = resolve(REPO_ROOT, 'packages/@n8n/db');
 
 const host = process.env.PGHOST || '127.0.0.1';
