@@ -58,7 +58,7 @@ pipeline: {
 		}
 		sqlite_e2e_template: {
 			path: "/tmp/n8n-e2e-template"
-			key: "sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}"
+			key: "sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}"
 			restore_keys: [
 				"sqlite-template-v2-${{ runner.os }}-",
 			]
@@ -119,7 +119,6 @@ pipeline: {
 					engine: "typescript"
 				}]
 			}
-			services: [n8n.services.postgres]
 			lint: {
 				command: "pnpm exec biome check {relative_changed_files}"
 				filter: {
@@ -155,7 +154,7 @@ pipeline: {
 			target_scope: {
 				fallback: "all"
 				rules: [{
-					match: ["packages/cli/**/*.ts", "packages/@n8n/db/**/*.ts"]
+					match: ["packages/cli/**/*.ts"]
 					engine: "typescript"
 				}]
 			}

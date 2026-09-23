@@ -9,7 +9,8 @@ export PGTZ=UTC
 export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
 export NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-/tmp/.node_compile_cache}"
 export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
-MAX_WORKERS="${MAX_WORKERS:-2}"
+NPROCS=$(nproc 2>/dev/null || echo 2)
+MAX_WORKERS="${MAX_WORKERS:-${ENACT_SHARD_WORKERS:-$NPROCS}}"
 
 REPO_ROOT="$PWD"
 while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
