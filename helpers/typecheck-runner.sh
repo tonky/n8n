@@ -57,7 +57,9 @@ fi
 echo "🔍 [typecheck-runner] Running scoped TypeScript typecheck for '$CURRENT_PKG'..."
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=8192}"
 
-if [ "$HAS_TYPECHECK" = "true" ] && command -v pnpm >/dev/null 2>&1; then
+if [ -x "./node_modules/.bin/vue-tsc" ]; then
+  exec ./node_modules/.bin/vue-tsc --noEmit
+elif [ "$HAS_TYPECHECK" = "true" ] && command -v pnpm >/dev/null 2>&1; then
   exec pnpm run typecheck
 elif [ -f "tsconfig.json" ]; then
   mkdir -p node_modules/.cache

@@ -12,9 +12,11 @@ profiles: dev: schema.#Profile & {
 		pkgs.nodejs & {version: "24"},
 		pkgs.postgresql,
 		pkgs.redis,
+		{pname: "tbls"},
 	]
 	services: {
 		postgres: {
+			name:    "postgres"
 			command: "postgres -D \"$DATA_DIR\" -k /tmp -p 5432 -c shared_buffers=32MB -c work_mem=4MB -c max_connections=25 -c fsync=off -c synchronous_commit=off"
 			environment: {
 				TZ:   "UTC"
@@ -24,7 +26,26 @@ profiles: dev: schema.#Profile & {
 				postStart: "createdb -h 127.0.0.1 -p 5432 -U postgres n8n 2>/dev/null || true; psql -h 127.0.0.1 -p 5432 -U postgres -c \"ALTER DATABASE n8n SET timezone TO 'UTC';\" -c \"ALTER ROLE postgres SET timezone TO 'UTC';\" || true"
 			}
 		}
-		redis: {}
+		redis: {
+			name: "redis"
+		}
+		cli: {
+			name:    "cli"
+			command: "node packages/cli/bin/n8n start"
+			port:    5678
+			dependsOn: [{service: "postgres"}, {service: "redis"}]
+			environment: {
+				N8N_PORT:                          "5678"
+				N8N_HOST:                          "127.0.0.1"
+				N8N_DIAGNOSTICS_ENABLED:           "false"
+				N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+			}
+			readinessProbe: {
+				command: "curl -s -f http://127.0.0.1:5678/healthz || exit 1"
+				port:    5678
+				timeout: "10s"
+			}
+		}
 	}
 	environment: {
 		TZ:                              "UTC"

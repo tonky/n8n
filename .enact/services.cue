@@ -1,15 +1,9 @@
 package n8n
 
+import "n8n.io:enve"
+
+n8n: services: enve.profiles.dev.services
+
 pipeline: {
-	services: {
-		postgres: {
-			name:     "postgres"
-			port:     5432
-			database: "n8n_test"
-		}
-		redis: {
-			name: "redis"
-			port: 6379
-		}
-	}
+	services: n8n.services
 }

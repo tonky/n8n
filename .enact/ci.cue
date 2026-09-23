@@ -47,13 +47,13 @@ pipeline: {
 			stages: [
 				{
 					name:      "check-and-lint"
-					tasks:     ["lint", "typecheck"]
+					tasks:     ["lint", "typecheck", "pack"]
 					fail_fast: true
 					services:  "disabled"
 				},
 				{
 					name:      "test"
-					tasks:     ["test"]
+					tasks:     ["test", "migrate", "schema_check", "smoke"]
 					fail_fast: false
 					services:  "on_demand"
 				},

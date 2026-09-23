@@ -6,25 +6,25 @@ import "github.com/tonky/enve/schema/v1:schema"
 // Local Developer Services, Databases & Container Tools
 // -------------------------------------------------------------
 
-postgres:       { pname: "postgresql" }
-postgresql:     { pname: "postgresql" }
-postgresql_18:  { pname: "postgresql", version: "18" }
-postgresql_17:  { pname: "postgresql", version: "17" }
-postgresql_16:  { pname: "postgresql", version: "16" }
-postgresql_15:  { pname: "postgresql", version: "15" }
-postgresql_14:  { pname: "postgresql", version: "14" }
+postgres: {pname: "postgresql"}
+postgresql: {pname: "postgresql"}
+postgresql_18: {pname: "postgresql", version: "18"}
+postgresql_17: {pname: "postgresql", version: "17"}
+postgresql_16: {pname: "postgresql", version: "16"}
+postgresql_15: {pname: "postgresql", version: "15"}
+postgresql_14: {pname: "postgresql", version: "14"}
 
-redis:          { pname: "redis" }
-valkey:         { pname: "valkey" }
-docker_compose: { pname: "docker-compose" }
-mysql:          { pname: "mysql" }
-garage:         { pname: "garage" }
-mailpit:        { pname: "mailpit" }
-clickhouse:     { pname: "clickhouse" }
-temporal:       { pname: "temporal-cli" }
-seaweedfs:      { pname: "seaweedfs" }
-tansu:          { pname: "tansu" }
-kafka:          { pname: "tansu" }
+redis: {pname: "redis"}
+valkey: {pname: "valkey"}
+docker_compose: {pname: "docker-compose"}
+mysql: {pname: "mysql"}
+garage: {pname: "garage"}
+mailpit: {pname: "mailpit"}
+clickhouse: {pname: "clickhouse"}
+temporal: {pname: "temporal-cli"}
+seaweedfs: {pname: "seaweedfs"}
+tansu: {pname: "tansu"}
+kafka: {pname: "tansu"}
 
 // -------------------------------------------------------------
 // High-Level Microservice & Daemon Presets (#Service presets)
@@ -39,16 +39,16 @@ kafka:          { pname: "tansu" }
 	let defaultUser = "postgres"
 	let defaultTimeout = "2500ms"
 
-	port:        schema.#Port | *defaultPort
-	dataDir:     string | *defaultDataDir
+	port:    schema.#Port | *defaultPort
+	dataDir: string | *defaultDataDir
 	// With the data, not in `/tmp`: a socket left behind by a crashed postmaster
 	// otherwise blocks the next start of an unrelated project on the same port, which
 	// is what the supervisor's stale-socket sweep exists to paper over.
-	socketDir:   string | *dataDir
-	database:    string | *defaultDb
-	user:        string | *defaultUser
-	timeout:     schema.#Duration | *defaultTimeout
-	command:     string | *"postgres -D \(dataDir) -k \(socketDir) -p \(port)"
+	socketDir: string | *dataDir
+	database:  string | *defaultDb
+	user:      string | *defaultUser
+	timeout:   schema.#Duration | *defaultTimeout
+	command:   string | *"postgres -D \(dataDir) -k \(socketDir) -p \(port)"
 	lifecycle: {
 		init: [
 			*"initdb -D \"$DATA_DIR\" -U postgres --auth-local=trust --auth-host=trust" | string,
@@ -70,14 +70,14 @@ kafka:          { pname: "tansu" }
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		command:   string | *"pg_isready -h 127.0.0.1 -p \(servicePort) -U \(user)"
-		timeout:   schema.#Duration | *"1000ms"
+		port:    schema.#Port | *servicePort
+		command: string | *"pg_isready -h 127.0.0.1 -p \(servicePort) -U \(user)"
+		timeout: schema.#Duration | *"1000ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		command:   string | *"psql -h 127.0.0.1 -p \(servicePort) -U \(user) -d \(database) -c 'SELECT 1;'"
-		timeout:   schema.#Duration | *defaultTimeout
+		port:    schema.#Port | *servicePort
+		command: string | *"psql -h 127.0.0.1 -p \(servicePort) -U \(user) -d \(database) -c 'SELECT 1;'"
+		timeout: schema.#Duration | *defaultTimeout
 	}
 }
 
@@ -88,23 +88,23 @@ kafka:          { pname: "tansu" }
 	let defaultDataDir = ".enve/data/redis"
 	let defaultTimeout = "1500ms"
 
-	port:        schema.#Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	timeout:     schema.#Duration | *defaultTimeout
-	command:     string | *"redis-server --port \(port) --dir \(dataDir) --daemonize no"
+	port:    schema.#Port | *defaultPort
+	dataDir: string | *defaultDataDir
+	timeout: schema.#Duration | *defaultTimeout
+	command: string | *"redis-server --port \(port) --dir \(dataDir) --daemonize no"
 	environment: {
 		REDIS_PORT: "\(port)"
 		REDIS_URL:  "redis://localhost:\(port)/0"
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"800ms"
+		port:    schema.#Port | *servicePort
+		timeout: schema.#Duration | *"800ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		command:   string | *"redis-cli -p \(servicePort) ping"
-		timeout:   schema.#Duration | *defaultTimeout
+		port:    schema.#Port | *servicePort
+		command: string | *"redis-cli -p \(servicePort) ping"
+		timeout: schema.#Duration | *defaultTimeout
 	}
 }
 
@@ -115,10 +115,10 @@ kafka:          { pname: "tansu" }
 	let defaultDataDir = ".enve/data/valkey"
 	let defaultTimeout = "1500ms"
 
-	port:        schema.#Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	timeout:     schema.#Duration | *defaultTimeout
-	command:     string | *"valkey-server --port \(port) --dir \(dataDir) --daemonize no"
+	port:    schema.#Port | *defaultPort
+	dataDir: string | *defaultDataDir
+	timeout: schema.#Duration | *defaultTimeout
+	command: string | *"valkey-server --port \(port) --dir \(dataDir) --daemonize no"
 	// Valkey answers the Redis protocol, so its clients read the Redis variables.
 	environment: {
 		REDIS_PORT: "\(port)"
@@ -126,13 +126,13 @@ kafka:          { pname: "tansu" }
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"800ms"
+		port:    schema.#Port | *servicePort
+		timeout: schema.#Duration | *"800ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		command:   string | *"valkey-cli -p \(servicePort) ping"
-		timeout:   schema.#Duration | *defaultTimeout
+		port:    schema.#Port | *servicePort
+		command: string | *"valkey-cli -p \(servicePort) ping"
+		timeout: schema.#Duration | *defaultTimeout
 	}
 }
 
@@ -151,12 +151,12 @@ kafka:          { pname: "tansu" }
 	// the server reads. These are its answers for the default port, spelled out
 	// because a CUE default cannot compute one — so a preset that sets `port` should
 	// set `rpcPort` and `adminPort` beside it rather than leave them at 3901/3902.
-	port:       schema.#Port | *defaultPort
+	port: schema.#Port | *defaultPort
 	let defaultRpcPort = 3901
 	let defaultAdminPort = 3902
-	rpcPort:    schema.#Port | *defaultRpcPort
-	adminPort:  schema.#Port | *defaultAdminPort
-	dataDir:    string | *defaultDataDir
+	rpcPort:   schema.#Port | *defaultRpcPort
+	adminPort: schema.#Port | *defaultAdminPort
+	dataDir:   string | *defaultDataDir
 	// Written by enve when `garage` is declared under `services:`. A project that
 	// configures garage itself supplies its own through `files:`.
 	configFile: string | *"\(dataDir)/garage.toml"
@@ -187,29 +187,30 @@ kafka:          { pname: "tansu" }
 	package: schema.#PackageRef | *"nginx"
 
 	let defaultPort = 8080
-	let defaultRunDir = ".enve/data/nginx"
+	let defaultDataDir = ".enve/data/nginx"
+	let defaultRunDir = defaultDataDir
 	let defaultTimeout = "2000ms"
 
-	port:          schema.#Port | *defaultPort
-	runDir:        string | *defaultRunDir
+	port:   schema.#Port | *defaultPort
+	runDir: string | *defaultRunDir
 	// The config lives with the service, not at `/etc/nginx/nginx.conf`: the host's file
 	// is absent on a clean machine and, where it exists, asks for port 80 and writes to
 	// /var/log/nginx. Declaring `nginx` under `services:` has enve write one; a project
 	// that configures nginx itself supplies its own through `files:`.
-	configFile:    string | *"\(runDir)/nginx.conf"
-	timeout:       schema.#Duration | *defaultTimeout
+	configFile: string | *"\(runDir)/nginx.conf"
+	timeout:    schema.#Duration | *defaultTimeout
 	// `-e stderr` because nginx opens its compiled-in `logs/error.log` before it reads a
 	// line of the config, and that directory does not exist under a fresh prefix.
-	command:       string | *"nginx -p \"\(runDir)\" -c \"\(configFile)\" -e stderr -g \"daemon off;\""
+	command: string | *"nginx -p \"\(runDir)\" -c \"\(configFile)\" -e stderr -g \"daemon off;\""
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"1000ms"
+		port:    schema.#Port | *servicePort
+		timeout: schema.#Duration | *"1000ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		path:      string | *"http://127.0.0.1:\(servicePort)/"
-		timeout:   schema.#Duration | *defaultTimeout
+		port:    schema.#Port | *servicePort
+		path:    string | *"http://127.0.0.1:\(servicePort)/"
+		timeout: schema.#Duration | *defaultTimeout
 	}
 }
 
@@ -220,9 +221,9 @@ kafka:          { pname: "tansu" }
 	let defaultDataDir = ".enve/data/mysql"
 	let defaultTimeout = "3500ms"
 
-	port:        schema.#Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	timeout:     schema.#Duration | *defaultTimeout
+	port:    schema.#Port | *defaultPort
+	dataDir: string | *defaultDataDir
+	timeout: schema.#Duration | *defaultTimeout
 	lifecycle: {
 		init: [
 			*"mysqld --initialize-insecure --datadir=\"$DATA_DIR\"" | string,
@@ -232,37 +233,38 @@ kafka:          { pname: "tansu" }
 	// into a shared location (`/tmp/mysql.sock`), which a second instance would take
 	// from the first. `--mysqlx=OFF` closes the X protocol listener, whose own
 	// default port (33060) is not the one this service was given.
-	command:     string | *"mysqld --datadir=\"\(dataDir)\" --port=\(port) --socket=\"\(dataDir)/mysql.sock\" --pid-file=\"\(dataDir)/mysqld.pid\" --mysqlx=OFF --bind-address=127.0.0.1"
+	command: string | *"mysqld --datadir=\"\(dataDir)\" --port=\(port) --socket=\"\(dataDir)/mysql.sock\" --pid-file=\"\(dataDir)/mysqld.pid\" --mysqlx=OFF --bind-address=127.0.0.1"
 	environment: {
 		MYSQL_TCP_PORT: "\(port)"
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"1500ms"
+		port:    schema.#Port | *servicePort
+		timeout: schema.#Duration | *"1500ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		command:   string | *"mysqladmin ping -h 127.0.0.1 -P \(servicePort) -u root"
-		timeout:   schema.#Duration | *defaultTimeout
+		port:    schema.#Port | *servicePort
+		command: string | *"mysqladmin ping -h 127.0.0.1 -P \(servicePort) -u root"
+		timeout: schema.#Duration | *defaultTimeout
 	}
 }
 
 #ClickHouseService: schema.#Service & {
 	package: schema.#PackageRef | *"clickhouse"
 
-	let defaultHttpPort = 8123
+	let defaultPort = 8123
+	let defaultHttpPort = defaultPort
 	let defaultTcpPort = 9000
 	let defaultDataDir = ".enve/data/clickhouse"
 	let defaultConfigFile = ".enve/config/clickhouse/config.xml"
 	let defaultTimeout = "3500ms"
 
-	port:        schema.#Port | *defaultHttpPort
-	tcpPort:     schema.#Port | *defaultTcpPort
-	dataDir:     string | *defaultDataDir
-	configFile:  string | *defaultConfigFile
-	timeout:     schema.#Duration | *defaultTimeout
-	command:     string | *"clickhouse-server --config-file=\(defaultConfigFile)"
+	port:       schema.#Port | *defaultHttpPort
+	tcpPort:    schema.#Port | *defaultTcpPort
+	dataDir:    string | *defaultDataDir
+	configFile: string | *defaultConfigFile
+	timeout:    schema.#Duration | *defaultTimeout
+	command:    string | *"clickhouse-server --config-file=\(defaultConfigFile)"
 	environment: {
 		CLICKHOUSE_DATA_DIR:  defaultDataDir
 		CLICKHOUSE_HTTP_PORT: "\(defaultHttpPort)"
@@ -270,14 +272,14 @@ kafka:          { pname: "tansu" }
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		path:      string | *"http://127.0.0.1:\(servicePort)/ping"
-		timeout:   schema.#Duration | *"1000ms"
+		port:    schema.#Port | *servicePort
+		path:    string | *"http://127.0.0.1:\(servicePort)/ping"
+		timeout: schema.#Duration | *"1000ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		command:   string | *"curl -s -f 'http://127.0.0.1:\(servicePort)/?query=SELECT+1'"
-		timeout:   schema.#Duration | *defaultTimeout
+		port:    schema.#Port | *servicePort
+		command: string | *"curl -s -f 'http://127.0.0.1:\(servicePort)/?query=SELECT+1'"
+		timeout: schema.#Duration | *defaultTimeout
 	}
 }
 
@@ -289,24 +291,24 @@ kafka:          { pname: "tansu" }
 	let defaultDbFilename = ".enve/data/temporal/temporal.db"
 	let defaultTimeout = "2500ms"
 
-	port:        schema.#Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	dbFilename:  string | *defaultDbFilename
-	timeout:     schema.#Duration | *defaultTimeout
-	command:     string | *"temporal server start-dev --port \(port) --headless --db-filename \(dbFilename)"
+	port:       schema.#Port | *defaultPort
+	dataDir:    string | *defaultDataDir
+	dbFilename: string | *defaultDbFilename
+	timeout:    schema.#Duration | *defaultTimeout
+	command:    string | *"temporal server start-dev --port \(port) --headless --db-filename \(dbFilename)"
 	environment: {
 		TEMPORAL_PORT: "\(port)"
 		TEMPORAL_HOST: "127.0.0.1"
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"1000ms"
+		port:    schema.#Port | *servicePort
+		timeout: schema.#Duration | *"1000ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		command:   string | *"temporal operator cluster health --address 127.0.0.1:\(servicePort)"
-		timeout:   schema.#Duration | *defaultTimeout
+		port:    schema.#Port | *servicePort
+		command: string | *"temporal operator cluster health --address 127.0.0.1:\(servicePort)"
+		timeout: schema.#Duration | *defaultTimeout
 	}
 }
 
@@ -314,32 +316,37 @@ kafka:          { pname: "tansu" }
 	package: schema.#PackageRef | *"seaweedfs"
 
 	let defaultPort = 19000
+	let defaultMasterPort = 19001
+	let defaultVolumePort = 19002
 	let defaultDataDir = ".enve/data/seaweedfs"
+
 	// `weed server` is four servers and S3 is the last to listen: ~3.2s measured, so
 	// the old 4s health budget lost the coin toss as soon as raft took a little longer.
 	let defaultTimeout = "15000ms"
 
-	port:        schema.#Port | *defaultPort
-	dataDir:     string | *defaultDataDir
-	timeout:     schema.#Duration | *defaultTimeout
+	port:       schema.#Port | *defaultPort
+	masterPort: schema.#Port | *defaultMasterPort
+	volumePort: schema.#Port | *defaultVolumePort
+	dataDir:    string | *defaultDataDir
+	timeout:    schema.#Duration | *defaultTimeout
 	// -master.raftHashicorp: under the legacy raft a resumed single-node master answers
 	// its own clients with `Not current leader` forever, so the second boot never serves.
 	// -ip pins the advertised address: `weed` otherwise records whichever non-loopback
 	// address it found into its raft state.
-	command:     string | *"weed server -ip=127.0.0.1 -master.raftHashicorp -s3 -s3.port=\(port) -dir=\(dataDir)"
+	command: string | *"weed server -ip=127.0.0.1 -master.raftHashicorp -s3 -s3.port=\(port) -master.port=\(masterPort) -volume.port=\(volumePort) -dir=\(dataDir)"
 	environment: {
 		S3_PORT:     "\(port)"
 		S3_ENDPOINT: "http://127.0.0.1:\(port)"
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"12000ms"
+		port:    schema.#Port | *servicePort
+		timeout: schema.#Duration | *"12000ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		command:   string | *"curl -s -f -o /dev/null http://127.0.0.1:\(servicePort)/"
-		timeout:   schema.#Duration | *"12000ms"
+		port:    schema.#Port | *servicePort
+		command: string | *"curl -s -f -o /dev/null http://127.0.0.1:\(servicePort)/"
+		timeout: schema.#Duration | *"12000ms"
 	}
 }
 
@@ -350,8 +357,8 @@ kafka:          { pname: "tansu" }
 	let defaultDataDir = ".enve/data/tansu"
 	let defaultTimeout = "1500ms"
 
-	port:          schema.#Port | *defaultPort
-	dataDir:       string | *defaultDataDir
+	port:    schema.#Port | *defaultPort
+	dataDir: string | *defaultDataDir
 	// On disk rather than `memory://tansu/`, which lost every topic on restart. Tansu
 	// resolves the URL's path against its working directory, so the path stays relative
 	// and the `///` is load-bearing: `sqlite://<path>` reads `<path>` as the URL's host.
@@ -364,14 +371,13 @@ kafka:          { pname: "tansu" }
 	}
 	let servicePort = port
 	healthCheck: {
-		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"800ms"
+		port:    schema.#Port | *servicePort
+		timeout: schema.#Duration | *"800ms"
 	}
 	readinessProbe: {
-		port:      schema.#Port | *servicePort
-		timeout:   schema.#Duration | *"1000ms"
+		port:    schema.#Port | *servicePort
+		timeout: schema.#Duration | *"1000ms"
 	}
 }
 
 #KafkaService: #TansuService
-
