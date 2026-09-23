@@ -14,6 +14,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VITEST_BIN="$REPO_ROOT/packages/cli/node_modules/.bin/vitest"
 
+# Invalidate stale SQLite template if created with different encryption key
+if [ -d "/tmp/n8n-e2e-template/.n8n" ]; then
+  CACHED_KEY=$(node -e 'try { const cfg = JSON.parse(require("fs").readFileSync("/tmp/n8n-e2e-template/.n8n/config")); console.log(cfg.encryptionKey || "") } catch (_) {}' 2>/dev/null || true)
+  if [ "$CACHED_KEY" != "$N8N_ENCRYPTION_KEY" ]; then
+    echo "⚠️  [playwright-runner] Stale SQLite template detected (key '$CACHED_KEY' != '$N8N_ENCRYPTION_KEY'). Wiping template cache."
+    rm -rf /tmp/n8n-e2e-template
+  fi
+fi
+
 # Ensure workspace build artifacts exist for internal packages
 if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   TSC_BIN="$REPO_ROOT/node_modules/.bin/tsc"
@@ -27,7 +36,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   fi
 
   echo "📦 [playwright-runner] Compiling workspace dependencies via turbo..."
-  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=n8n-playwright^... --filter=n8n... --filter=n8n-editor-ui...) || true
+  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=n8n-playwright^... --filter=n8n... --filter=n8n-editor-ui...)
 fi
 
 TARGETS=("$@")

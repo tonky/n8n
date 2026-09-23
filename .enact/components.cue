@@ -58,9 +58,9 @@ pipeline: {
 		}
 		sqlite_e2e_template: {
 			path: "/tmp/n8n-e2e-template"
-			key: "sqlite-template-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}"
+			key: "sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}"
 			restore_keys: [
-				"sqlite-template-${{ runner.os }}-",
+				"sqlite-template-v2-${{ runner.os }}-",
 			]
 			tier: "tiered"
 			mode: "read_write"
@@ -259,6 +259,7 @@ pipeline: {
 					"packages/testing",
 					"packages/cli",
 					"packages/frontend",
+					"packages/modules",
 					"packages/nodes-base",
 					"packages/workflow",
 					"packages/core",
