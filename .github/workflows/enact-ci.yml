@@ -51,6 +51,7 @@ jobs:
         show-progress: 'false'
         sparse-checkout: |-
           .enact
+          cue.mod
           .github
           setup
           bin
@@ -66,7 +67,6 @@ jobs:
           turbo.json
           patches
           scripts
-          cue.mod
           packages/workflow
           packages/testing/containers
           packages/testing/janitor
@@ -333,6 +333,7 @@ jobs:
         show-progress: 'false'
         sparse-checkout: |-
           .enact
+          cue.mod
           .github
           setup
           bin
@@ -443,6 +444,7 @@ jobs:
         show-progress: 'false'
         sparse-checkout: |-
           .enact
+          cue.mod
           .github
           setup
           bin
