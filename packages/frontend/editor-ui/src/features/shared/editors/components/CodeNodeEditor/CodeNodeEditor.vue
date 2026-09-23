@@ -22,6 +22,7 @@ export type CodeNodeLanguageOption = CodeNodeEditorLanguage | 'pythonNative';
 type Props = {
 	mode: CodeExecutionMode;
 	modelValue: string;
+	/** Whether the Ask AI button is enabled in CodeNodeEditor (deprecated in v3, defaults to false) */
 	aiButtonEnabled?: boolean;
 	fillParent?: boolean;
 	language?: CodeNodeLanguageOption;
