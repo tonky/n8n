@@ -37,3 +37,5 @@ hex_otp28: {pname: "hex-otp28"}
 nodejs: {pname: "nodejs"}
 node: {pname: "nodejs"}
 flutter: {pname: "flutter"}
+php: {pname: "php"}
+composer: {pname: "composer"}

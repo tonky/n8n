@@ -84,7 +84,7 @@ jobs:
         sparse-checkout-cone-mode: 'true'
         submodules: 'false'
     - name: Restore enact CLI binary cache
-      id: enact-cli-cache
+      id: enact_cli_cache
       if: hashFiles('bin/enact') == ''
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -120,7 +120,7 @@ jobs:
         echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
         export PATH="$BIN_DIR:$HOME/.cargo/bin:$PATH"
     - name: Restore Nix Store (L1 GHA Cache)
-      id: nix-l1-cache
+      id: nix_l1_cache
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -133,7 +133,7 @@ jobs:
     - name: Pull Dependencies via enve
       run: |-
         if [ -f "enve.lock" ]; then
-          if [ "${{ steps.nix-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
+          if [ "${{ steps.nix_l1_cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
             enve cache pull enve.lock --cache "$ENACT_R2_BUCKET" --insecure -j 16
           fi
           enve run $([ -f enve.lock ] && echo --locked) -- true
@@ -145,7 +145,7 @@ jobs:
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
         ENVE_CACHE_CONCURRENCY: '16'
     - name: Restore Node & TypeScript build cache
-      id: node-l1-cache
+      id: node_l1_cache
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -200,7 +200,7 @@ jobs:
           $ENACT_BIN ci-verify --pipeline .enact
         fi
     - name: Restore Cache [tsbuildinfo_cli]
-      id: cache-tsbuildinfo-cli
+      id: cache_tsbuildinfo_cli
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -208,7 +208,7 @@ jobs:
         path: packages/cli/node_modules/.cache/tsbuildinfo
         restore-keys: tsbuildinfo-cli-${{ runner.os }}-
     - name: Restore Cache [tsbuildinfo_frontend]
-      id: cache-tsbuildinfo-frontend
+      id: cache_tsbuildinfo_frontend
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -230,28 +230,41 @@ jobs:
         BASE_ARG=""
         BASE_REF="${{ inputs.base_ref || github.base_ref || github.event.pull_request.base.ref }}"
         if [ -z "$BASE_REF" ]; then
-          if [ "${{ github.ref_name }}" != "perf/ci-modernization" ] && [ "${{ github.ref_name }}" != "${{ github.event.repository.default_branch || 'master' }}" ]; then
-            git fetch --no-tags --depth=50 origin perf/ci-modernization 2>/dev/null || true
-            if git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
-              BASE_REF="perf/ci-modernization"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+              BASE_REF="${{ github.event.before }}"
+            else
+              BASE_REF="HEAD~1"
             fi
-          fi
-          if [ -z "$BASE_REF" ]; then
-            BASE_REF="${{ github.event.repository.default_branch || 'master' }}"
+          else
+            if [ "${{ github.ref_name }}" != "perf/ci-modernization" ] && [ "${{ github.ref_name }}" != "${{ github.event.repository.default_branch || 'master' }}" ]; then
+              git fetch --no-tags --depth=50 origin perf/ci-modernization 2>/dev/null || true
+              if git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
+                BASE_REF="perf/ci-modernization"
+              fi
+            fi
+            if [ -z "$BASE_REF" ]; then
+              BASE_REF="${{ github.event.repository.default_branch || 'master' }}"
+            fi
           fi
         fi
         if [ -n "$BASE_REF" ]; then
           git fetch --deepen=50 2>/dev/null || true
-          if ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
+          if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
             git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || true
           fi
-          MERGE_BASE=$(git merge-base HEAD "origin/$BASE_REF" 2>/dev/null || git merge-base HEAD "$BASE_REF" 2>/dev/null || echo "")
+          MERGE_BASE=$(git merge-base HEAD "$BASE_REF" 2>/dev/null || git merge-base HEAD "origin/$BASE_REF" 2>/dev/null || echo "")
           if [ -n "$MERGE_BASE" ]; then
             BASE_ARG="--base $MERGE_BASE"
           elif git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
             BASE_ARG="--base $BASE_REF"
           elif git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
             BASE_ARG="--base origin/$BASE_REF"
+          fi
+        fi
+        if [ -z "$BASE_ARG" ] && [ "${{ github.event_name }}" = "push" ]; then
+          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            BASE_ARG="--base HEAD~1"
           fi
         fi
         enact run --pipeline .enact $BASE_ARG $UPDATED_ARG $NO_CACHE_ARG check-and-lint
@@ -261,21 +274,21 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
     - name: Save Cache [tsbuildinfo_cli]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-tsbuildinfo-cli.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: tsbuildinfo-cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
         path: packages/cli/node_modules/.cache/tsbuildinfo
     - name: Save Cache [tsbuildinfo_frontend]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache-tsbuildinfo-frontend.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
         path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
     - name: Save Node & TypeScript build cache
-      if: github.event_name == 'push' && steps.node-l1-cache.outputs.cache-hit != 'true'
+      if: github.event_name == 'push' && steps.node_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -291,7 +304,7 @@ jobs:
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
     - name: Save Nix Store (L1 GHA Cache)
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -336,7 +349,7 @@ jobs:
         sparse-checkout-cone-mode: 'true'
         submodules: 'false'
     - name: Restore enact CLI binary cache
-      id: enact-cli-cache
+      id: enact_cli_cache
       if: hashFiles('bin/enact') == ''
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -391,28 +404,41 @@ jobs:
         BASE_ARG=""
         BASE_REF="${{ inputs.base_ref || github.base_ref || github.event.pull_request.base.ref }}"
         if [ -z "$BASE_REF" ]; then
-          if [ "${{ github.ref_name }}" != "perf/ci-modernization" ] && [ "${{ github.ref_name }}" != "${{ github.event.repository.default_branch || 'master' }}" ]; then
-            git fetch --no-tags --depth=50 origin perf/ci-modernization 2>/dev/null || true
-            if git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
-              BASE_REF="perf/ci-modernization"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+              BASE_REF="${{ github.event.before }}"
+            else
+              BASE_REF="HEAD~1"
             fi
-          fi
-          if [ -z "$BASE_REF" ]; then
-            BASE_REF="${{ github.event.repository.default_branch || 'master' }}"
+          else
+            if [ "${{ github.ref_name }}" != "perf/ci-modernization" ] && [ "${{ github.ref_name }}" != "${{ github.event.repository.default_branch || 'master' }}" ]; then
+              git fetch --no-tags --depth=50 origin perf/ci-modernization 2>/dev/null || true
+              if git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
+                BASE_REF="perf/ci-modernization"
+              fi
+            fi
+            if [ -z "$BASE_REF" ]; then
+              BASE_REF="${{ github.event.repository.default_branch || 'master' }}"
+            fi
           fi
         fi
         if [ -n "$BASE_REF" ]; then
           git fetch --deepen=50 2>/dev/null || true
-          if ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
+          if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
             git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || true
           fi
-          MERGE_BASE=$(git merge-base HEAD "origin/$BASE_REF" 2>/dev/null || git merge-base HEAD "$BASE_REF" 2>/dev/null || echo "")
+          MERGE_BASE=$(git merge-base HEAD "$BASE_REF" 2>/dev/null || git merge-base HEAD "origin/$BASE_REF" 2>/dev/null || echo "")
           if [ -n "$MERGE_BASE" ]; then
             BASE_ARG="--base $MERGE_BASE"
           elif git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
             BASE_ARG="--base $BASE_REF"
           elif git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
             BASE_ARG="--base origin/$BASE_REF"
+          fi
+        fi
+        if [ -z "$BASE_ARG" ] && [ "${{ github.event_name }}" = "push" ]; then
+          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            BASE_ARG="--base HEAD~1"
           fi
         fi
         MATRIX=$(enact affected --pipeline .enact $BASE_ARG $UPDATED_ARG --no-cache --format json)
@@ -452,7 +478,7 @@ jobs:
         sparse-checkout-cone-mode: 'true'
         submodules: 'false'
     - name: Restore enact CLI binary cache
-      id: enact-cli-cache
+      id: enact_cli_cache
       if: hashFiles('bin/enact') == ''
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -532,7 +558,7 @@ jobs:
         show-progress: 'false'
         submodules: 'false'
     - name: Restore enact CLI binary cache
-      id: enact-cli-cache
+      id: enact_cli_cache
       if: hashFiles('bin/enact') == ''
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -568,7 +594,7 @@ jobs:
         path: .enact/cache
         restore-keys: ${{ runner.os }}-enact-tasks-
     - name: Restore Node & TypeScript build cache
-      id: node-l1-cache
+      id: node_l1_cache
       if: hashFiles('package.json', 'pnpm-lock.yaml') != ''
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -588,7 +614,7 @@ jobs:
           ${{ runner.os }}-node-${{ matrix.task_id }}-
           ${{ runner.os }}-node-
     - name: Restore Playwright browser cache
-      id: playwright-l1-cache
+      id: playwright_l1_cache
       if: contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -599,7 +625,7 @@ jobs:
           /tmp/.cache/ms-playwright
         restore-keys: ${{ runner.os }}-playwright-
     - name: Restore Python build & venv cache
-      id: python-l1-cache
+      id: python_l1_cache
       if: hashFiles('pyproject.toml', 'requirements.txt') != ''
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -611,7 +637,7 @@ jobs:
           .venv
         restore-keys: ${{ runner.os }}-python-
     - name: Restore Go build cache
-      id: go-l1-cache
+      id: go_l1_cache
       if: hashFiles('go.mod', 'go.sum') != ''
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -622,7 +648,7 @@ jobs:
           /tmp/go/pkg/mod
         restore-keys: ${{ runner.os }}-go-
     - name: Restore Rust target & cargo cache
-      id: rust-l1-cache
+      id: rust_l1_cache
       if: hashFiles('Cargo.toml', 'Cargo.lock') != ''
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -635,7 +661,7 @@ jobs:
           target/
         restore-keys: ${{ runner.os }}-rust-
     - name: Restore Cache [sqlite_e2e_template]
-      id: cache-sqlite-e2e-template
+      id: cache_sqlite_e2e_template
       if: contains(matrix.component, 'cli') || contains(matrix.component, 'db')
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -644,7 +670,7 @@ jobs:
         path: /tmp/n8n-e2e-template
         restore-keys: sqlite-template-v2-${{ runner.os }}-
     - name: Restore Cache [tsbuildinfo_cli]
-      id: cache-tsbuildinfo-cli
+      id: cache_tsbuildinfo_cli
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -652,7 +678,7 @@ jobs:
         path: packages/cli/node_modules/.cache/tsbuildinfo
         restore-keys: tsbuildinfo-cli-${{ runner.os }}-
     - name: Restore Cache [tsbuildinfo_frontend]
-      id: cache-tsbuildinfo-frontend
+      id: cache_tsbuildinfo_frontend
       if: contains(matrix.component, 'frontend')
       continue-on-error: true
       uses: actions/cache/restore@v6
@@ -682,7 +708,7 @@ jobs:
       if: ${{ contains(matrix.component, 'e2e') || contains(matrix.component, 'playwright') }}
       continue-on-error: true
       run: |-
-        if [ "${{ steps.playwright-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
+        if [ "${{ steps.playwright_l1_cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
           echo "🌐 Pre-warming Playwright browsers from Cloudflare R2..."
           mkdir -p "$HOME/.cache/ms-playwright" "/tmp/.cache/ms-playwright"
           curl -fsSL --connect-timeout 5 --max-time 60 --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:auto:s3" "${ENACT_R2_BUCKET%/}/tools/playwright-browsers-linux-amd64.tar.zst" 2>/dev/null | tar -x --zstd -C "$HOME/.cache/ms-playwright" 2>/dev/null || true
@@ -704,7 +730,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
     - name: Restore Nix Store (L1 GHA Cache)
-      id: nix-l1-cache
+      id: nix_l1_cache
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -717,13 +743,13 @@ jobs:
     - name: Pull Dependencies via enve
       run: |-
         if [ -f "enve.lock" ]; then
-          if [ "${{ steps.nix-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
+          if [ "${{ steps.nix_l1_cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
             enve cache pull enve.lock --cache "$ENACT_R2_BUCKET" --insecure -j 16
           fi
           enve run $([ -f enve.lock ] && echo --locked) -- true
         fi
         if [ -n "${{ matrix.component_dir }}" ] && [ "${{ matrix.component_dir }}" != "." ] && [ -f "${{ matrix.component_dir }}/enve.lock" ]; then
-          if [ "${{ steps.nix-l1-cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
+          if [ "${{ steps.nix_l1_cache.outputs.cache-hit }}" != "true" ] && [ -n "$ENACT_R2_BUCKET" ]; then
             enve cache pull "${{ matrix.component_dir }}/enve.lock" --cache "$ENACT_R2_BUCKET" --insecure -j 16
           fi
           (cd "${{ matrix.component_dir }}" && enve run $([ -f enve.lock ] && echo --locked) -- true)
@@ -800,7 +826,7 @@ jobs:
           .enact/summary.html
         retention-days: '1'
     - name: Save Node & TypeScript build cache
-      if: github.event_name == 'push' && hashFiles('package.json', 'pnpm-lock.yaml') != '' && steps.node-l1-cache.outputs.cache-hit != 'true'
+      if: github.event_name == 'push' && hashFiles('package.json', 'pnpm-lock.yaml') != '' && steps.node_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -816,7 +842,7 @@ jobs:
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
     - name: Save Python build & venv cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('pyproject.toml', 'requirements.txt') != '' && steps.python-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('pyproject.toml', 'requirements.txt') != '' && steps.python_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -826,7 +852,7 @@ jobs:
           ~/.cache/pip
           .venv
     - name: Save Go build cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('go.mod', 'go.sum') != '' && steps.go-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('go.mod', 'go.sum') != '' && steps.go_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -835,7 +861,7 @@ jobs:
           /tmp/go-build
           /tmp/go/pkg/mod
     - name: Save Rust target & cargo cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('Cargo.toml', 'Cargo.lock') != '' && steps.rust-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('Cargo.toml', 'Cargo.lock') != '' && steps.rust_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -846,7 +872,7 @@ jobs:
           ~/.cargo/git/db
           target/
     - name: Save Playwright browser cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && (contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')) && steps.playwright-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && (contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')) && steps.playwright_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -855,7 +881,7 @@ jobs:
           ~/.cache/ms-playwright
           /tmp/.cache/ms-playwright
     - name: Save Nix Store (L1 GHA Cache)
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix-l1-cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -864,21 +890,21 @@ jobs:
           /nix/store
           ~/.local/share/enve/store
     - name: Save Cache [sqlite_e2e_template]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && (contains(matrix.component, 'cli') || contains(matrix.component, 'db'))) && steps.cache-sqlite-e2e-template.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && (contains(matrix.component, 'cli') || contains(matrix.component, 'db'))) && steps.cache_sqlite_e2e_template.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
         path: /tmp/n8n-e2e-template
     - name: Save Cache [tsbuildinfo_cli]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request')) && steps.cache-tsbuildinfo-cli.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request')) && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: tsbuildinfo-cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
         path: packages/cli/node_modules/.cache/tsbuildinfo
     - name: Save Cache [tsbuildinfo_frontend]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && contains(matrix.component, 'frontend')) && steps.cache-tsbuildinfo-frontend.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && contains(matrix.component, 'frontend')) && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:

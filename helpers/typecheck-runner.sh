@@ -29,12 +29,15 @@ while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
   REPO_ROOT="$(dirname "$REPO_ROOT")"
 done
 
+TURBO_SUCCESS=false
 if [ -n "$CURRENT_PKG" ] && [ -f "$REPO_ROOT/turbo.json" ]; then
-  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter="${CURRENT_PKG}^...") || true
+  if (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter="${CURRENT_PKG}^..."); then
+    TURBO_SUCCESS=true
+  fi
 fi
 
-# Pre-build referenced project configs so declaration files exist in dist/
-if [ -f "tsconfig.json" ]; then
+# Pre-build referenced project configs strictly as fallback if turbo was unconfigured or failed
+if [ "$TURBO_SUCCESS" != "true" ] && [ -f "tsconfig.json" ]; then
   REFS=$(node -e '
     const fs = require("fs");
     try {
