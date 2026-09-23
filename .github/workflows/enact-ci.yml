@@ -241,7 +241,9 @@ jobs:
             fi
           else
             if [ "${{ github.ref_name }}" != "perf/ci-modernization" ] && [ "${{ github.ref_name }}" != "${{ github.event.repository.default_branch || 'master' }}" ]; then
-              git fetch --no-tags --depth=50 origin perf/ci-modernization 2>/dev/null || true
+              if ! git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
+                git fetch --no-tags --depth=50 origin perf/ci-modernization 2>/dev/null || true
+              fi
               if git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
                 BASE_REF="perf/ci-modernization"
               fi
@@ -252,9 +254,8 @@ jobs:
           fi
         fi
         if [ -n "$BASE_REF" ]; then
-          git fetch --deepen=50 2>/dev/null || true
           if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
-            git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || true
+            git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || git fetch --deepen=50 2>/dev/null || true
           fi
           MERGE_BASE=$(git merge-base HEAD "$BASE_REF" 2>/dev/null || git merge-base HEAD "origin/$BASE_REF" 2>/dev/null || echo "")
           if [ -n "$MERGE_BASE" ]; then
@@ -415,7 +416,9 @@ jobs:
             fi
           else
             if [ "${{ github.ref_name }}" != "perf/ci-modernization" ] && [ "${{ github.ref_name }}" != "${{ github.event.repository.default_branch || 'master' }}" ]; then
-              git fetch --no-tags --depth=50 origin perf/ci-modernization 2>/dev/null || true
+              if ! git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
+                git fetch --no-tags --depth=50 origin perf/ci-modernization 2>/dev/null || true
+              fi
               if git rev-parse --verify origin/perf/ci-modernization >/dev/null 2>&1; then
                 BASE_REF="perf/ci-modernization"
               fi
@@ -426,9 +429,8 @@ jobs:
           fi
         fi
         if [ -n "$BASE_REF" ]; then
-          git fetch --deepen=50 2>/dev/null || true
           if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
-            git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || true
+            git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || git fetch --deepen=50 2>/dev/null || true
           fi
           MERGE_BASE=$(git merge-base HEAD "$BASE_REF" 2>/dev/null || git merge-base HEAD "origin/$BASE_REF" 2>/dev/null || echo "")
           if [ -n "$MERGE_BASE" ]; then
@@ -829,22 +831,6 @@ jobs:
           .enact/telemetry.json
           .enact/summary.html
         retention-days: '1'
-    - name: Save Node & TypeScript build cache
-      if: github.event_name == 'push' && hashFiles('package.json', 'pnpm-lock.yaml') != '' && steps.node_l1_cache.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', 'bun.lockb') }}
-        path: |-
-          ~/.local/share/pnpm/store
-          ~/.cache/pnpm
-          ~/.npm
-          node_modules/.cache
-          .turbo
-          .turbo/cache
-          packages/*/dist
-          packages/@n8n/*/dist
-          packages/frontend/@n8n/*/dist
     - name: Save Python build & venv cache
       if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('pyproject.toml', 'requirements.txt') != '' && steps.python_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true

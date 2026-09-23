@@ -38,8 +38,12 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     fi
   fi
 
-  echo "📦 [playwright-runner] Compiling workspace dependencies via turbo..."
-  (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=n8n-playwright^... --filter=n8n... --filter=n8n-editor-ui...)
+  if [ ! -f "$REPO_ROOT/packages/cli/dist/constants.js" ] || [ ! -d "$REPO_ROOT/packages/frontend/editor-ui/dist" ]; then
+    echo "📦 [playwright-runner] Compiling workspace dependencies via turbo..."
+    (cd "$REPO_ROOT" && pnpm turbo run build:unchecked --filter=n8n-playwright^... --filter=n8n... --filter=n8n-editor-ui...)
+  else
+    echo "⚡ [playwright-runner] Build artifacts already present in dist/, skipping turbo build"
+  fi
 fi
 
 TARGETS=("$@")

@@ -31,7 +31,7 @@ profiles: dev: schema.#Profile & {
 		}
 		cli: {
 			name:    "cli"
-			command: "sh -c '[ -f packages/cli/dist/config.js ] || pnpm turbo run build:unchecked --filter=n8n...; exec node packages/cli/bin/n8n start'"
+			command: "sh -c '[ -f packages/cli/dist/constants.js ] || pnpm turbo run build:unchecked --filter=n8n...; exec node packages/cli/bin/n8n start'"
 			port:    5678
 			dependsOn: [{service: "postgres"}, {service: "redis"}]
 			environment: {
