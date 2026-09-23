@@ -38,11 +38,14 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   CURRENT_PKG=$(node -p "try { require('./package.json').name } catch(e) { '' }" 2>/dev/null || true)
   FILTER_ARGS=()
   if [ -n "$CURRENT_PKG" ]; then
-    FILTER_ARGS+=(--filter="${CURRENT_PKG}^..." --filter="!n8n-editor-ui")
+    FILTER_ARGS+=(--filter="${CURRENT_PKG}^...")
   elif [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
     FILTER_ARGS+=(--filter=@n8n/db^...)
   elif [ -d "$REPO_ROOT/packages/cli" ]; then
-    FILTER_ARGS+=(--filter=n8n^... --filter="!n8n-editor-ui")
+    FILTER_ARGS+=(--filter=n8n^...)
+  fi
+  if [ -d "$REPO_ROOT/packages/frontend/editor-ui" ]; then
+    FILTER_ARGS+=(--filter="!n8n-editor-ui")
   fi
 
   TURBO_SUCCESS=false
@@ -54,10 +57,46 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
 
   # Self-healing fallback for critical TypeScript packages if turbo was unconfigured or failed
   if [ "$TURBO_SUCCESS" != "true" ]; then
+    echo "📦 [vitest-runner] Turbo build skipped or failed; compiling checked-out workspace packages directly..."
+    if [ -f "tsconfig.json" ] && [ -x "$TSC_BIN" ]; then
+      REFS=$(node -e '
+        const fs = require("fs");
+        try {
+          const raw = fs.readFileSync("tsconfig.json", "utf8");
+          const clean = raw.replace(/^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1");
+          const json = JSON.parse(clean);
+          const valid = (json.references || []).map(r => r.path).filter(p => fs.existsSync(p));
+          console.log(valid.join(" "));
+        } catch (e) {
+          process.exit(0);
+        }
+      ' 2>/dev/null || true)
+
+      if [ -n "$REFS" ]; then
+        if [ -f "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" ]; then
+          node "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" 2>/dev/null || true
+        fi
+        echo "📦 [vitest-runner] Building local project references for '${CURRENT_PKG:-local}'..."
+        $TSC_BIN -b $REFS 2>/dev/null || true
+      fi
+    fi
+
+    # Explicit fallback for critical packages
+    if [ -d "$REPO_ROOT/packages/@n8n/db" ]; then
+      if [ -f "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" ]; then
+        node "$REPO_ROOT/packages/@n8n/db/scripts/generate-migration-index.mjs" 2>/dev/null || true
+      fi
+      if [ -x "$TSC_BIN" ]; then
+        (cd "$REPO_ROOT/packages/@n8n/db" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
+      else
+        (cd "$REPO_ROOT/packages/@n8n/db" && pnpm build:unchecked) || true
+      fi
+    fi
+
     for fallback_pkg in di typeorm tournament codemirror-lang-html; do
       pkg_dir="$REPO_ROOT/packages/@n8n/$fallback_pkg"
-      if [ -d "$pkg_dir" ] && [ -x "$TSC_BIN" ] && [ ! -d "$pkg_dir/dist" ]; then
-        if [ -f "$pkg_dir/tsconfig.build.json" ]; then
+      if [ -d "$pkg_dir" ]; then
+        if [ -x "$TSC_BIN" ] && [ -f "$pkg_dir/tsconfig.build.json" ]; then
           (cd "$pkg_dir" && "$TSC_BIN" -p tsconfig.build.json --noCheck) || true
         else
           (cd "$pkg_dir" && pnpm build) || true
