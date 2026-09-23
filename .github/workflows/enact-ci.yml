@@ -160,9 +160,7 @@ jobs:
           packages/*/dist
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
-        restore-keys: |-
-          ${{ runner.os }}-node-stage-check-and-lint-
-          ${{ runner.os }}-node-
+        restore-keys: ${{ runner.os }}-node-stage-check-and-lint-
     - name: Install Project Dependencies
       run: |-
         RUN_PREFIX=""
@@ -186,9 +184,13 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Verify Workspace Package Integrity
       run: |-
+        RUN_PREFIX=""
+        if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
+          RUN_PREFIX="enve run $([ -f enve.lock ] && echo --locked) -- "
+        fi
         if [ -f "scripts/check-workspace-private-deps.mjs" ]; then
           echo "🔍 Checking workspace package dependencies..."
-          node scripts/check-workspace-private-deps.mjs
+          $RUN_PREFIX node scripts/check-workspace-private-deps.mjs
         fi
     - name: Verify Pipeline Contracts & Sparse Cones (enact ci-verify)
       run: |-
@@ -615,9 +617,7 @@ jobs:
           packages/*/dist
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
-        restore-keys: |-
-          ${{ runner.os }}-node-${{ matrix.task_id }}-
-          ${{ runner.os }}-node-
+        restore-keys: ${{ runner.os }}-node-${{ matrix.task_id }}-
     - name: Restore Playwright browser cache
       id: playwright_l1_cache
       if: contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')
@@ -667,32 +667,15 @@ jobs:
         restore-keys: ${{ runner.os }}-rust-
     - name: Restore Cache [sqlite_e2e_template]
       id: cache_sqlite_e2e_template
-      if: contains(matrix.component, 'cli') || contains(matrix.component, 'db')
+      if: contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e')
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
+        key: sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}
         path: /tmp/n8n-e2e-template
         restore-keys: sqlite-template-v2-${{ runner.os }}-
-    - name: Restore Cache [tsbuildinfo_cli]
-      id: cache_tsbuildinfo_cli
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: tsbuildinfo-cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
-        path: packages/cli/node_modules/.cache/tsbuildinfo
-        restore-keys: tsbuildinfo-cli-${{ runner.os }}-
-    - name: Restore Cache [tsbuildinfo_frontend]
-      id: cache_tsbuildinfo_frontend
-      if: contains(matrix.component, 'frontend')
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
-        path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
-        restore-keys: tsbuildinfo-frontend-${{ runner.os }}-
     - name: Pre-warm Database Template Snapshot from Cloudflare R2
-      if: ${{ env.ENACT_SNAPSHOT_NAME != '' || contains(matrix.component, 'db') }}
+      if: ${{ env.ENACT_SNAPSHOT_NAME != '' || contains(matrix.component, 'db') || contains(matrix.component, 'cli') }}
       continue-on-error: true
       run: |-
         if [ -n "$ENACT_R2_BUCKET" ]; then
@@ -880,23 +863,9 @@ jobs:
           /nix/store
           ~/.local/share/enve/store
     - name: Save Cache [sqlite_e2e_template]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && (contains(matrix.component, 'cli') || contains(matrix.component, 'db'))) && steps.cache_sqlite_e2e_template.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && (contains(matrix.component, 'playwright') || contains(matrix.component, 'e2e'))) && steps.cache_sqlite_e2e_template.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
-        key: sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/cli/src/databases/migrations/**') }}
+        key: sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}
         path: /tmp/n8n-e2e-template
-    - name: Save Cache [tsbuildinfo_cli]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request')) && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: tsbuildinfo-cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
-        path: packages/cli/node_modules/.cache/tsbuildinfo
-    - name: Save Cache [tsbuildinfo_frontend]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && contains(matrix.component, 'frontend')) && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
-        path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
