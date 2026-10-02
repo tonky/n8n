@@ -42,7 +42,7 @@ pipeline: schema.#Pipeline & {
 	}
 
 	caches: {
-		// Package build outputs; each CI task keeps its own entry since tasks build different packages.
+		// Package build outputs; shared across CI tasks so later test runners reuse builds.
 		node_build: {
 			paths: [
 				".turbo",
@@ -51,7 +51,6 @@ pipeline: schema.#Pipeline & {
 				"packages/frontend/@n8n/*/dist",
 			]
 			key: ["package.json", "pnpm-lock.yaml"]
-			scope: "task"
 		}
 		tsbuildinfo_frontend: {
 			paths: ["packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo"]
@@ -261,7 +260,7 @@ pipeline: schema.#Pipeline & {
 			title: "n8n End-to-End Playwright Suite"
 			root:  "packages/testing/playwright"
 			watch_paths: ["packages/testing/playwright/**"]
-			depends_on: []
+			depends_on: [components.cli, components.frontend]
 			browsers: {
 				engine: "chromium"
 				path:   "/tmp/.cache/ms-playwright"

@@ -28,6 +28,16 @@ fi
 
 # Ensure workspace build artifacts exist for internal packages
 if [ -d "$REPO_ROOT/packages/@n8n" ]; then
+  # Link all workspace @n8n packages into root node_modules/@n8n so configs and tools resolve them
+  mkdir -p "$REPO_ROOT/node_modules/@n8n"
+  for pkg in "$REPO_ROOT/packages/@n8n"/*; do
+    [ -d "$pkg" ] || continue
+    name="$(basename "$pkg")"
+    if [ ! -e "$REPO_ROOT/node_modules/@n8n/$name" ]; then
+      ln -sf "$pkg" "$REPO_ROOT/node_modules/@n8n/$name" 2>/dev/null || true
+    fi
+  done
+
   TSC_BIN="$REPO_ROOT/node_modules/.bin/tsc"
   if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/frontend.js" ]; then
     echo "📦 [playwright-runner] Compiling @n8n/vitest-config..."

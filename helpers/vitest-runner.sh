@@ -26,6 +26,65 @@ fi
 
 # Ensure workspace build artifacts exist for internal packages
 if [ -d "$REPO_ROOT/packages/@n8n" ]; then
+  # Link all workspace @n8n packages into root node_modules/@n8n so configs and tools resolve them
+  mkdir -p "$REPO_ROOT/node_modules/@n8n"
+  for pkg in "$REPO_ROOT/packages/@n8n"/*; do
+    [ -d "$pkg" ] || continue
+    name="$(basename "$pkg")"
+    if [ ! -e "$REPO_ROOT/node_modules/@n8n/$name" ]; then
+      ln -sf "$pkg" "$REPO_ROOT/node_modules/@n8n/$name" 2>/dev/null || true
+    fi
+  done
+
+  # Self-heal vitest and vite resolution for ESM imports across workspace boundaries
+  VITEST_SRC=""
+  for candidate in \
+    "node_modules/vitest" \
+    "$REPO_ROOT/packages/cli/node_modules/vitest" \
+    "$REPO_ROOT/packages/frontend/editor-ui/node_modules/vitest" \
+    "$REPO_ROOT/node_modules/vitest"; do
+    if [ -e "$candidate" ]; then
+      VITEST_SRC="$(realpath "$candidate")"
+      break
+    fi
+  done
+
+  if [ -n "$VITEST_SRC" ]; then
+    if [ ! -e "$REPO_ROOT/node_modules/vitest" ]; then
+      ln -sf "$VITEST_SRC" "$REPO_ROOT/node_modules/vitest" 2>/dev/null || true
+    fi
+    if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ]; then
+      mkdir -p "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n"
+      if [ ! -e "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n/typescript-config" ] && [ -d "$REPO_ROOT/packages/@n8n/typescript-config" ]; then
+        ln -sf "../../../typescript-config" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n/typescript-config" 2>/dev/null || true
+      fi
+      if [ ! -e "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vitest" ]; then
+        ln -sf "$VITEST_SRC" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vitest" 2>/dev/null || true
+      fi
+    fi
+  fi
+
+  VITE_SRC=""
+  for candidate in \
+    "node_modules/vite" \
+    "$REPO_ROOT/packages/cli/node_modules/vite" \
+    "$REPO_ROOT/packages/frontend/editor-ui/node_modules/vite" \
+    "$REPO_ROOT/node_modules/vite"; do
+    if [ -e "$candidate" ]; then
+      VITE_SRC="$(realpath "$candidate")"
+      break
+    fi
+  done
+
+  if [ -n "$VITE_SRC" ]; then
+    if [ ! -e "$REPO_ROOT/node_modules/vite" ]; then
+      ln -sf "$VITE_SRC" "$REPO_ROOT/node_modules/vite" 2>/dev/null || true
+    fi
+    if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -e "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vite" ]; then
+      ln -sf "$VITE_SRC" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vite" 2>/dev/null || true
+    fi
+  fi
+
   TSC_BIN="$REPO_ROOT/node_modules/.bin/tsc"
   if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/frontend.js" ]; then
     echo "📦 [vitest-runner] Compiling @n8n/vitest-config..."
@@ -40,8 +99,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   for check_file in \
     "$REPO_ROOT/packages/@n8n/di/dist/di.js" \
     "$REPO_ROOT/packages/@n8n/typeorm/dist/index.js" \
-    "$REPO_ROOT/packages/@n8n/tournament/dist/index.js" \
-    "$REPO_ROOT/packages/@n8n/codemirror-lang-html/dist/index.js"; do
+    "$REPO_ROOT/packages/@n8n/tournament/dist/index.js"; do
     pkg_parent="$(dirname "$(dirname "$check_file")")"
     if [ -d "$pkg_parent" ] && [ ! -f "$check_file" ]; then
       NEEDS_BUILD=1
@@ -63,7 +121,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     (cd "$REPO_ROOT" && pnpm turbo run build:unchecked "${FILTER_ARGS[@]}") || true
 
     # Self-healing fallback for critical TypeScript packages if turbo failed or was skipped
-    for fallback_pkg in di typeorm tournament codemirror-lang-html; do
+    for fallback_pkg in di typeorm tournament; do
       pkg_dir="$REPO_ROOT/packages/@n8n/$fallback_pkg"
       if [ -d "$pkg_dir" ] && [ -x "$TSC_BIN" ] && [ ! -d "$pkg_dir/dist" ]; then
         if [ -f "$pkg_dir/tsconfig.build.json" ]; then
