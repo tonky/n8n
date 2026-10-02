@@ -79,23 +79,6 @@ jobs:
           packages/nodes-base
         sparse-checkout-cone-mode: 'true'
         submodules: 'false'
-    - name: Restore enact CLI binary cache
-      id: enact_cli_cache
-      if: hashFiles('bin/enact') == ''
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
-        path: ~/.cargo/bin/enact
-        restore-keys: ${{ runner.os }}-enact-cli-
-    - name: Restore enact Task CAS Cache
-      id: enact-tasks-cache
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
-        path: .enact/cache
-        restore-keys: ${{ runner.os }}-enact-tasks-
     - name: Ensure enve & enact CLI on PATH
       run: |
         git config --global --add safe.directory "*" 2>/dev/null || true
@@ -129,17 +112,74 @@ jobs:
             | jq -r 'to_entries[] | "\(.value) \(.key)"' 2>/dev/null \
             | sudo tee -a /etc/hosts >/dev/null || true
         fi
-    - name: Restore Nix Store (L1 GHA Cache)
-      id: nix_l1_cache
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
-        path: |-
-          /nix/store
-          ~/.local/share/enve/store
-        restore-keys: |
-          ${{ runner.os }}-nix-store-
+    - parallel:
+      - name: Restore enact CLI binary cache
+        id: enact_cli_cache
+        if: hashFiles('bin/enact') == ''
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
+          path: ~/.cargo/bin/enact
+          restore-keys: ${{ runner.os }}-enact-cli-
+      - name: Restore enact Task CAS Cache
+        id: enact-tasks-cache
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
+          path: .enact/cache
+          restore-keys: ${{ runner.os }}-enact-tasks-
+      - name: Restore Nix Store (L1 GHA Cache)
+        id: nix_l1_cache
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
+          path: |-
+            /nix/store
+            ~/.local/share/enve/store
+          restore-keys: |
+            ${{ runner.os }}-nix-store-
+      - name: Restore Node dependency cache
+        id: node_l1_cache
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          path: |-
+            ~/.local/share/pnpm/store
+            ~/.cache/pnpm
+            node_modules/.cache
+          restore-keys: ${{ runner.os }}-node-stage-check-and-lint-
+      - name: Restore Cache [node_build]
+        id: cache_node_build
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          path: |-
+            .turbo
+            packages/*/dist
+            packages/@n8n/*/dist
+            packages/frontend/@n8n/*/dist
+          restore-keys: node_build-${{ runner.os }}-stage-check-and-lint-
+      - name: Restore Cache [tsbuildinfo_cli]
+        id: cache_tsbuildinfo_cli
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
+          path: packages/cli/node_modules/.cache/tsbuildinfo
+          restore-keys: tsbuildinfo_cli-${{ runner.os }}-
+      - name: Restore Cache [tsbuildinfo_frontend]
+        id: cache_tsbuildinfo_frontend
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
+          path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
+          restore-keys: tsbuildinfo_frontend-${{ runner.os }}-
     - name: Pull Dependencies via enve
       run: |-
         if [ -d "/nix" ]; then
@@ -161,17 +201,6 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
         ENVE_CACHE_CONCURRENCY: '16'
-    - name: Restore Node dependency cache
-      id: node_l1_cache
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: |-
-          ~/.local/share/pnpm/store
-          ~/.cache/pnpm
-          node_modules/.cache
-        restore-keys: ${{ runner.os }}-node-stage-check-and-lint-
     - name: Install Project Dependencies
       run: |-
         RUN_PREFIX=""
@@ -201,34 +230,6 @@ jobs:
           echo "🔬 Running enact ci-verify..."
           $ENACT_BIN ci-verify --pipeline .enact --workflow ci
         fi
-    - name: Restore Cache [node_build]
-      id: cache_node_build
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: |-
-          .turbo
-          packages/*/dist
-          packages/@n8n/*/dist
-          packages/frontend/@n8n/*/dist
-        restore-keys: node_build-${{ runner.os }}-stage-check-and-lint-
-    - name: Restore Cache [tsbuildinfo_cli]
-      id: cache_tsbuildinfo_cli
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
-        path: packages/cli/node_modules/.cache/tsbuildinfo
-        restore-keys: tsbuildinfo_cli-${{ runner.os }}-
-    - name: Restore Cache [tsbuildinfo_frontend]
-      id: cache_tsbuildinfo_frontend
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
-        path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
-        restore-keys: tsbuildinfo_frontend-${{ runner.os }}-
     - name: Execute Stage [Check And Lint]
       run: |-
         UPDATED_ARG=""
@@ -243,7 +244,15 @@ jobs:
         fi
         BASE_ARG=""
         BASE_REF="${ENACT_BASE_REF:-}"
-        if [ -z "$BASE_REF" ]; then
+        if [ -n "${ENACT_BASE_SHA:-}" ]; then
+          if ! git rev-parse --verify "$ENACT_BASE_SHA" >/dev/null 2>&1; then
+            git fetch --no-tags --depth=1 origin "$ENACT_BASE_SHA" 2>/dev/null || true
+          fi
+          if git rev-parse --verify "$ENACT_BASE_SHA" >/dev/null 2>&1; then
+            BASE_ARG="--base $ENACT_BASE_SHA"
+          fi
+        fi
+        if [ -z "$BASE_ARG" ] && [ -z "$BASE_REF" ]; then
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             if [ -n "${ENACT_EVENT_BEFORE:-}" ] && [ "${ENACT_EVENT_BEFORE:-}" != "0000000000000000000000000000000000000000" ]; then
               BASE_REF="${ENACT_EVENT_BEFORE:-}"
@@ -265,7 +274,7 @@ jobs:
             fi
           fi
         fi
-        if [ -n "$BASE_REF" ]; then
+        if [ -z "$BASE_ARG" ] && [ -n "$BASE_REF" ]; then
           if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
             git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || true
           fi
@@ -296,6 +305,7 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY || env.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_BASE_REF: ${{ inputs.base_ref || github.base_ref || github.event.pull_request.base.ref }}
+        ENACT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'master' }}
         ENACT_EVENT_BEFORE: ${{ github.event.before }}
         ENACT_FORCE_NO_CACHE: ${{ inputs.no_cache == 'true' || vars.ENACT_NO_CACHE == 'true' || contains(github.event.pull_request.title, '[no-cache]') || contains(github.event.pull_request.body, '[no-cache]') || contains(github.event.pull_request.labels.*.name, 'no-cache') || contains(github.event.pull_request.labels.*.name, 'showcase') || startsWith(github.head_ref, 'showcase/') || startsWith(github.ref_name, 'showcase/') }}
@@ -303,50 +313,51 @@ jobs:
         ENACT_INPUT_UPDATED: ${{ inputs.updated }}
         ENACT_INTEGRATION_BRANCH: ${{ vars.ENACT_INTEGRATION_BRANCH }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
-    - name: Save Cache [node_build]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_node_build.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: |-
-          .turbo
-          packages/*/dist
-          packages/@n8n/*/dist
-          packages/frontend/@n8n/*/dist
-    - name: Save Cache [tsbuildinfo_cli]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
-        path: packages/cli/node_modules/.cache/tsbuildinfo
-    - name: Save Cache [tsbuildinfo_frontend]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
-        path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
-    - name: Save Node dependency cache
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')) && steps.node_l1_cache.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: |-
-          ~/.local/share/pnpm/store
-          ~/.cache/pnpm
-          node_modules/.cache
-    - name: Save Nix Store (L1 GHA Cache)
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.nix_l1_cache.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
-        path: |-
-          /nix/store
-          ~/.local/share/enve/store
+    - parallel:
+      - name: Save Cache [node_build]
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_node_build.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          path: |-
+            .turbo
+            packages/*/dist
+            packages/@n8n/*/dist
+            packages/frontend/@n8n/*/dist
+      - name: Save Cache [tsbuildinfo_cli]
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
+          path: packages/cli/node_modules/.cache/tsbuildinfo
+      - name: Save Cache [tsbuildinfo_frontend]
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
+          path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
+      - name: Save Node dependency cache
+        if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.node_l1_cache.outputs.cache-hit != 'true') && steps.node_l1_cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ runner.os }}-node-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          path: |-
+            ~/.local/share/pnpm/store
+            ~/.cache/pnpm
+            node_modules/.cache
+      - name: Save Nix Store (L1 GHA Cache)
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.nix_l1_cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
+          path: |-
+            /nix/store
+            ~/.local/share/enve/store
     - name: Upload Telemetry for [check-and-lint]
       if: always()
       continue-on-error: true
@@ -463,7 +474,15 @@ jobs:
         fi
         BASE_ARG=""
         BASE_REF="${ENACT_BASE_REF:-}"
-        if [ -z "$BASE_REF" ]; then
+        if [ -n "${ENACT_BASE_SHA:-}" ]; then
+          if ! git rev-parse --verify "$ENACT_BASE_SHA" >/dev/null 2>&1; then
+            git fetch --no-tags --depth=1 origin "$ENACT_BASE_SHA" 2>/dev/null || true
+          fi
+          if git rev-parse --verify "$ENACT_BASE_SHA" >/dev/null 2>&1; then
+            BASE_ARG="--base $ENACT_BASE_SHA"
+          fi
+        fi
+        if [ -z "$BASE_ARG" ] && [ -z "$BASE_REF" ]; then
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             if [ -n "${ENACT_EVENT_BEFORE:-}" ] && [ "${ENACT_EVENT_BEFORE:-}" != "0000000000000000000000000000000000000000" ]; then
               BASE_REF="${ENACT_EVENT_BEFORE:-}"
@@ -485,7 +504,7 @@ jobs:
             fi
           fi
         fi
-        if [ -n "$BASE_REF" ]; then
+        if [ -z "$BASE_ARG" ] && [ -n "$BASE_REF" ]; then
           if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1 && ! git rev-parse --verify "origin/$BASE_REF" >/dev/null 2>&1; then
             git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || true
           fi
@@ -518,6 +537,7 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ENACT_R2_SECRET_ACCESS_KEY }}
         ENACT_BASE_REF: ${{ inputs.base_ref || github.base_ref || github.event.pull_request.base.ref }}
+        ENACT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'master' }}
         ENACT_EVENT_BEFORE: ${{ github.event.before }}
         ENACT_FORCE_NO_CACHE: ${{ inputs.no_cache == 'true' || vars.ENACT_NO_CACHE == 'true' || contains(github.event.pull_request.title, '[no-cache]') || contains(github.event.pull_request.body, '[no-cache]') || contains(github.event.pull_request.labels.*.name, 'no-cache') || contains(github.event.pull_request.labels.*.name, 'showcase') || startsWith(github.head_ref, 'showcase/') || startsWith(github.ref_name, 'showcase/') }}
@@ -540,7 +560,6 @@ jobs:
       with:
         fetch-depth: '1'
         fetch-tags: 'false'
-        filter: blob:none
         lfs: 'false'
         show-progress: 'false'
         sparse-checkout: |-
@@ -628,7 +647,6 @@ jobs:
       with:
         fetch-depth: '1'
         fetch-tags: 'false'
-        filter: blob:none
         lfs: 'false'
         show-progress: 'false'
         sparse-checkout: ${{ matrix.sparse_checkout }}
@@ -643,15 +661,6 @@ jobs:
         lfs: 'false'
         show-progress: 'false'
         submodules: 'false'
-    - name: Restore enact CLI binary cache
-      id: enact_cli_cache
-      if: hashFiles('bin/enact') == ''
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
-        path: ~/.cargo/bin/enact
-        restore-keys: ${{ runner.os }}-enact-cli-
     - name: Ensure enve & enact CLI on PATH
       run: |
         git config --global --add safe.directory "*" 2>/dev/null || true
@@ -685,107 +694,123 @@ jobs:
             | jq -r 'to_entries[] | "\(.value) \(.key)"' 2>/dev/null \
             | sudo tee -a /etc/hosts >/dev/null || true
         fi
-    - name: Restore enact Task CAS Cache
-      id: enact-tasks-cache
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
-        path: .enact/cache
-        restore-keys: ${{ runner.os }}-enact-tasks-
-    - name: Restore Python build & venv cache
-      id: python_l1_cache
-      if: hashFiles('pyproject.toml', 'requirements.txt') != '' && (matrix.technology == '' || matrix.technology == 'python')
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-python-${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') }}
-        path: |-
-          /tmp/.cache/uv
-          ~/.cache/uv
-          ~/.cache/pip
-          .venv
-        restore-keys: ${{ runner.os }}-python-
-    - name: Restore Go build cache
-      id: go_l1_cache
-      if: hashFiles('go.mod', 'go.sum') != '' && (matrix.technology == '' || matrix.technology == 'go')
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        path: |-
-          /tmp/go-build
-          /tmp/go/pkg/mod
-        restore-keys: ${{ runner.os }}-go-
-    - name: Restore Rust target & cargo cache
-      id: rust_l1_cache
-      if: hashFiles('Cargo.toml', 'Cargo.lock') != '' && (matrix.technology == '' || matrix.technology == 'rust')
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
-        path: |-
-          ~/.cargo/registry/index
-          ~/.cargo/registry/cache
-          ~/.cargo/git/db
-          target/
-        restore-keys: ${{ runner.os }}-rust-
-    - name: Restore Node dependency cache
-      id: node_l1_cache
-      if: matrix.technology == '' || matrix.technology == 'typescript' || matrix.technology == 'javascript' || matrix.technology == 'node'
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: |-
-          ~/.local/share/pnpm/store
-          ~/.cache/pnpm
-          node_modules/.cache
-        restore-keys: |-
-          ${{ runner.os }}-node-${{ matrix.task_id }}-
-          ${{ runner.os }}-node-
-    - name: Restore Cache [node_build]
-      id: cache_node_build
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: |-
-          .turbo
-          packages/*/dist
-          packages/@n8n/*/dist
-          packages/frontend/@n8n/*/dist
-        restore-keys: |-
-          node_build-${{ runner.os }}-${{ matrix.task_id }}-
-          node_build-${{ runner.os }}-stage-check-and-lint-
-          node_build-${{ runner.os }}-
-    - name: Restore Cache [sqlite_e2e_template]
-      id: cache_sqlite_e2e_template
-      if: contains(format(',{0},', matrix.caches), ',sqlite_e2e_template,')
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: sqlite_e2e_template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}
-        path: /tmp/n8n-e2e-template
-        restore-keys: sqlite_e2e_template-v2-${{ runner.os }}-
-    - name: Restore Cache [tsbuildinfo_cli]
-      id: cache_tsbuildinfo_cli
-      if: contains(format(',{0},', matrix.caches), ',tsbuildinfo_cli,')
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
-        path: packages/cli/node_modules/.cache/tsbuildinfo
-        restore-keys: tsbuildinfo_cli-${{ runner.os }}-
-    - name: Restore Cache [tsbuildinfo_frontend]
-      id: cache_tsbuildinfo_frontend
-      if: contains(format(',{0},', matrix.caches), ',tsbuildinfo_frontend,')
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
-        path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
-        restore-keys: tsbuildinfo_frontend-${{ runner.os }}-
+    - parallel:
+      - name: Restore enact CLI binary cache
+        id: enact_cli_cache
+        if: hashFiles('bin/enact') == ''
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-enact-cli-${{ hashFiles('Cargo.lock', 'crates/**') }}
+          path: ~/.cargo/bin/enact
+          restore-keys: ${{ runner.os }}-enact-cli-
+      - name: Restore enact Task CAS Cache
+        id: enact-tasks-cache
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
+          path: .enact/cache
+          restore-keys: ${{ runner.os }}-enact-tasks-
+      - name: Restore Python build & venv cache
+        id: python_l1_cache
+        if: hashFiles('pyproject.toml', 'requirements.txt') != '' && (matrix.technology == '' || matrix.technology == 'python')
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-python-${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') }}
+          path: |-
+            /tmp/.cache/uv
+            ~/.cache/uv
+            ~/.cache/pip
+            .venv
+          restore-keys: ${{ runner.os }}-python-
+      - name: Restore Go build cache
+        id: go_l1_cache
+        if: hashFiles('go.mod', 'go.sum') != '' && (matrix.technology == '' || matrix.technology == 'go')
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          path: |-
+            /tmp/go-build
+            /tmp/go/pkg/mod
+          restore-keys: ${{ runner.os }}-go-
+      - name: Restore Rust target & cargo cache
+        id: rust_l1_cache
+        if: hashFiles('Cargo.toml', 'Cargo.lock') != '' && (matrix.technology == '' || matrix.technology == 'rust')
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+          path: |-
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          restore-keys: ${{ runner.os }}-rust-
+      - name: Restore Node dependency cache
+        id: node_l1_cache
+        if: matrix.technology == '' || matrix.technology == 'typescript' || matrix.technology == 'javascript' || matrix.technology == 'node'
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-node-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          path: |-
+            ~/.local/share/pnpm/store
+            ~/.cache/pnpm
+            node_modules/.cache
+          restore-keys: ${{ runner.os }}-node-${{ matrix.task_id }}-
+      - name: Restore Cache [node_build]
+        id: cache_node_build
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          path: |-
+            .turbo
+            packages/*/dist
+            packages/@n8n/*/dist
+            packages/frontend/@n8n/*/dist
+          restore-keys: node_build-${{ runner.os }}-${{ matrix.task_id }}-
+      - name: Restore Cache [sqlite_e2e_template]
+        id: cache_sqlite_e2e_template
+        if: contains(format(',{0},', matrix.caches), ',sqlite_e2e_template,')
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: sqlite_e2e_template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}
+          path: /tmp/n8n-e2e-template
+          restore-keys: sqlite_e2e_template-v2-${{ runner.os }}-
+      - name: Restore Cache [tsbuildinfo_cli]
+        id: cache_tsbuildinfo_cli
+        if: contains(format(',{0},', matrix.caches), ',tsbuildinfo_cli,')
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
+          path: packages/cli/node_modules/.cache/tsbuildinfo
+          restore-keys: tsbuildinfo_cli-${{ runner.os }}-
+      - name: Restore Cache [tsbuildinfo_frontend]
+        id: cache_tsbuildinfo_frontend
+        if: contains(format(',{0},', matrix.caches), ',tsbuildinfo_frontend,')
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
+          path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
+          restore-keys: tsbuildinfo_frontend-${{ runner.os }}-
+      - name: Restore Nix Store (L1 GHA Cache)
+        id: nix_l1_cache
+        continue-on-error: true
+        uses: actions/cache/restore@v6
+        with:
+          key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
+          path: |-
+            /nix/store
+            ~/.local/share/enve/store
+          restore-keys: |
+            ${{ runner.os }}-nix-store-
     - name: Restore Browsers [chromium]
       id: browsers_l1_cache
       if: matrix.browsers
@@ -821,17 +846,6 @@ jobs:
         ENACT_BROWSERS_ENV: PLAYWRIGHT_BROWSERS_PATH
         ENACT_BROWSERS_PATH: /tmp/.cache/ms-playwright
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
-    - name: Restore Nix Store (L1 GHA Cache)
-      id: nix_l1_cache
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
-        path: |-
-          /nix/store
-          ~/.local/share/enve/store
-        restore-keys: |
-          ${{ runner.os }}-nix-store-
     - name: Pull Dependencies via enve
       run: |-
         if [ -d "/nix" ]; then
@@ -925,82 +939,83 @@ jobs:
           .enact/telemetry.json
           .enact/summary.html
         retention-days: '1'
-    - name: Save Python build & venv cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('pyproject.toml', 'requirements.txt') != '' && (matrix.technology == '' || matrix.technology == 'python') && steps.python_l1_cache.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: ${{ runner.os }}-python-${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') }}
-        path: |-
-          /tmp/.cache/uv
-          ~/.cache/uv
-          ~/.cache/pip
-          .venv
-    - name: Save Go build cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('go.mod', 'go.sum') != '' && (matrix.technology == '' || matrix.technology == 'go') && steps.go_l1_cache.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        path: |-
-          /tmp/go-build
-          /tmp/go/pkg/mod
-    - name: Save Rust target & cargo cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('Cargo.toml', 'Cargo.lock') != '' && (matrix.technology == '' || matrix.technology == 'rust') && steps.rust_l1_cache.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
-        path: |-
-          ~/.cargo/registry/index
-          ~/.cargo/registry/cache
-          ~/.cargo/git/db
-          target/
-    - name: Save Nix Store (L1 GHA Cache)
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.nix_l1_cache.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
-        path: |-
-          /nix/store
-          ~/.local/share/enve/store
-    - name: Save Browsers [chromium]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && matrix.browsers) && steps.browsers_l1_cache.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: ${{ runner.os }}-browsers-chromium-${{ hashFiles('packages/testing/playwright/package.json', 'pnpm-lock.yaml') }}
-        path: /tmp/.cache/ms-playwright
-    - name: Save Cache [node_build]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_node_build.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-        path: |-
-          .turbo
-          packages/*/dist
-          packages/@n8n/*/dist
-          packages/frontend/@n8n/*/dist
-    - name: Save Cache [sqlite_e2e_template]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',sqlite_e2e_template,')) && steps.cache_sqlite_e2e_template.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: sqlite_e2e_template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}
-        path: /tmp/n8n-e2e-template
-    - name: Save Cache [tsbuildinfo_cli]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',tsbuildinfo_cli,')) && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
-        path: packages/cli/node_modules/.cache/tsbuildinfo
-    - name: Save Cache [tsbuildinfo_frontend]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',tsbuildinfo_frontend,')) && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
-        path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
+    - parallel:
+      - name: Save Python build & venv cache
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('pyproject.toml', 'requirements.txt') != '' && (matrix.technology == '' || matrix.technology == 'python') && steps.python_l1_cache.outputs.cache-hit != 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ runner.os }}-python-${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') }}
+          path: |-
+            /tmp/.cache/uv
+            ~/.cache/uv
+            ~/.cache/pip
+            .venv
+      - name: Save Go build cache
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('go.mod', 'go.sum') != '' && (matrix.technology == '' || matrix.technology == 'go') && steps.go_l1_cache.outputs.cache-hit != 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          path: |-
+            /tmp/go-build
+            /tmp/go/pkg/mod
+      - name: Save Rust target & cargo cache
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('Cargo.toml', 'Cargo.lock') != '' && (matrix.technology == '' || matrix.technology == 'rust') && steps.rust_l1_cache.outputs.cache-hit != 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+          path: |-
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+      - name: Save Nix Store (L1 GHA Cache)
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.nix_l1_cache.outputs.cache-hit != 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ runner.os }}-nix-store-${{ hashFiles('**/enve.lock') }}
+          path: |-
+            /nix/store
+            ~/.local/share/enve/store
+      - name: Save Browsers [chromium]
+        if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && matrix.browsers && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && steps.browsers_l1_cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ runner.os }}-browsers-chromium-${{ hashFiles('packages/testing/playwright/package.json', 'pnpm-lock.yaml') }}
+          path: /tmp/.cache/ms-playwright
+      - name: Save Cache [node_build]
+        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_node_build.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          path: |-
+            .turbo
+            packages/*/dist
+            packages/@n8n/*/dist
+            packages/frontend/@n8n/*/dist
+      - name: Save Cache [sqlite_e2e_template]
+        if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',sqlite_e2e_template,')) && steps.cache_sqlite_e2e_template.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: sqlite_e2e_template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}
+          path: /tmp/n8n-e2e-template
+      - name: Save Cache [tsbuildinfo_cli]
+        if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',tsbuildinfo_cli,')) && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
+          path: packages/cli/node_modules/.cache/tsbuildinfo
+      - name: Save Cache [tsbuildinfo_frontend]
+        if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',tsbuildinfo_frontend,')) && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
+          path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
