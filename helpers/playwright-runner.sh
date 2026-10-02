@@ -81,6 +81,11 @@ if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
   fi
 fi
 
+if [[ "${1:-}" == "--smoke" ]]; then
+  echo "🎯 [enact:playwright] Executing Playwright Dev-Server Smoke Tests..."
+  cd "$REPO_ROOT/packages/testing/playwright" && exec pnpm test:dev-server-smoke
+fi
+
 if [ ${#TARGETS[@]} -eq 0 ]; then
   echo "🎯 [enact:playwright] Running Playwright package test suite..."
   exec "$VITEST_BIN" run --config "$REPO_ROOT/packages/testing/playwright/vitest.config.ts"

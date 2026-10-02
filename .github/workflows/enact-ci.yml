@@ -741,7 +741,9 @@ jobs:
           ~/.local/share/pnpm/store
           ~/.cache/pnpm
           node_modules/.cache
-        restore-keys: ${{ runner.os }}-node-${{ matrix.task_id }}-
+        restore-keys: |-
+          ${{ runner.os }}-node-${{ matrix.task_id }}-
+          ${{ runner.os }}-node-
     - name: Restore Cache [node_build]
       id: cache_node_build
       continue-on-error: true
@@ -753,7 +755,10 @@ jobs:
           packages/*/dist
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
-        restore-keys: node_build-${{ runner.os }}-${{ matrix.task_id }}-
+        restore-keys: |-
+          node_build-${{ runner.os }}-${{ matrix.task_id }}-
+          node_build-${{ runner.os }}-stage-check-and-lint-
+          node_build-${{ runner.os }}-
     - name: Restore Cache [sqlite_e2e_template]
       id: cache_sqlite_e2e_template
       if: contains(format(',{0},', matrix.caches), ',sqlite_e2e_template,')

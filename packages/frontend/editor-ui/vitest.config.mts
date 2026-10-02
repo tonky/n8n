@@ -5,4 +5,20 @@ import viteConfig from './vite.config.mjs';
 
 // This file is separate from `vite.config.mts`, because `@n8n/vitest-config` resolves to its
 // `dist`. Only `test` always has that `dist`, because turbo builds the dependencies before `test`.
-export default mergeConfig(viteConfig, vitestConfig);
+export default mergeConfig(
+	mergeConfig(viteConfig, vitestConfig),
+	{
+		test: {
+			server: {
+				deps: {
+					inline: [
+						'vitest-mock-extended',
+						/@n8n\//,
+						/packages\/frontend/,
+						/packages\/@n8n/,
+					],
+				},
+			},
+		},
+	},
+);

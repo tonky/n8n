@@ -288,7 +288,7 @@ pipeline: schema.#Pipeline & {
 				memory_mb: 10240
 			}
 			smoke: {
-				command: "pnpm test:dev-server-smoke"
+				command: "../../../helpers/playwright-runner.sh --smoke"
 				env: {
 					DB_TYPE:      "sqlite"
 					N8N_TEST_ENV: "{\"DB_TYPE\":\"sqlite\"}"
