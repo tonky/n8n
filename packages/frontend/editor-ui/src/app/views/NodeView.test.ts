@@ -59,6 +59,18 @@ vi.mock('@/features/ndv/shared/views/NodeDetailsView.vue', () => ({
 	default: { name: 'NodeDetailsView', render: () => null },
 }));
 
+// Async components whose import chains pull in large subtrees or ready-to-run stores
+// that can still be in flight when the test environment tears down.
+vi.mock('@/features/shared/nodeCreator/views/NodeCreation.vue', () => ({
+	__esModule: true,
+	default: { name: 'NodeCreation', render: () => null },
+}));
+
+vi.mock('@/features/workflows/templates/components/SetupWorkflowCredentialsButton.vue', () => ({
+	__esModule: true,
+	default: { name: 'SetupWorkflowCredentialsButton', render: () => null },
+}));
+
 describe('NodeView', () => {
 	let workflowsStore: ReturnType<typeof useWorkflowsStore>;
 	let workflowDocumentStore: ReturnType<typeof useWorkflowDocumentStore>;

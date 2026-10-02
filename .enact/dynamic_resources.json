@@ -80,14 +80,14 @@
       "job": "test",
       "configured_ram_mb": 1024,
       "configured_cpus": 1.0,
-      "adjusted_ram_mb": 8920,
-      "adjusted_cpus": 11.5,
-      "sample_count": 1,
-      "peak_ram_mb": 7433,
-      "avg_ram_mb": 4779,
-      "peak_cpus": 11.475032775562365,
+      "adjusted_ram_mb": 9371,
+      "adjusted_cpus": 11.3,
+      "sample_count": 3,
+      "peak_ram_mb": 7809,
+      "avg_ram_mb": 4963,
+      "peak_cpus": 11.475032775562363,
       "violations_count": 0,
-      "last_updated_rfc3339": "2026-10-02T12:04:58.863291376+00:00"
+      "last_updated_rfc3339": "2026-10-02T12:34:50.597670619+00:00"
     },
     "nodes-base:lint": {
       "component": "nodes-base",
