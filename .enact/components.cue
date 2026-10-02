@@ -177,7 +177,15 @@ pipeline: schema.#Pipeline & {
 				command: "pnpm exec publint || pnpm pack --dry-run"
 			}
 			migrate: {
-				command: "pnpm test:postgres:migrations"
+				command: "../../helpers/migrate-runner.sh"
+				filter: {
+					include: [
+						"test/migration/**",
+						"src/databases/migrations/**",
+						"../@n8n/db/src/migrations/**",
+					]
+					on_empty: "skip"
+				}
 			}
 			test: {
 				command: "../../helpers/vitest-runner.sh {relative_targets}"
