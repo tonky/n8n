@@ -69,6 +69,14 @@ jobs:
           turbo.json
           tsconfig.json
           biome.jsonc
+          packages/core
+          packages/@n8n/db
+          packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json
+          packages/cli
+          packages/frontend/editor-ui
+          packages/frontend
+          packages/modules
+          packages/nodes-base
         sparse-checkout-cone-mode: 'true'
         submodules: 'false'
     - name: Restore enact CLI binary cache
@@ -191,7 +199,7 @@ jobs:
         fi
         if [ -n "$ENACT_BIN" ]; then
           echo "🔬 Running enact ci-verify..."
-          $ENACT_BIN ci-verify --pipeline .enact
+          $ENACT_BIN ci-verify --pipeline .enact --workflow ci
         fi
     - name: Restore Cache [node_build]
       id: cache_node_build
