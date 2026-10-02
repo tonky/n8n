@@ -16,7 +16,12 @@ REPO_ROOT="$PWD"
 while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
   REPO_ROOT="$(dirname "$REPO_ROOT")"
 done
-export NODE_PATH="${REPO_ROOT}/node_modules:${REPO_ROOT}/packages/cli/node_modules:${REPO_ROOT}/packages/frontend/editor-ui/node_modules:${NODE_PATH:-}"
+LOCAL_NM="$PWD/node_modules"
+if [ -d "$LOCAL_NM" ]; then
+  export NODE_PATH="${LOCAL_NM}:${REPO_ROOT}/node_modules:${NODE_PATH:-}"
+else
+  export NODE_PATH="${REPO_ROOT}/node_modules:${NODE_PATH:-}"
+fi
 
 # Ensure local node_modules exists for the component
 if [ ! -d "node_modules" ] && [ -f "$REPO_ROOT/pnpm-lock.yaml" ]; then
@@ -39,9 +44,9 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   # Self-heal vitest and vite resolution for ESM imports across workspace boundaries
   VITEST_SRC=""
   for candidate in \
+    "./node_modules/vitest" \
     "node_modules/vitest" \
-    "$REPO_ROOT/packages/cli/node_modules/vitest" \
-    "$REPO_ROOT/packages/frontend/editor-ui/node_modules/vitest" \
+    "$PWD/node_modules/vitest" \
     "$REPO_ROOT/node_modules/vitest"; do
     if [ -e "$candidate" ]; then
       VITEST_SRC="$(realpath "$candidate")"

@@ -41,6 +41,7 @@ profiles: dev: schema.#Profile & {
 				N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
 				N8N_ENCRYPTION_KEY:                "e2e-test-encryption-key-n8n"
 				N8N_USER_FOLDER:                   "/tmp/n8n-runner"
+				E2E_TESTS:                         "true"
 			}
 			readinessProbe: {
 				command: "curl -s -f --connect-timeout 1 --max-time 3 http://127.0.0.1:5678/healthz || exit 1"
