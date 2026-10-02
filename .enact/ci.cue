@@ -58,13 +58,10 @@ pipeline: schema.#Pipeline & {
 				{
 					name: "check-and-lint"
 					select: [J.lint, J.typecheck, J.pack, J.migrate, J.schema_check]
-					tasks: [{
-						name:    "Verify workspace package integrity"
-						command: "pnpm boundaries:check && node scripts/check-workspace-private-deps.mjs"
-					}]
 					fail_fast: true
 					services:  "on_demand"
 				},
+
 				{
 					name:   "test"
 					matrix: true

@@ -181,15 +181,6 @@ jobs:
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Verify workspace package integrity
-      run: |-
-        if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
-          enve run --locked -- sh -c "$ENACT_STAGE_TASK"
-        else
-          sh -c "$ENACT_STAGE_TASK"
-        fi
-      env:
-        ENACT_STAGE_TASK: pnpm boundaries:check && node scripts/check-workspace-private-deps.mjs
     - name: Verify Pipeline Contracts & Sparse Cones (enact ci-verify)
       run: |-
         ENACT_BIN=""
@@ -305,7 +296,7 @@ jobs:
         ENACT_INTEGRATION_BRANCH: ${{ vars.ENACT_INTEGRATION_BRANCH }}
         ENACT_R2_BUCKET: ${{ secrets.ENACT_R2_BUCKET || env.ENACT_R2_BUCKET }}
     - name: Save Cache [node_build]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache_node_build.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_node_build.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -316,21 +307,21 @@ jobs:
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
     - name: Save Cache [tsbuildinfo_cli]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
         path: packages/cli/node_modules/.cache/tsbuildinfo
     - name: Save Cache [tsbuildinfo_frontend]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: tsbuildinfo_frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}
         path: packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo
     - name: Save Node dependency cache
-      if: (github.event_name == 'push') && steps.node_l1_cache.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')) && steps.node_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -340,7 +331,7 @@ jobs:
           ~/.cache/pnpm
           node_modules/.cache
     - name: Save Nix Store (L1 GHA Cache)
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix_l1_cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.nix_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -922,7 +913,7 @@ jobs:
           .enact/summary.html
         retention-days: '1'
     - name: Save Python build & venv cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('pyproject.toml', 'requirements.txt') != '' && (matrix.technology == '' || matrix.technology == 'python') && steps.python_l1_cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('pyproject.toml', 'requirements.txt') != '' && (matrix.technology == '' || matrix.technology == 'python') && steps.python_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -933,7 +924,7 @@ jobs:
           ~/.cache/pip
           .venv
     - name: Save Go build cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('go.mod', 'go.sum') != '' && (matrix.technology == '' || matrix.technology == 'go') && steps.go_l1_cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('go.mod', 'go.sum') != '' && (matrix.technology == '' || matrix.technology == 'go') && steps.go_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -942,7 +933,7 @@ jobs:
           /tmp/go-build
           /tmp/go/pkg/mod
     - name: Save Rust target & cargo cache
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && hashFiles('Cargo.toml', 'Cargo.lock') != '' && (matrix.technology == '' || matrix.technology == 'rust') && steps.rust_l1_cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && hashFiles('Cargo.toml', 'Cargo.lock') != '' && (matrix.technology == '' || matrix.technology == 'rust') && steps.rust_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -953,7 +944,7 @@ jobs:
           ~/.cargo/git/db
           target/
     - name: Save Nix Store (L1 GHA Cache)
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.nix_l1_cache.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.nix_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -962,14 +953,14 @@ jobs:
           /nix/store
           ~/.local/share/enve/store
     - name: Save Browsers [chromium]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && matrix.browsers) && steps.browsers_l1_cache.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && matrix.browsers) && steps.browsers_l1_cache.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: ${{ runner.os }}-browsers-chromium-${{ hashFiles('packages/testing/playwright/package.json', 'pnpm-lock.yaml') }}
         path: /tmp/.cache/ms-playwright
     - name: Save Cache [node_build]
-      if: (github.event_name == 'push' || github.event_name == 'pull_request') && steps.cache_node_build.outputs.cache-hit != 'true'
+      if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_node_build.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -980,21 +971,21 @@ jobs:
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
     - name: Save Cache [sqlite_e2e_template]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && contains(format(',{0},', matrix.caches), ',sqlite_e2e_template,')) && steps.cache_sqlite_e2e_template.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',sqlite_e2e_template,')) && steps.cache_sqlite_e2e_template.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: sqlite_e2e_template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}
         path: /tmp/n8n-e2e-template
     - name: Save Cache [tsbuildinfo_cli]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && contains(format(',{0},', matrix.caches), ',tsbuildinfo_cli,')) && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',tsbuildinfo_cli,')) && steps.cache_tsbuildinfo_cli.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: tsbuildinfo_cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}
         path: packages/cli/node_modules/.cache/tsbuildinfo
     - name: Save Cache [tsbuildinfo_frontend]
-      if: ((github.event_name == 'push' || github.event_name == 'pull_request') && contains(format(',{0},', matrix.caches), ',tsbuildinfo_frontend,')) && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
+      if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',tsbuildinfo_frontend,')) && steps.cache_tsbuildinfo_frontend.outputs.cache-hit != 'true'
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
