@@ -1,15 +1,14 @@
 package n8n
 
-pipeline: {
+import "enact.dev/schema"
+
+let J = pipeline.#jobs
+
+pipeline: schema.#Pipeline & {
 	workflows: {
 		local: {
-			layout:   "topological"
 			services: "on_demand"
-			stages: {
-				dev: {
-					select: ["test"]
-				}
-			}
+			stages: [{name: "dev", select: [J.test, J.smoke]}]
 		}
 	}
 }

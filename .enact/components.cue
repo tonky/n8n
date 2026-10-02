@@ -1,6 +1,10 @@
 package n8n
 
-pipeline: {
+import "enact.dev/schema"
+
+let J = pipeline.#jobs
+
+pipeline: schema.#Pipeline & {
 	name:        "n8n-platform"
 	description: "n8n Workflow Automation Platform (enact + enve accelerated)"
 
@@ -38,42 +42,42 @@ pipeline: {
 	}
 
 	caches: {
-		tsbuildinfo_frontend: {
-			path: "packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo"
-			key: "tsbuildinfo-frontend-${{ runner.os }}-${{ hashFiles('packages/frontend/editor-ui/src/**') }}"
-			restore_keys: [
-				"tsbuildinfo-frontend-${{ runner.os }}-",
+		// Package build outputs; each CI task keeps its own entry since tasks build different packages.
+		node_build: {
+			paths: [
+				".turbo",
+				"packages/*/dist",
+				"packages/@n8n/*/dist",
+				"packages/frontend/@n8n/*/dist",
 			]
-			tier: "tiered"
-			mode: "read_write"
+			key: ["package.json", "pnpm-lock.yaml"]
+			scope: "task"
+		}
+		tsbuildinfo_frontend: {
+			paths: ["packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo"]
+			key: ["packages/frontend/editor-ui/src/**"]
+			used_by: {components: ["frontend"], jobs: [J.typecheck]}
 		}
 		tsbuildinfo_cli: {
-			path: "packages/cli/node_modules/.cache/tsbuildinfo"
-			key: "tsbuildinfo-cli-${{ runner.os }}-${{ hashFiles('packages/cli/src/**') }}"
-			restore_keys: [
-				"tsbuildinfo-cli-${{ runner.os }}-",
-			]
-			tier: "tiered"
-			mode: "read_write"
+			paths: ["packages/cli/node_modules/.cache/tsbuildinfo"]
+			key: ["packages/cli/src/**"]
+			used_by: {components: ["cli"], jobs: [J.typecheck]}
 		}
 		sqlite_e2e_template: {
-			path: "/tmp/n8n-e2e-template"
-			key: "sqlite-template-v2-${{ runner.os }}-${{ hashFiles('packages/@n8n/db/src/migrations/**') }}"
-			restore_keys: [
-				"sqlite-template-v2-${{ runner.os }}-",
-			]
-			tier: "tiered"
-			mode: "read_write"
+			paths: ["/tmp/n8n-e2e-template"]
+			key: ["packages/@n8n/db/src/migrations/**"]
+			version: "v2"
+			used_by: {components: ["playwright"], jobs: [J.test]}
 		}
 	}
 
 	components: {
 		core: {
-			name:        "@n8n/core"
-			title:       "n8n Core Workflow Engine"
-			root:        "packages/core"
+			name:  "@n8n/core"
+			title: "n8n Core Workflow Engine"
+			root:  "packages/core"
 			watch_paths: ["packages/core/**"]
-			depends_on:  []
+			depends_on: []
 			workspace_scope: {
 				include_dependencies: true
 			}
@@ -103,13 +107,14 @@ pipeline: {
 		}
 
 		db: {
-			name:        "@n8n/db"
-			title:       "n8n Database & Entities"
-			root:        "packages/@n8n/db"
+			name:  "@n8n/db"
+			title: "n8n Database & Entities"
+			root:  "packages/@n8n/db"
 			watch_paths: ["packages/@n8n/db/**"]
-			depends_on:  [components.core]
+			depends_on: [components.core]
 			workspace_scope: {
 				include_dependencies: true
+				include: ["packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json"]
 			}
 			services: [n8n.services.postgres]
 			target_scope: {
@@ -141,16 +146,16 @@ pipeline: {
 		}
 
 		cli: {
-			name:        "cli"
-			title:       "n8n CLI & Backend Service"
-			root:        "packages/cli"
+			name:  "cli"
+			title: "n8n CLI & Backend Service"
+			root:  "packages/cli"
 			watch_paths: ["packages/cli/**"]
-			depends_on:  [components.core, components.db, components.nodes_base]
+			depends_on: [components.core, components.db, components.nodes_base]
 			workspace_scope: {
 				include_dependencies: true
 			}
 			services: [n8n.services.postgres, n8n.services.redis]
-			service:  n8n.services.cli
+			service: n8n.services.cli
 			target_scope: {
 				fallback: "all"
 				rules: [{
@@ -180,11 +185,11 @@ pipeline: {
 		}
 
 		frontend: {
-			name:        "frontend"
-			title:       "n8n Frontend Editor UI"
-			root:        "packages/frontend/editor-ui"
+			name:  "frontend"
+			title: "n8n Frontend Editor UI"
+			root:  "packages/frontend/editor-ui"
 			watch_paths: ["packages/frontend/**"]
-			depends_on:  [components.core]
+			depends_on: [components.core]
 			workspace_scope: {
 				include: [
 					"packages/frontend",
@@ -199,29 +204,25 @@ pipeline: {
 					engine: "typescript"
 				}]
 			}
-			tasks: {
-				lint: {
-					command: "pnpm exec oxlint {relative_changed_files} --quiet"
-					filter: {
-						include: ["**/*.{ts,tsx,js,jsx,json,jsonc,vue}"]
-						on_empty: "skip"
-					}
-				}
-				typecheck: {
-					command: "../../../helpers/typecheck-runner.sh"
+			lint: {
+				command: "pnpm exec oxlint {relative_changed_files} --quiet"
+				filter: {
+					include: ["**/*.{ts,tsx,js,jsx,json,jsonc,vue}"]
+					on_empty: "skip"
 				}
 			}
+			typecheck: "../../../helpers/typecheck-runner.sh"
 			test: {
 				command: "../../../helpers/vitest-runner.sh {relative_targets}"
 			}
 		}
 
 		nodes_base: {
-			name:        "nodes-base"
-			title:       "n8n Community & Base Integration Nodes"
-			root:        "packages/nodes-base"
+			name:  "nodes-base"
+			title: "n8n Community & Base Integration Nodes"
+			root:  "packages/nodes-base"
 			watch_paths: ["packages/nodes-base/**"]
-			depends_on:  [components.core]
+			depends_on: [components.core]
 			workspace_scope: {
 				include_dependencies: true
 			}
@@ -243,16 +244,23 @@ pipeline: {
 				command: "../../helpers/typecheck-runner.sh"
 			}
 			test: {
-				command: "./node_modules/.bin/vitest run {relative_targets}"
+				command: "../../helpers/vitest-runner.sh {relative_targets}"
 			}
 		}
 
 		playwright: {
-			name:        "playwright"
-			title:       "n8n End-to-End Playwright Suite"
-			root:        "packages/testing/playwright"
+			name:  "playwright"
+			title: "n8n End-to-End Playwright Suite"
+			root:  "packages/testing/playwright"
 			watch_paths: ["packages/testing/playwright/**"]
-			depends_on:  []
+			depends_on: []
+			browsers: {
+				engine: "chromium"
+				path:   "/tmp/.cache/ms-playwright"
+				env:    "PLAYWRIGHT_BROWSERS_PATH"
+				key: ["packages/testing/playwright/package.json", "pnpm-lock.yaml"]
+				artifact: "tools/playwright-browsers-linux-amd64.tar.zst"
+			}
 			workspace_scope: {
 				include: [
 					"packages/testing",
@@ -283,6 +291,20 @@ pipeline: {
 			}
 			test: {
 				command: "../../../helpers/playwright-runner.sh {relative_targets}"
+				// Each spec runs against its own throwaway SQLite database, so the
+				// injected Postgres connection must not reach it.
+				env: DB_TYPE: "sqlite"
+				unset_env: [
+					"PGHOST",
+					"PGPORT",
+					"PGDATABASE",
+					"PGUSER",
+					"PGPASSWORD",
+					"POSTGRES_URL",
+					"POSTGRES_PORT",
+					"POSTGRES_DATABASES",
+					"DATABASE_URL",
+				]
 			}
 		}
 	}

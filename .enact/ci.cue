@@ -1,12 +1,22 @@
 package n8n
 
-pipeline: {
+import "enact.dev/schema"
+
+let J = pipeline.#jobs
+
+pipeline: schema.#Pipeline & {
+	toolchain: node: {
+		package_manager: "pnpm"
+		env: ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+	}
 	ci: {
+		no_cache: {
+			labels: ["no-cache", "showcase"]
+			branch_prefixes: ["showcase/"]
+		}
 		concurrency: {
 			max_parallel_jobs: 16
-			max_total_shards:  32
 		}
-		strategy: "auto"
 		workers: {
 			"standard": {
 				available:    8
@@ -46,14 +56,19 @@ pipeline: {
 			}
 			stages: [
 				{
-					name:      "check-and-lint"
-					tasks:     ["lint", "typecheck", "pack"]
+					name: "check-and-lint"
+					select: [J.lint, J.typecheck, J.pack, J.migrate, J.schema_check]
+					tasks: [{
+						name:    "Verify workspace package integrity"
+						command: "pnpm boundaries:check && node scripts/check-workspace-private-deps.mjs"
+					}]
 					fail_fast: true
-					services:  "disabled"
+					services:  "on_demand"
 				},
 				{
-					name:      "test"
-					tasks:     ["test", "migrate", "schema_check", "smoke"]
+					name:   "test"
+					matrix: true
+					select: [J.test, J.smoke]
 					fail_fast: false
 					services:  "on_demand"
 				},
