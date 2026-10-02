@@ -85,6 +85,35 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     fi
   fi
 
+  # Self-heal vitest-mock-extended resolution for cross-workspace tests
+  if [ ! -e "$REPO_ROOT/node_modules/vitest-mock-extended" ]; then
+    for candidate in \
+      "$REPO_ROOT/packages/@n8n/backend-test-utils/node_modules/vitest-mock-extended" \
+      "$REPO_ROOT/packages/cli/node_modules/vitest-mock-extended"; do
+      if [ -e "$candidate" ]; then
+        ln -sf "$(realpath "$candidate")" "$REPO_ROOT/node_modules/vitest-mock-extended" 2>/dev/null || true
+        break
+      fi
+    done
+  fi
+
+  # Self-heal @testing-library for frontend vitest runs
+  if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ]; then
+    for lib in jest-dom vue user-event dom; do
+      for candidate in \
+        "$REPO_ROOT/packages/frontend/editor-ui/node_modules/@testing-library/$lib" \
+        "$REPO_ROOT/packages/@n8n/utils/node_modules/@testing-library/$lib"; do
+        if [ -e "$candidate" ]; then
+          mkdir -p "$REPO_ROOT/node_modules/@testing-library"
+          mkdir -p "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@testing-library"
+          [ -e "$REPO_ROOT/node_modules/@testing-library/$lib" ] || ln -sf "$(realpath "$candidate")" "$REPO_ROOT/node_modules/@testing-library/$lib" 2>/dev/null || true
+          [ -e "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@testing-library/$lib" ] || ln -sf "$(realpath "$candidate")" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@testing-library/$lib" 2>/dev/null || true
+          break
+        fi
+      done
+    done
+  fi
+
   TSC_BIN="$REPO_ROOT/node_modules/.bin/tsc"
   if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -f "$REPO_ROOT/packages/@n8n/vitest-config/dist/frontend.js" ]; then
     echo "📦 [vitest-runner] Compiling @n8n/vitest-config..."

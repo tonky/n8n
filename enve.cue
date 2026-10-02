@@ -31,7 +31,7 @@ profiles: dev: schema.#Profile & {
 		}
 		cli: {
 			name:    "cli"
-			command: "sh -c '[ -f packages/cli/dist/constants.js ] || pnpm turbo run build:unchecked --filter=n8n...; exec node packages/cli/bin/n8n start'"
+			command: "sh -c 'mkdir -p node_modules/@n8n && for p in packages/@n8n/*; do [ -d \"$p\" ] && [ ! -e \"node_modules/@n8n/$(basename \"$p\")\" ] && ln -sf \"$PWD/$p\" \"node_modules/@n8n/$(basename \"$p\")\"; done; [ -f packages/cli/dist/constants.js ] || pnpm turbo run build:unchecked --filter=n8n...; exec node packages/cli/bin/n8n start'"
 			port:    5678
 			dependsOn: [{service: "postgres"}, {service: "redis"}]
 			environment: {
