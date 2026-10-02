@@ -155,6 +155,7 @@ pipeline: schema.#Pipeline & {
 			}
 			services: [n8n.services.postgres, n8n.services.redis]
 			service: n8n.services.cli
+			shards:  4
 			target_scope: {
 				fallback: "all"
 				rules: [{
@@ -197,6 +198,7 @@ pipeline: schema.#Pipeline & {
 			root:  "packages/frontend/editor-ui"
 			watch_paths: ["packages/frontend/**"]
 			depends_on: [components.core]
+			shards:  4
 			workspace_scope: {
 				include: [
 					"packages/frontend",
@@ -295,6 +297,7 @@ pipeline: schema.#Pipeline & {
 			}
 			smoke: {
 				command: "pnpm test:dev-server-smoke"
+				env: PLAYWRIGHT_SKIP_WEBSERVER: "true"
 			}
 			test: {
 				command: "../../../helpers/playwright-runner.sh {relative_targets}"

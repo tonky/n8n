@@ -620,7 +620,7 @@ jobs:
       max-parallel: 16
       matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
     runs-on: ${{ matrix.runs_on }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
     - name: Checkout Repository (sparse)
       if: ${{ matrix.sparse_checkout != '' }}
