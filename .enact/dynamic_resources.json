@@ -75,6 +75,20 @@
       "violations_count": 0,
       "last_updated_rfc3339": "2026-10-02T09:15:46.498534100+00:00"
     },
+    "frontend:test": {
+      "component": "frontend",
+      "job": "test",
+      "configured_ram_mb": 1024,
+      "configured_cpus": 1.0,
+      "adjusted_ram_mb": 8920,
+      "adjusted_cpus": 11.5,
+      "sample_count": 1,
+      "peak_ram_mb": 7433,
+      "avg_ram_mb": 4779,
+      "peak_cpus": 11.475032775562365,
+      "violations_count": 0,
+      "last_updated_rfc3339": "2026-10-02T12:04:58.863291376+00:00"
+    },
     "nodes-base:lint": {
       "component": "nodes-base",
       "job": "lint",

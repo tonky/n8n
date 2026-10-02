@@ -8,14 +8,27 @@ import viteConfig from './vite.config.mjs';
 export default mergeConfig(
 	mergeConfig(viteConfig, vitestConfig),
 	{
+		resolve: {
+			dedupe: [
+				'vitest',
+				'@vitest/snapshot',
+				'@vitest/expect',
+				'@vitest/runner',
+				'@vitest/utils',
+				'@vitest/spy',
+				'vitest-mock-extended',
+				'@testing-library/jest-dom',
+				'@testing-library/vue',
+				'zod',
+			],
+		},
 		test: {
 			server: {
 				deps: {
 					inline: [
 						'vitest-mock-extended',
-						/@n8n\//,
-						/packages\/frontend/,
-						/packages\/@n8n/,
+						'@testing-library/jest-dom',
+						/@n8n\/vitest-config/,
 					],
 				},
 			},

@@ -63,17 +63,15 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
         [ -e "$vmod" ] && ln -sfn "$(realpath "$vmod")" "$REPO_ROOT/node_modules/@vitest/$(basename "$vmod")" 2>/dev/null || true
       done
     fi
-    for p in "$REPO_ROOT"/packages/@n8n/* "$REPO_ROOT"/packages/frontend/@n8n/* "$REPO_ROOT"/packages/frontend/* "$REPO_ROOT"/packages/*; do
+    for p in "$REPO_ROOT"/packages/@n8n/* "$REPO_ROOT"/packages/frontend/@n8n/* "$REPO_ROOT"/packages/frontend/* "$REPO_ROOT"/packages/* "$REPO_ROOT"/packages/modules/*/frontend; do
       if [ -d "$p" ]; then
-        if [ -e "$p/node_modules/vitest" ] || [ -d "$p/node_modules" ]; then
-          mkdir -p "$p/node_modules"
-          ln -sfn "$VITEST_SRC" "$p/node_modules/vitest" 2>/dev/null || true
-          if [ -d "$VITEST_PARENT/@vitest" ]; then
-            mkdir -p "$p/node_modules/@vitest"
-            for vmod in "$VITEST_PARENT/@vitest"/*; do
-              [ -e "$vmod" ] && ln -sfn "$(realpath "$vmod")" "$p/node_modules/@vitest/$(basename "$vmod")" 2>/dev/null || true
-            done
-          fi
+        mkdir -p "$p/node_modules"
+        ln -sfn "$VITEST_SRC" "$p/node_modules/vitest" 2>/dev/null || true
+        if [ -d "$VITEST_PARENT/@vitest" ]; then
+          mkdir -p "$p/node_modules/@vitest"
+          for vmod in "$VITEST_PARENT/@vitest"/*; do
+            [ -e "$vmod" ] && ln -sfn "$(realpath "$vmod")" "$p/node_modules/@vitest/$(basename "$vmod")" 2>/dev/null || true
+          done
         fi
       fi
     done
@@ -81,6 +79,13 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
       mkdir -p "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n"
       if [ -d "$REPO_ROOT/packages/@n8n/typescript-config" ]; then
         ln -sfn "../../../typescript-config" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n/typescript-config" 2>/dev/null || true
+      fi
+      ln -sfn "$VITEST_SRC" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vitest" 2>/dev/null || true
+      if [ -d "$VITEST_PARENT/@vitest" ]; then
+        mkdir -p "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@vitest"
+        for vmod in "$VITEST_PARENT/@vitest"/*; do
+          [ -e "$vmod" ] && ln -sfn "$(realpath "$vmod")" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@vitest/$(basename "$vmod")" 2>/dev/null || true
+        done
       fi
     fi
   fi
