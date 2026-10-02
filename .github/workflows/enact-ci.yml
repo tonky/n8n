@@ -206,13 +206,13 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: node_build-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        key: node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
         path: |-
           .turbo
           packages/*/dist
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
-        restore-keys: node_build-${{ runner.os }}-
+        restore-keys: node_build-${{ runner.os }}-stage-check-and-lint-
     - name: Restore Cache [tsbuildinfo_cli]
       id: cache_tsbuildinfo_cli
       continue-on-error: true
@@ -308,7 +308,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
-        key: node_build-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        key: node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
         path: |-
           .turbo
           packages/*/dist
@@ -747,13 +747,13 @@ jobs:
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: node_build-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
         path: |-
           .turbo
           packages/*/dist
           packages/@n8n/*/dist
           packages/frontend/@n8n/*/dist
-        restore-keys: node_build-${{ runner.os }}-
+        restore-keys: node_build-${{ runner.os }}-${{ matrix.task_id }}-
     - name: Restore Cache [sqlite_e2e_template]
       id: cache_sqlite_e2e_template
       if: contains(format(',{0},', matrix.caches), ',sqlite_e2e_template,')
@@ -972,7 +972,7 @@ jobs:
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
-        key: node_build-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+        key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
         path: |-
           .turbo
           packages/*/dist

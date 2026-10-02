@@ -7,8 +7,8 @@
   "platforms": {
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "930f96f1c8985a18b9230859a095394c921d5af6cf12f0351d87dfca0668af08",
-        "inventory_sha256": "45811ed0e28d6bc980028887b8918580f911b4076c8e0e859a3ab982c45deb34",
+        "environment_sha256": "51fd28a9aeaa65f51e2766b5b49cfd7c31c38bed90451d49083818784c0c8b0a",
+        "inventory_sha256": "cc266e90d6448ce5470187920dce755a32c06474940a40d6f7823d7d21a50304",
         "profile": null,
         "version": 1
       },
@@ -1353,16 +1353,6 @@
           ]
         },
         {
-          "hash_name": "v6wsd9nyglmwh32yn7w8z11dq9cksg4m-nodejs-24.20.0",
-          "nar_hash": "sha256:0d98qbmlpq7zssnw1vfq3ays00wdbr9q1i0d881sxrmaci2w0xf6",
-          "nar_size": 862176,
-          "references": [
-            "1spdvj1bpqmbw00146adbg1zpaq22inx-nodejs-slim-24.20.0-npm",
-            "kpp9w8fia6pksmjpxdz3v83clgck338g-nodejs-slim-24.20.0-corepack",
-            "z5piarlh57mjwr4c9w318ay97sxr6c9m-nodejs-slim-24.20.0"
-          ]
-        },
-        {
           "hash_name": "vgkmbbqcpmm5wagmf6gv8jv06v3lp21s-postgresql-18.6-lib",
           "nar_hash": "sha256:0d24xyd4bz8bbr69qll680c6gq9mady3g0yd2qfahrrskg3xd758",
           "nar_size": 703136,
@@ -2248,6 +2238,7 @@
         "PGDATABASE": "n8n",
         "PGTZ": "UTC",
         "PGUSER": "postgres",
+        "PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS": "false",
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5432",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5432/postgres",

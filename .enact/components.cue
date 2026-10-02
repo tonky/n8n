@@ -42,7 +42,7 @@ pipeline: schema.#Pipeline & {
 	}
 
 	caches: {
-		// Package build outputs; shared across CI tasks so later test runners reuse builds.
+		// Package build outputs; each CI task keeps its own entry since tasks build different packages.
 		node_build: {
 			paths: [
 				".turbo",
@@ -51,6 +51,7 @@ pipeline: schema.#Pipeline & {
 				"packages/frontend/@n8n/*/dist",
 			]
 			key: ["package.json", "pnpm-lock.yaml"]
+			scope: "task"
 		}
 		tsbuildinfo_frontend: {
 			paths: ["packages/frontend/editor-ui/node_modules/.cache/vue-tsc.tsbuildinfo"]
@@ -177,15 +178,7 @@ pipeline: schema.#Pipeline & {
 				command: "pnpm exec publint || pnpm pack --dry-run"
 			}
 			migrate: {
-				command: "../../helpers/migrate-runner.sh"
-				filter: {
-					include: [
-						"test/migration/**",
-						"src/databases/migrations/**",
-						"../@n8n/db/src/migrations/**",
-					]
-					on_empty: "skip"
-				}
+				command: "pnpm test:postgres:migrations"
 			}
 			test: {
 				command: "../../helpers/vitest-runner.sh {relative_targets}"
@@ -262,7 +255,7 @@ pipeline: schema.#Pipeline & {
 			title: "n8n End-to-End Playwright Suite"
 			root:  "packages/testing/playwright"
 			watch_paths: ["packages/testing/playwright/**"]
-			depends_on: [components.cli, components.frontend]
+			depends_on: []
 			browsers: {
 				engine: "chromium"
 				path:   "/tmp/.cache/ms-playwright"
@@ -283,7 +276,6 @@ pipeline: schema.#Pipeline & {
 				]
 				include_dependencies: true
 			}
-			services: [n8n.services.postgres, n8n.services.redis, n8n.services.cli]
 			target_scope: {
 				fallback: "all"
 				rules: [{
@@ -297,7 +289,26 @@ pipeline: schema.#Pipeline & {
 			}
 			smoke: {
 				command: "pnpm test:dev-server-smoke"
-				env: PLAYWRIGHT_SKIP_WEBSERVER: "true"
+				env: {
+					DB_TYPE:      "sqlite"
+					N8N_TEST_ENV: "{\"DB_TYPE\":\"sqlite\"}"
+				}
+				unset_env: [
+					"PGHOST",
+					"PGPORT",
+					"PGDATABASE",
+					"PGUSER",
+					"PGPASSWORD",
+					"POSTGRES_URL",
+					"POSTGRES_PORT",
+					"POSTGRES_DATABASES",
+					"DATABASE_URL",
+					"DB_POSTGRESDB_HOST",
+					"DB_POSTGRESDB_PORT",
+					"DB_POSTGRESDB_DATABASE",
+					"DB_POSTGRESDB_USER",
+					"DB_POSTGRESDB_PASSWORD",
+				]
 			}
 			test: {
 				command: "../../../helpers/playwright-runner.sh {relative_targets}"
@@ -314,6 +325,11 @@ pipeline: schema.#Pipeline & {
 					"POSTGRES_PORT",
 					"POSTGRES_DATABASES",
 					"DATABASE_URL",
+					"DB_POSTGRESDB_HOST",
+					"DB_POSTGRESDB_PORT",
+					"DB_POSTGRESDB_DATABASE",
+					"DB_POSTGRESDB_USER",
+					"DB_POSTGRESDB_PASSWORD",
 				]
 			}
 		}

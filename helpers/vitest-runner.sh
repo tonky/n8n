@@ -55,17 +55,13 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   done
 
   if [ -n "$VITEST_SRC" ]; then
-    if [ ! -e "$REPO_ROOT/node_modules/vitest" ]; then
-      ln -sf "$VITEST_SRC" "$REPO_ROOT/node_modules/vitest" 2>/dev/null || true
-    fi
+    ln -sfn "$VITEST_SRC" "$REPO_ROOT/node_modules/vitest" 2>/dev/null || true
     if [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ]; then
       mkdir -p "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n"
-      if [ ! -e "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n/typescript-config" ] && [ -d "$REPO_ROOT/packages/@n8n/typescript-config" ]; then
-        ln -sf "../../../typescript-config" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n/typescript-config" 2>/dev/null || true
+      if [ -d "$REPO_ROOT/packages/@n8n/typescript-config" ]; then
+        ln -sfn "../../../typescript-config" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/@n8n/typescript-config" 2>/dev/null || true
       fi
-      if [ ! -e "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vitest" ]; then
-        ln -sf "$VITEST_SRC" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vitest" 2>/dev/null || true
-      fi
+      ln -sfn "$VITEST_SRC" "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vitest" 2>/dev/null || true
     fi
   fi
 

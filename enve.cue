@@ -64,8 +64,9 @@ profiles: dev: schema.#Profile & {
 		QUEUE_BULL_REDIS_HOST:           "127.0.0.1"
 		QUEUE_BULL_REDIS_PORT:           "6379"
 		TESTCONTAINERS_ENABLED:          "false"
-		COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
-		N8N_ENCRYPTION_KEY:              "e2e-test-encryption-key-n8n"
-		N8N_USER_FOLDER:                 "/tmp/n8n-runner"
+		COREPACK_ENABLE_DOWNLOAD_PROMPT:      "0"
+		PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS: "false"
+		N8N_ENCRYPTION_KEY:                   "e2e-test-encryption-key-n8n"
+		N8N_USER_FOLDER:                      "/tmp/n8n-runner"
 	}
 }
