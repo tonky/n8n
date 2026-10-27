@@ -487,6 +487,7 @@ pipeline: schema.#Pipeline & {
 			watch_paths: [
 				P.dir + "/**",
 				"helpers/playwright-runner.sh",
+				"helpers/pw-spec-env.mjs",
 				"helpers/n8n-ready.mjs",
 			]
 			depends_on: ["root", "frontend", for d in P.deps {d}]

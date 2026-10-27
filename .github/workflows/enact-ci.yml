@@ -185,6 +185,7 @@ jobs:
           helpers/n8n-template-db.cjs
           packages/node-dev
           helpers/playwright-runner.sh
+          helpers/pw-spec-env.mjs
           helpers/n8n-ready.mjs
         sparse-checkout-cone-mode: "true"
         submodules: "false"
