@@ -187,9 +187,21 @@ jobs:
       run: |
         # The repository's committed enact, enve and bubblewrap builds: bin/<os>-<arch>/ for this runner
         # (bin/linux-x86_64/, bin/linux-aarch64/), else bin/. They're copied to ~/.cargo/bin,
-        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s.
+        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s. A build for
+        # another CPU (an x86_64 enve on an arm64 runner) is never installed: enact or enve fails
+        # here, naming the directory to commit, instead of the first step that runs it.
         BIN_DIR="${GITHUB_WORKSPACE:-$PWD}/bin"
         PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
+        # Whether this runner can execute $1: false only for an ELF of another CPU or OS.
+        runs_here() {
+          local header
+          header="$(od -An -tx1 -N20 "$1" 2>/dev/null | tr -d ' \n')"
+          [ "${header:0:8}" = 7f454c46 ] || return 0
+          case "$PLATFORM:${header:36:4}" in
+            linux-x86_64:3e00 | linux-aarch64:b700) return 0 ;;
+          esac
+          return 1
+        }
         mkdir -p "$HOME/.cargo/bin"
         if [ -d "$BIN_DIR" ]; then
           for b in enact enve bwrap; do
@@ -197,10 +209,17 @@ jobs:
             if [ -f "$BIN_DIR/$PLATFORM/$b" ]; then
               src="$BIN_DIR/$PLATFORM/$b"
             fi
-            if [ -f "$src" ]; then
-              chmod +x "$src" 2>/dev/null || true
-              cp -f "$src" "$HOME/.cargo/bin/$b"
+            [ -f "$src" ] || continue
+            if ! runs_here "$src"; then
+              if [ "$b" = bwrap ]; then
+                echo "::warning::bin/$b is a build for another CPU than this $PLATFORM runner: not installed"
+                continue
+              fi
+              echo "::error title=No $b for $PLATFORM::bin/$b is a build for another CPU; commit this runner's as bin/$PLATFORM/$b"
+              exit 1
             fi
+            chmod +x "$src" 2>/dev/null || true
+            cp -f "$src" "$HOME/.cargo/bin/$b"
           done
           echo "$BIN_DIR" >> "$GITHUB_PATH"
         fi
@@ -591,9 +610,21 @@ jobs:
       run: |
         # The repository's committed enact, enve and bubblewrap builds: bin/<os>-<arch>/ for this runner
         # (bin/linux-x86_64/, bin/linux-aarch64/), else bin/. They're copied to ~/.cargo/bin,
-        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s.
+        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s. A build for
+        # another CPU (an x86_64 enve on an arm64 runner) is never installed: enact or enve fails
+        # here, naming the directory to commit, instead of the first step that runs it.
         BIN_DIR="${GITHUB_WORKSPACE:-$PWD}/bin"
         PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
+        # Whether this runner can execute $1: false only for an ELF of another CPU or OS.
+        runs_here() {
+          local header
+          header="$(od -An -tx1 -N20 "$1" 2>/dev/null | tr -d ' \n')"
+          [ "${header:0:8}" = 7f454c46 ] || return 0
+          case "$PLATFORM:${header:36:4}" in
+            linux-x86_64:3e00 | linux-aarch64:b700) return 0 ;;
+          esac
+          return 1
+        }
         mkdir -p "$HOME/.cargo/bin"
         if [ -d "$BIN_DIR" ]; then
           for b in enact enve bwrap; do
@@ -601,10 +632,17 @@ jobs:
             if [ -f "$BIN_DIR/$PLATFORM/$b" ]; then
               src="$BIN_DIR/$PLATFORM/$b"
             fi
-            if [ -f "$src" ]; then
-              chmod +x "$src" 2>/dev/null || true
-              cp -f "$src" "$HOME/.cargo/bin/$b"
+            [ -f "$src" ] || continue
+            if ! runs_here "$src"; then
+              if [ "$b" = bwrap ]; then
+                echo "::warning::bin/$b is a build for another CPU than this $PLATFORM runner: not installed"
+                continue
+              fi
+              echo "::error title=No $b for $PLATFORM::bin/$b is a build for another CPU; commit this runner's as bin/$PLATFORM/$b"
+              exit 1
             fi
+            chmod +x "$src" 2>/dev/null || true
+            cp -f "$src" "$HOME/.cargo/bin/$b"
           done
           echo "$BIN_DIR" >> "$GITHUB_PATH"
         fi
@@ -803,9 +841,21 @@ jobs:
       run: |
         # The repository's committed enact, enve and bubblewrap builds: bin/<os>-<arch>/ for this runner
         # (bin/linux-x86_64/, bin/linux-aarch64/), else bin/. They're copied to ~/.cargo/bin,
-        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s.
+        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s. A build for
+        # another CPU (an x86_64 enve on an arm64 runner) is never installed: enact or enve fails
+        # here, naming the directory to commit, instead of the first step that runs it.
         BIN_DIR="${GITHUB_WORKSPACE:-$PWD}/bin"
         PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
+        # Whether this runner can execute $1: false only for an ELF of another CPU or OS.
+        runs_here() {
+          local header
+          header="$(od -An -tx1 -N20 "$1" 2>/dev/null | tr -d ' \n')"
+          [ "${header:0:8}" = 7f454c46 ] || return 0
+          case "$PLATFORM:${header:36:4}" in
+            linux-x86_64:3e00 | linux-aarch64:b700) return 0 ;;
+          esac
+          return 1
+        }
         mkdir -p "$HOME/.cargo/bin"
         if [ -d "$BIN_DIR" ]; then
           for b in enact enve bwrap; do
@@ -813,10 +863,17 @@ jobs:
             if [ -f "$BIN_DIR/$PLATFORM/$b" ]; then
               src="$BIN_DIR/$PLATFORM/$b"
             fi
-            if [ -f "$src" ]; then
-              chmod +x "$src" 2>/dev/null || true
-              cp -f "$src" "$HOME/.cargo/bin/$b"
+            [ -f "$src" ] || continue
+            if ! runs_here "$src"; then
+              if [ "$b" = bwrap ]; then
+                echo "::warning::bin/$b is a build for another CPU than this $PLATFORM runner: not installed"
+                continue
+              fi
+              echo "::error title=No $b for $PLATFORM::bin/$b is a build for another CPU; commit this runner's as bin/$PLATFORM/$b"
+              exit 1
             fi
+            chmod +x "$src" 2>/dev/null || true
+            cp -f "$src" "$HOME/.cargo/bin/$b"
           done
           echo "$BIN_DIR" >> "$GITHUB_PATH"
         fi
@@ -916,9 +973,21 @@ jobs:
       run: |
         # The repository's committed enact, enve and bubblewrap builds: bin/<os>-<arch>/ for this runner
         # (bin/linux-x86_64/, bin/linux-aarch64/), else bin/. They're copied to ~/.cargo/bin,
-        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s.
+        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s. A build for
+        # another CPU (an x86_64 enve on an arm64 runner) is never installed: enact or enve fails
+        # here, naming the directory to commit, instead of the first step that runs it.
         BIN_DIR="${GITHUB_WORKSPACE:-$PWD}/bin"
         PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
+        # Whether this runner can execute $1: false only for an ELF of another CPU or OS.
+        runs_here() {
+          local header
+          header="$(od -An -tx1 -N20 "$1" 2>/dev/null | tr -d ' \n')"
+          [ "${header:0:8}" = 7f454c46 ] || return 0
+          case "$PLATFORM:${header:36:4}" in
+            linux-x86_64:3e00 | linux-aarch64:b700) return 0 ;;
+          esac
+          return 1
+        }
         mkdir -p "$HOME/.cargo/bin"
         if [ -d "$BIN_DIR" ]; then
           for b in enact enve bwrap; do
@@ -926,10 +995,17 @@ jobs:
             if [ -f "$BIN_DIR/$PLATFORM/$b" ]; then
               src="$BIN_DIR/$PLATFORM/$b"
             fi
-            if [ -f "$src" ]; then
-              chmod +x "$src" 2>/dev/null || true
-              cp -f "$src" "$HOME/.cargo/bin/$b"
+            [ -f "$src" ] || continue
+            if ! runs_here "$src"; then
+              if [ "$b" = bwrap ]; then
+                echo "::warning::bin/$b is a build for another CPU than this $PLATFORM runner: not installed"
+                continue
+              fi
+              echo "::error title=No $b for $PLATFORM::bin/$b is a build for another CPU; commit this runner's as bin/$PLATFORM/$b"
+              exit 1
             fi
+            chmod +x "$src" 2>/dev/null || true
+            cp -f "$src" "$HOME/.cargo/bin/$b"
           done
           echo "$BIN_DIR" >> "$GITHUB_PATH"
         fi
@@ -1021,9 +1097,21 @@ jobs:
       run: |
         # The repository's committed enact, enve and bubblewrap builds: bin/<os>-<arch>/ for this runner
         # (bin/linux-x86_64/, bin/linux-aarch64/), else bin/. They're copied to ~/.cargo/bin,
-        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s.
+        # which goes ahead of bin/ on PATH, so the runner's own build wins over bin/'s. A build for
+        # another CPU (an x86_64 enve on an arm64 runner) is never installed: enact or enve fails
+        # here, naming the directory to commit, instead of the first step that runs it.
         BIN_DIR="${GITHUB_WORKSPACE:-$PWD}/bin"
         PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
+        # Whether this runner can execute $1: false only for an ELF of another CPU or OS.
+        runs_here() {
+          local header
+          header="$(od -An -tx1 -N20 "$1" 2>/dev/null | tr -d ' \n')"
+          [ "${header:0:8}" = 7f454c46 ] || return 0
+          case "$PLATFORM:${header:36:4}" in
+            linux-x86_64:3e00 | linux-aarch64:b700) return 0 ;;
+          esac
+          return 1
+        }
         mkdir -p "$HOME/.cargo/bin"
         if [ -d "$BIN_DIR" ]; then
           for b in enact enve bwrap; do
@@ -1031,10 +1119,17 @@ jobs:
             if [ -f "$BIN_DIR/$PLATFORM/$b" ]; then
               src="$BIN_DIR/$PLATFORM/$b"
             fi
-            if [ -f "$src" ]; then
-              chmod +x "$src" 2>/dev/null || true
-              cp -f "$src" "$HOME/.cargo/bin/$b"
+            [ -f "$src" ] || continue
+            if ! runs_here "$src"; then
+              if [ "$b" = bwrap ]; then
+                echo "::warning::bin/$b is a build for another CPU than this $PLATFORM runner: not installed"
+                continue
+              fi
+              echo "::error title=No $b for $PLATFORM::bin/$b is a build for another CPU; commit this runner's as bin/$PLATFORM/$b"
+              exit 1
             fi
+            chmod +x "$src" 2>/dev/null || true
+            cp -f "$src" "$HOME/.cargo/bin/$b"
           done
           echo "$BIN_DIR" >> "$GITHUB_PATH"
         fi
