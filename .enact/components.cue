@@ -56,10 +56,6 @@ pipeline: schema.#Pipeline & {
 		// docs and assets, docker images, and upstream's own CI (its workflows are replaced
 		// by .github/workflows/enact-ci.yml; their actions and scripts run nowhere).
 		ignore: [
-			// The CUE schemas enact and enve provision on load (local state, written by
-			// whichever binary runs): a fork tracks none, and a re-provisioned one is no change.
-			"cue.mod/pkg/enact.dev/**",
-			"cue.mod/pkg/github.com/tonky/enve/**",
 			".actrc",
 			".agents/**",
 			".aikido",
