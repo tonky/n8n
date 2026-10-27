@@ -7,19 +7,21 @@ import "enact.dev/schema"
 // a change to a package runs its own jobs and its dependents'. db, cli and playwright are
 // declared by hand below (services, jobs of their own); the others come from their entries.
 
-// Every package's lint: the package's own `lint` script, through turbo, which builds the
-// workspace packages it reads first (turbo.json: `^build`). A `lint` job runs only for the
-// packages a change touches: a dependency's change reaches it through `typecheck` and `test`.
+// Every package's lint: the package's own `lint` script, through turbo, after the workspace
+// packages it reads are built (turbo.json: `^build` and the lint configs) one build at a
+// time (build-workspace-deps.sh --checked: the check stage's jobs run side by side). A `lint`
+// job runs only for the packages a change touches: a dependency's change reaches it through
+// `typecheck` and `test`.
 _lint: {
 	#pkg: string
-	command: "pnpm turbo run lint --filter=" + #pkg + " --output-logs=errors-only"
+	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' @n8n/eslint-config @n8n/oxlint-config && pnpm turbo run lint --filter=" + #pkg + " --output-logs=errors-only"
 }
 
-// Its `typecheck` script after its dependencies' builds (turbo.json: `^build`), whenever
-// the package or one of its dependencies changed.
+// Its `typecheck` script after its dependencies' builds (turbo.json: `^build`, built as
+// lint's are), whenever the package or one of its dependencies changed.
 _typecheck: {
 	#pkg: string
-	command: "pnpm turbo run typecheck --filter=" + #pkg + " --output-logs=errors-only"
+	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' && pnpm turbo run typecheck --filter=" + #pkg + " --output-logs=errors-only"
 }
 
 // Its vitest suite, the selected test files (vitest-runner.sh: unit tests on SQLite, cli's

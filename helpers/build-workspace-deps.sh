@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# build-workspace-deps.sh <turbo filter...> - Builds workspace packages when their sources changed
+# build-workspace-deps.sh [--checked] <turbo filter...> - Builds workspace packages when their sources changed
 # ==============================================================================
 # The tests, Playwright and the cli service import the workspace packages from their builds
 # (`dist/`, git-ignored). This runs `turbo run build:unchecked` on the filters (`n8n^...`:
@@ -19,13 +19,21 @@
 # built. The kernel releases it when its holder dies, however it dies, and turbo runs without
 # its descriptor (`-o`) so a background turbo daemon doesn't inherit and hold the lock.
 #
+# --checked runs turbo's `build` (type-checked) instead: what `lint` and `typecheck` depend on
+# (turbo.json: `^build`). The check stage runs a package's lint, typecheck and schema check
+# side by side, each a turbo of its own building the same dependencies into the same dist
+# and turbo cache; unlocked, one read another's half-written build (TS2571 in @n8n/db's
+# build, turbo cache renames failing). They build here, under the lock, first.
+#
 # N8N_WORKSPACE_DEPS_BUILT=1 skips it: the runs a run starts once it built (a handed
 # package's, footprints.sh's traced one), and generate-reach-map.sh, which builds up front,
 # so a traced run records the tests' reads, not turbo's.
 # ==============================================================================
 set -euo pipefail
 [ "${N8N_WORKSPACE_DEPS_BUILT:-}" = 1 ] && exit 0
-[ $# -gt 0 ] || { echo "usage: build-workspace-deps.sh <turbo filter...>" >&2; exit 64; }
+task=build:unchecked
+if [ "${1:-}" = --checked ]; then task=build; shift; fi
+[ $# -gt 0 ] || { echo "usage: build-workspace-deps.sh [--checked] <turbo filter...>" >&2; exit 64; }
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 . helpers/pnpm-store.sh
@@ -34,4 +42,4 @@ for filter in "$@"; do filters+=("--filter=$filter"); done
 locks="/tmp/enact-locks-$(id -u)/$(pwd -P | cksum | cut -d ' ' -f 1)"
 mkdir -p "$locks"
 exec flock -o "$locks/workspace-build.flock" \
-  pnpm turbo run build:unchecked "${filters[@]}" --output-logs=errors-only
+  pnpm turbo run "$task" "${filters[@]}" --output-logs=errors-only

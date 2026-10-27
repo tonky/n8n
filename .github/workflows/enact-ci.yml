@@ -28,6 +28,10 @@ on:
       updated:
         description: Component(s) to emulate as updated
         required: false
+      warm_reach:
+        description: Run every suite and record each test without a fresh reach footprint (on the default branch, after an enact upgrade)
+        required: false
+        default: "false"
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
@@ -81,104 +85,105 @@ jobs:
           .prettierignore
           packages/@n8n/typescript-config
           packages/@n8n/agents
-          packages/@n8n/ai-node-sdk
           packages/@n8n/ai-utilities
-          packages/nodes-base/nodes/ReadPdf/test/sample.pdf
-          packages/@n8n/ai-workflow-builder.ee
           packages/@n8n/api-types
           packages/@n8n/backend-common
-          packages/modules/apps/backend
-          packages/modules/insights/backend
-          packages/modules/quick-connect/backend
-          packages/modules/workflow-builder/backend
           packages/@n8n/backend-network
+          packages/@n8n/client-oauth2
+          packages/@n8n/config
+          packages/@n8n/constants
+          packages/@n8n/decorators
+          packages/@n8n/di
+          packages/@n8n/errors
+          packages/@n8n/eslint-config
+          packages/@n8n/expression-runtime
+          packages/@n8n/inbound-auth
+          packages/@n8n/oxlint-config
+          packages/@n8n/permissions
+          packages/@n8n/tournament
+          packages/@n8n/utils
+          packages/@n8n/vitest-config
+          packages/frontend/@n8n/eslint-plugin-design-system
+          packages/nodes-base/nodes/ReadPdf/test/sample.pdf
+          packages/workflow
+          packages/@n8n/ai-node-sdk
+          packages/@n8n/ai-workflow-builder.ee
+          packages/@n8n/eslint-plugin-community-nodes
+          packages/@n8n/workflow-sdk
+          packages/modules/apps/backend
+          .tbls.postgres.yml
+          .tbls.sqlite.yml
+          docs/generated
           packages/@n8n/backend-services
           packages/@n8n/backend-test-utils
           packages/@n8n/blob-storage
+          packages/@n8n/db
+          packages/@n8n/typeorm
+          packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json
+          packages/core
+          packages/quality/environments/containers
+          packages/modules/insights/backend
+          packages/modules/quick-connect/backend
+          packages/modules/workflow-builder/backend
           packages/frontend/@n8n/chat
+          packages/@n8n/stylelint-config
+          packages/@n8n/telemetry
+          packages/frontend/@n8n/composables
+          packages/frontend/@n8n/design-system
+          packages/frontend/@n8n/frontend-constants
+          packages/frontend/@n8n/frontend-utils
+          packages/frontend/@n8n/i18n
           packages/@n8n/chat-hub
           packages/@n8n/cli
-          packages/@n8n/client-oauth2
           packages/quality/policy/code-health
+          packages/quality/policy/rules-engine
           packages/@n8n/codemirror-lang
           packages/@n8n/codemirror-lang-sql
-          packages/frontend/@n8n/composables
-          packages/@n8n/config
-          packages/@n8n/constants
-          packages/core
           packages/@n8n/crdt
-          packages/@n8n/db
-          docs/generated
-          .tbls.postgres.yml
-          .tbls.sqlite.yml
-          packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json
           helpers/schema-docs-postgres.mjs
-          packages/@n8n/decorators
-          packages/frontend/@n8n/design-system
-          packages/@n8n/di
           packages/quality/efficiency
+          packages/@n8n/codemirror-lang-html
           packages/@n8n/engine
-          packages/@n8n/errors
-          packages/@n8n/eslint-config
-          packages/@n8n/eslint-plugin-community-nodes
-          packages/frontend/@n8n/eslint-plugin-design-system
-          packages/@n8n/expression-runtime
-          packages/@n8n/extension-sdk
-          packages/frontend/@n8n/frontend-constants
+          packages/@n8n/imap
+          packages/@n8n/instance-ai
+          packages/@n8n/json-schema-to-zod
+          packages/@n8n/mcp-apps
+          packages/@n8n/mcp-browser
+          packages/@n8n/mcp-browser-extension/manifest.json
+          packages/@n8n/node-engine-compatibility
+          packages/@n8n/nodes-langchain
+          packages/@n8n/scheduler
+          packages/@n8n/syslog-client
+          packages/@n8n/task-runner
+          packages/cli
+          packages/cli/src/modules/instance-ai/internal-messages.ts
+          packages/cli/src/modules/instance-ai/node-definition-resolver.ts
+          packages/cli/tsconfig.json
+          packages/frontend/@n8n/frontend-module-sdk
+          packages/frontend/@n8n/frontend-test-utils
+          packages/frontend/@n8n/frontend-vite-config
+          packages/frontend/@n8n/rest-api-client
+          packages/frontend/@n8n/stores
+          packages/frontend/editor-ui
           packages/modules/inbox/frontend
           packages/modules/insights/frontend
           packages/modules/instance-registry/frontend
           packages/modules/mcp/frontend
           packages/modules/otel/frontend
-          packages/frontend/@n8n/frontend-module-sdk
           packages/modules/self-healing/frontend
           packages/modules/type-availability-policies/frontend
-          packages/frontend/@n8n/frontend-test-utils
-          packages/frontend/@n8n/frontend-utils
-          packages/frontend/@n8n/frontend-vite-config
-          packages/frontend/@n8n/i18n
-          packages/@n8n/imap
-          packages/@n8n/inbound-auth
-          packages/@n8n/instance-ai
-          packages/cli/src/modules/instance-ai/internal-messages.ts
-          packages/cli/src/modules/instance-ai/node-definition-resolver.ts
-          packages/cli/tsconfig.json
-          packages/@n8n/json-schema-to-zod
-          packages/@n8n/mcp-apps
-          packages/@n8n/mcp-browser
+          packages/nodes-base
+          packages/quality/testing/janitor
+          packages/quality/testing/playwright
+          packages/quality/testing/test-impact
+          packages/@n8n/extension-sdk
           packages/@n8n/mcp-browser-extension
           packages/quality/efficiency/scale/benchmark
-          packages/@n8n/nodes-langchain
           packages/@n8n/node-cli
-          packages/@n8n/node-engine-compatibility
-          packages/@n8n/oxlint-config
           packages/quality/efficiency/microbenchmarks
-          packages/@n8n/permissions
-          packages/quality/testing/janitor
-          packages/frontend/@n8n/rest-api-client
-          packages/quality/policy/rules-engine
-          packages/@n8n/scheduler
-          packages/frontend/@n8n/stores
           packages/frontend/@n8n/storybook
-          packages/@n8n/stylelint-config
-          packages/@n8n/syslog-client
-          packages/@n8n/task-runner
-          packages/@n8n/telemetry
-          packages/quality/testing/test-impact
-          packages/@n8n/tournament
-          packages/@n8n/typeorm
-          packages/@n8n/utils
-          packages/@n8n/vitest-config
-          packages/@n8n/workflow-sdk
-          packages/workflow
-          packages/cli
           helpers/n8n-template-db.cjs
-          packages/frontend/editor-ui
-          packages/@n8n/mcp-browser-extension/manifest.json
-          packages/quality/environments/containers
           packages/node-dev
-          packages/nodes-base
-          packages/quality/testing/playwright
           helpers/playwright-runner.sh
           helpers/n8n-ready.mjs
         sparse-checkout-cone-mode: "true"
@@ -473,11 +478,18 @@ jobs:
         if [ -z "${ENACT_RECORD:-}" ] && [ "$GITHUB_EVENT_NAME" = "push" ] && [ "${GITHUB_REF_NAME:-}" = "${ENACT_DEFAULT_BRANCH:-master}" ]; then
           export ENACT_RECORD=auto
         fi
+        # A warm-up (dispatched with warm_reach on the default branch) runs every suite and records
+        # every test without a fresh footprint.
+        WARM_REACH=""
+        if [ "${ENACT_INPUT_WARM_REACH:-}" = "true" ] && [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "${GITHUB_REF_NAME:-}" = "${ENACT_DEFAULT_BRANCH:-master}" ]; then
+          export ENACT_RECORD=every
+          WARM_REACH=1
+        fi
         set --
         if [ -n "$BASE_REV" ]; then
           set -- "$@" --base "$BASE_REV"
         fi
-        if [ "${ENACT_INPUT_ALL:-}" = "true" ]; then
+        if [ "${ENACT_INPUT_ALL:-}" = "true" ] || [ -n "$WARM_REACH" ]; then
           set -- "$@" --all
         elif [ -n "${ENACT_INPUT_UPDATED:-}" ]; then
           set -- "$@" --updated "$ENACT_INPUT_UPDATED"
@@ -494,6 +506,7 @@ jobs:
         ENACT_FORCE_NO_CACHE: ${{ inputs.no_cache == 'true' || vars.ENACT_NO_CACHE == 'true' || contains(github.event.pull_request.title, '[no-cache]') || contains(github.event.pull_request.body, '[no-cache]') || contains(github.event.pull_request.labels.*.name, 'no-cache') || contains(github.event.pull_request.labels.*.name, 'showcase') || startsWith(github.head_ref, 'showcase/') || startsWith(github.ref_name, 'showcase/') }}
         ENACT_INPUT_ALL: ${{ inputs.all }}
         ENACT_INPUT_UPDATED: ${{ inputs.updated }}
+        ENACT_INPUT_WARM_REACH: ${{ inputs.warm_reach }}
         ENACT_INTEGRATION_BRANCH: ${{ vars.ENACT_INTEGRATION_BRANCH }}
     - parallel:
       - name: Save Cache [node_build]
@@ -539,7 +552,7 @@ jobs:
           .enact/state/runs/*/services/*.log
         retention-days: "1"
     - name: Upload Recorded Footprints
-      if: ${{ always() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
+      if: ${{ always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
       continue-on-error: true
       uses: actions/upload-artifact@v7
       with:
@@ -769,11 +782,18 @@ jobs:
         if [ -z "${ENACT_RECORD:-}" ] && [ "$GITHUB_EVENT_NAME" = "push" ] && [ "${GITHUB_REF_NAME:-}" = "${ENACT_DEFAULT_BRANCH:-master}" ]; then
           export ENACT_RECORD=auto
         fi
+        # A warm-up (dispatched with warm_reach on the default branch) runs every suite and records
+        # every test without a fresh footprint.
+        WARM_REACH=""
+        if [ "${ENACT_INPUT_WARM_REACH:-}" = "true" ] && [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "${GITHUB_REF_NAME:-}" = "${ENACT_DEFAULT_BRANCH:-master}" ]; then
+          export ENACT_RECORD=every
+          WARM_REACH=1
+        fi
         set --
         if [ -n "$BASE_REV" ]; then
           set -- "$@" --base "$BASE_REV"
         fi
-        if [ "${ENACT_INPUT_ALL:-}" = "true" ]; then
+        if [ "${ENACT_INPUT_ALL:-}" = "true" ] || [ -n "$WARM_REACH" ]; then
           set -- "$@" --all
         elif [ -n "${ENACT_INPUT_UPDATED:-}" ]; then
           set -- "$@" --updated "$ENACT_INPUT_UPDATED"
@@ -796,6 +816,7 @@ jobs:
         ENACT_FORCE_NO_CACHE: ${{ inputs.no_cache == 'true' || vars.ENACT_NO_CACHE == 'true' || contains(github.event.pull_request.title, '[no-cache]') || contains(github.event.pull_request.body, '[no-cache]') || contains(github.event.pull_request.labels.*.name, 'no-cache') || contains(github.event.pull_request.labels.*.name, 'showcase') || startsWith(github.head_ref, 'showcase/') || startsWith(github.ref_name, 'showcase/') }}
         ENACT_INPUT_ALL: ${{ inputs.all }}
         ENACT_INPUT_UPDATED: ${{ inputs.updated }}
+        ENACT_INPUT_WARM_REACH: ${{ inputs.warm_reach }}
         ENACT_INTEGRATION_BRANCH: ${{ vars.ENACT_INTEGRATION_BRANCH }}
     - name: Hand the Reach Map to the Jobs
       if: always()
@@ -812,7 +833,7 @@ jobs:
     - detect
     - check-and-lint
     - test
-    if: ${{ !cancelled() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
+    if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
     runs-on:
     - self-hosted
     - Linux
@@ -935,7 +956,7 @@ jobs:
       env:
         ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
     - name: Save Reach Store
-      if: ${{ always() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
+      if: ${{ always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -1342,7 +1363,7 @@ jobs:
         ENACT_MATRIX_COMMAND: ${{ matrix.command }}
         ENACT_MAX_PARALLEL: ${{ matrix.max_parallel }}
         ENACT_PREEMPTION_NOTICE_SEC: ${{ matrix.preemption_notice_sec }}
-        ENACT_RECORD: ${{ (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) && 'auto' || 'off' }}
+        ENACT_RECORD: ${{ (github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) && 'every' || (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) && 'auto' || 'off' }}
         ENACT_RUNNER_TIER: ${{ matrix.runner_tier }}
         ENACT_TOPOLOGY: ${{ matrix.topology }}
     - name: Upload Execution Telemetry & Workflow Dashboard
@@ -1358,7 +1379,7 @@ jobs:
           .enact/state/runs/*/services/*.log
         retention-days: "1"
     - name: Upload Recorded Footprints
-      if: ${{ always() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
+      if: ${{ always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
       continue-on-error: true
       uses: actions/upload-artifact@v7
       with:
