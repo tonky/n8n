@@ -65,12 +65,21 @@ if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
 fi
 
 PLAYWRIGHT_DIR="$REPO_ROOT/packages/quality/testing/playwright"
+# Playwright sizes its workers from os.cpus(): the host's CPUs (14 in a 6-CPU CI container),
+# not the shard's. The CPUs enact admitted the shard with size them, at least one
+# (e2e-footprints.sh reads the same).
+if [ -n "${ENACT_WORKER_CPUS:-}" ]; then
+  N8N_PW_WORKERS=${ENACT_WORKER_CPUS%.*}
+  [ "${N8N_PW_WORKERS:-0}" -ge 1 ] 2>/dev/null || N8N_PW_WORKERS=1
+  export N8N_PW_WORKERS
+fi
+WORKERS=(${N8N_PW_WORKERS:+--workers "$N8N_PW_WORKERS"})
 if [ ${#TARGETS[@]} -eq 0 ]; then
   # The whole suite: its vitest tests, then every e2e spec (run-local-isolated.mjs given no
   # path runs tests/e2e).
   echo "🎯 [enact:playwright] Running the whole suite: unit tests, then every e2e spec..."
   "$VITEST_BIN" run --config "$PLAYWRIGHT_DIR/vitest.config.ts"
-  exec node --import "$SCRIPT_DIR/n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs"
+  exec node --import "$SCRIPT_DIR/n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${WORKERS[@]}"
 fi
 
 SPECS=()
@@ -112,6 +121,6 @@ if [ ${#SPECS[@]} -gt 0 ]; then
   if [ -n "${ENACT_FOOTPRINT_DIR:-}" ]; then
     "$SCRIPT_DIR/trace/e2e-footprints.sh" "${SPECS[@]}"
   else
-    node --import "$SCRIPT_DIR/n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${SPECS[@]}"
+    node --import "$SCRIPT_DIR/n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${WORKERS[@]}" "${SPECS[@]}"
   fi
 fi

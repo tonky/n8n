@@ -28,7 +28,9 @@ wanted() { # <repository-relative spec>
 }
 
 # run-local-isolated.mjs, waiting for n8n until it is ready (../n8n-ready.mjs).
-ISOLATED=(node --import "$TRACE_DIR/../n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs")
+# Its Playwright workers: the shard's CPUs (N8N_PW_WORKERS, ../playwright-runner.sh).
+ISOLATED=(node --import "$TRACE_DIR/../n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs"
+  ${N8N_PW_WORKERS:+--workers "$N8N_PW_WORKERS"})
 
 RECORDED=()
 UNRECORDED=()
