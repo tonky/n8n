@@ -27,6 +27,14 @@ _typecheck: {
 	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' && pnpm turbo run typecheck --filter=" + #pkg + " --output-logs=errors-only"
 }
 
+// Browser tooling checks first build the checked CLI/editor dependency graph. Its
+// cold build needs more than the direct-check baseline, even before lint/typecheck.
+_browserCheck: {
+	direct: true
+	services: false
+	resources: {cpus: 4.0, memory_mb: 7168}
+}
+
 // Its vitest suite, the selected test files (vitest-runner.sh: unit tests on SQLite, cli's
 // integration tests on PostgreSQL).
 _vitest: "helpers/vitest-runner.sh {relative_targets}"
@@ -267,11 +275,23 @@ pipeline: schema.#Pipeline & {
 				if len(p.handoff) > 0 {
 					target_scope: handoff: p.handoff
 				}
-				if p.lint {
+				if p.lint && name != "@n8n/efficiency" {
 					lint: _lint & {#pkg: p.pkg}
 				}
-				if p.typecheck {
+				if p.typecheck && name != "@n8n/efficiency" {
 					typecheck: _typecheck & {#pkg: p.pkg}
+				}
+				if name == "@n8n/efficiency" {
+					jobs: {
+						lint: _browserCheck & {
+							name: "Lint"
+							tasks: [_lint & {#pkg: p.pkg, name: "Run Linter"}]
+						}
+						typecheck: _browserCheck & {
+							name: "Typecheck"
+							tasks: [_typecheck & {#pkg: p.pkg, name: "Typecheck"}]
+						}
+					}
 				}
 			}
 		}
@@ -539,8 +559,16 @@ pipeline: schema.#Pipeline & {
 				cpus:      4.0
 				memory_mb: 10240
 			}
-			lint: _lint & {#pkg: P.pkg}
-			typecheck: _typecheck & {#pkg: P.pkg}
+			jobs: {
+				lint: _browserCheck & {
+					name: "Lint"
+					tasks: [_lint & {#pkg: P.pkg, name: "Run Linter"}]
+				}
+				typecheck: _browserCheck & {
+					name: "Typecheck"
+					tasks: [_typecheck & {#pkg: P.pkg, name: "Typecheck"}]
+				}
+			}
 			test: {
 				command: "helpers/playwright-runner.sh {relative_targets}"
 				// Each spec runs against its own throwaway SQLite database, so the

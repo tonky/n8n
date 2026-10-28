@@ -58,7 +58,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
-    - tonky-ci-s
+    - tonky-ci-m
     timeout-minutes: 15
     steps:
     - name: Probe Runner Caches
