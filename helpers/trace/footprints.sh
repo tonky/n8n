@@ -47,10 +47,17 @@ wanted() {
   awk -v t="$1" '$0 == t || index($0, t "::") == 1 { found = 1; exit } END { exit !found }' "$LISTED"
 }
 
-# The tests vitest-runner.sh sends to PostgreSQL (as trace-test.sh).
+# The tests vitest-runner.sh sends to its integration and migration modes.
 INTEGRATION='^packages/cli/(test/integration/.*|src/.*\.integration)\.test\.ts$|\.postgres\.test\.ts$'
 MIGRATION='^packages/cli/test/migration/.*\.test\.ts$'
-POSTGRES_TESTS="$INTEGRATION|$MIGRATION"
+# Task metadata is derived from the component's declared services. Port discovery
+# variables describe every enve service, including ones this job never starts.
+# The standalone recorder supplies SERVICE_DEPS for the services it traces itself.
+DECLARED_SERVICES=${ENACT_FOOTPRINT_SERVICES-${SERVICE_DEPS:-}}
+if [ "${ENACT_SERVICES_ACTIVE:-0}" = 1 ] && [ -z "$DECLARED_SERVICES" ]; then
+  echo "footprints.sh: active services need declared recording services" >&2
+  exit 1
+fi
 
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/enact-footprints.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
@@ -72,11 +79,11 @@ run_kind() {
     "$RUNNER" "$@"
     return
   fi
-  # Hands enact the wanted tests' footprints, each with its outcome; the services only for
-  # the tests that run against them.
+  # Every target conservatively holds its task's services: even a unit-named file can
+  # make real Redis connections. Filenames determine runner mode, never service usage.
   node -e '
     const fs = require("fs");
-    const [from, to, listed, integration] = process.argv.slice(1);
+    const [from, to, listed, services] = process.argv.slice(1);
     const map = JSON.parse(fs.readFileSync(from, "utf8"));
     const list = listed ? fs.readFileSync(listed, "utf8").split("\n").filter(Boolean) : null;
     const wanted = (t) => !list || list.some((l) => l === t || l.startsWith(t + "::"));
@@ -85,8 +92,10 @@ run_kind() {
       delete map.targets[target];
       if (map.target_service_deps) delete map.target_service_deps[target];
     }
-    for (const target of Object.keys(map.target_service_deps || {})) {
-      if (!new RegExp(integration).test(target)) delete map.target_service_deps[target];
+    if (services) {
+      for (const fp of Object.values(map.targets || {})) {
+        fp.recorders = [...new Set([...(fp.recorders || []), "n8n-services/1"])];
+      }
     }
     map.outcomes = true;
     fs.writeFileSync(to + ".part", JSON.stringify(map));
@@ -95,7 +104,7 @@ run_kind() {
       const complete = fp.outcome === undefined;
       console.log(`🎯 [footprints] recorded \x27${target}\x27 (${complete ? "complete" : "incomplete"})`);
     }
-  ' "$WORK/$name.json" "$OUT/$name-${ENACT_SHARD_INDEX:-1}-$$.json" "$LISTED" "$POSTGRES_TESTS" || status=1
+  ' "$WORK/$name.json" "$OUT/$name-${ENACT_SHARD_INDEX:-1}-$$.json" "$LISTED" "$services" || status=1
   return "$status"
 }
 
@@ -108,11 +117,7 @@ if [ $# -eq 0 ]; then
   if [ -n "$LISTED" ] && ! awk -v p="$PKG" 'index($0, p) == 1 { found = 1; exit } END { exit !found }' "$LISTED"; then
     WANTED=0
   fi
-  SERVICES=
-  if [ "${VITEST_MIGRATION:-}" = 1 ] || [ -f vitest.config.integration.ts ]; then
-    SERVICES="postgres redis"
-  fi
-  run_kind suite "$WANTED" "$SERVICES"
+  run_kind suite "$WANTED" "$DECLARED_SERVICES"
   exit
 fi
 
@@ -141,7 +146,7 @@ if [ "$UNIT_WANTED$INTEGRATION_WANTED$MIGRATION_WANTED" = 000 ]; then
 fi
 
 status=0
-[ ${#UNIT[@]} -eq 0 ] || run_kind unit "$UNIT_WANTED" "" "${UNIT[@]}" || status=$?
-[ ${#INTEGRATIONS[@]} -eq 0 ] || run_kind integration "$INTEGRATION_WANTED" "postgres redis" "${INTEGRATIONS[@]}" || status=$?
-[ ${#MIGRATIONS[@]} -eq 0 ] || run_kind migration "$MIGRATION_WANTED" "postgres redis" "${MIGRATIONS[@]}" || status=$?
+[ ${#UNIT[@]} -eq 0 ] || run_kind unit "$UNIT_WANTED" "$DECLARED_SERVICES" "${UNIT[@]}" || status=$?
+[ ${#INTEGRATIONS[@]} -eq 0 ] || run_kind integration "$INTEGRATION_WANTED" "$DECLARED_SERVICES" "${INTEGRATIONS[@]}" || status=$?
+[ ${#MIGRATIONS[@]} -eq 0 ] || run_kind migration "$MIGRATION_WANTED" "$DECLARED_SERVICES" "${MIGRATIONS[@]}" || status=$?
 exit "$status"

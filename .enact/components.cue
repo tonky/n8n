@@ -1,6 +1,9 @@
 package n8n
 
-import "enact.dev/schema"
+import (
+	"enact.dev/schema"
+	"strings"
+)
 
 // One component per pnpm workspace package (packages.cue, generated from upstream's
 // workspace by tools/gen_packages.py), its edges the package's workspace dependencies:
@@ -13,14 +16,14 @@ import "enact.dev/schema"
 // job runs only for the packages a change touches: a dependency's change reaches it through
 // `typecheck` and `test`.
 _lint: {
-	#pkg: string
+	#pkg:    string
 	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' @n8n/eslint-config @n8n/oxlint-config && pnpm turbo run lint --filter=" + #pkg + " --output-logs=errors-only"
 }
 
 // Its `typecheck` script after its dependencies' builds (turbo.json: `^build`, built as
 // lint's are), whenever the package or one of its dependencies changed.
 _typecheck: {
-	#pkg: string
+	#pkg:    string
 	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' && pnpm turbo run typecheck --filter=" + #pkg + " --output-logs=errors-only"
 }
 
@@ -42,12 +45,8 @@ _target_scope: {
 	fallback: *"all" | "none"
 	tests:    #tests
 	rules: [
-		if len(#ignore) > 0 {
-			{match: #ignore, action: "ignore"}
-		},
-		if len(#runner) > 0 {
-			{match: #runner, action: "full_component"}
-		},
+		if len(#ignore) > 0 {match: #ignore, action: "ignore"},
+		if len(#runner) > 0 {match: #runner, action: "full_component"},
 		{
 			match: [#dir + "/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"]
 			engine: "typescript"
@@ -72,7 +71,6 @@ pipeline: schema.#Pipeline & {
 			".dockerignore",
 			".env.*.example",
 			".git-blame-ignore-revs",
-			// Upstream's duplication scan (jscpd), which no job runs.
 			".jscpd.json",
 			".github/ISSUE_TEMPLATE/**",
 			".github/actionlint.yml",
@@ -90,10 +88,8 @@ pipeline: schema.#Pipeline & {
 			"codecov.yml",
 			"cubic.yaml",
 			"docker/**",
-			// An empty directory's placeholder.
 			"packages/extensions/.gitkeep",
 			"security/**",
-			// Codespaces tooling, as .devcontainer (it imports its plugins).
 			"scripts/cloud-session*.mjs",
 		]
 		// What every job's checkout holds: the environment, the pipeline and the
@@ -118,7 +114,6 @@ pipeline: schema.#Pipeline & {
 			"vitest.workspace.ts",
 			".prettierrc.js",
 			".prettierignore",
-			// The tsconfig every package's and the root's extends.
 			"packages/@n8n/typescript-config",
 		]
 	}
@@ -126,6 +121,7 @@ pipeline: schema.#Pipeline & {
 	// The e2e specs' recorder (helpers/trace/e2e-footprint.mjs, `"recorder"` in its maps): a
 	// footprint made at another version is recorded again.
 	analysis: recorders: "e2e-footprint.mjs": "1"
+	analysis: recorders: "n8n-services": "1"
 
 	// The tests import the workspace packages they depend on from their builds (`dist/`,
 	// git-ignored, never in a diff): a change to a package's sources reaches every test that
@@ -139,28 +135,24 @@ pipeline: schema.#Pipeline & {
 		outputs: [p.dir + "/dist/**"]
 		inputs: [p.dir + "/**", for b in p.bundles {b + "/**"}]
 		exclude: [for d in [p.dir, for b in p.bundles {b}] for e in [
-			"/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md",
+			"/dist/**",
+			"/**/*.test.ts",
+			"/**/*.spec.ts",
+			"/**/__tests__/**",
+			"/**/test/**",
+			"/**/*.md",
 		] {d + e}]
 		mapped: [for d in [p.dir, for b in p.bundles {b}] {d + "/src/**"}]
-	},
-		// cli's source-control export test writes `test-exports-<uuid>` into the package and
-		// leaves it behind when it fails: the test's output, not a source, so a host that ran
-		// it lists `packages/cli` as one that didn't.
-		{
-			outputs: ["packages/cli/test-exports-*/**"]
-			inputs: ["packages/cli/test/integration/environments/source-control-export.service.test.ts"]
-		},
-		// workflow-sdk's tests extract the real workflows they read (`<id>.json`,
-		// git-ignored) from the committed zip on first use (src/__tests__/fixtures-zip.ts): the
-		// zip and its manifest stand for them, so a host that hasn't extracted them yet
-		// digests as one that has.
-		{
-			outputs: ["packages/@n8n/workflow-sdk/test-fixtures/real-workflows/[0-9]*.json"]
-			inputs: [
-				"packages/@n8n/workflow-sdk/test-fixtures/real-workflows/public_published_templates.zip",
-				"packages/@n8n/workflow-sdk/test-fixtures/real-workflows/manifest.json",
-			]
-		}]
+	}, {
+		outputs: ["packages/cli/test-exports-*/**"]
+		inputs: ["packages/cli/test/integration/environments/source-control-export.service.test.ts"]
+	}, {
+		outputs: ["packages/@n8n/workflow-sdk/test-fixtures/real-workflows/[0-9]*.json"]
+		inputs: [
+			"packages/@n8n/workflow-sdk/test-fixtures/real-workflows/public_published_templates.zip",
+			"packages/@n8n/workflow-sdk/test-fixtures/real-workflows/manifest.json",
+		]
+	}]
 
 	caches: {
 		// vitest's transforms (vitest-runner.sh's `--fsModuleCache`), keyed by each module's
@@ -197,7 +189,6 @@ pipeline: schema.#Pipeline & {
 				"enve.lock",
 				".enact/**",
 				"cue.mod",
-				// The committed enact and enve builds CI installs.
 				"bin/**",
 				".github/workflows/**",
 				".githooks/**",
@@ -219,16 +210,10 @@ pipeline: schema.#Pipeline & {
 				".boundaries-baseline.json",
 				".code-health-baseline.json",
 				"agent-harness.lock.json",
-				// The pnpm patches the install applies.
 				"patches/**",
-				// Workspace scripts: install hooks (prepare, block-npm-install), the CI
-				// integrity check, and the scripts packages run (os-normalize, lint-parity).
 				"scripts/**",
-				// Shared runner and trace helpers every package's jobs run.
 				"helpers/vitest-runner.sh",
-				// The store pin every runner sources (pnpm-store.sh).
 				"helpers/pnpm-store.sh",
-				// Every workspace build the jobs, the cli service and Playwright run.
 				"helpers/build-workspace-deps.sh",
 				"helpers/trace/**",
 			]
@@ -259,11 +244,13 @@ pipeline: schema.#Pipeline & {
 					recorder: "own_linux"
 					recorded_by: ["enact-node"]
 				}
+
 				// Tests its vitest config leaves out, which no suite runs (packages.cue's
 				// `exclude`): never selected, as vitest would skip them.
 				if len(p.exclude) > 0 {
 					target_scope: exclude: p.exclude
 				}
+
 				// Tests reading what a dependent builds (packages.cue's `handoff`): they run
 				// in its test job.
 				if len(p.handoff) > 0 {
@@ -345,12 +332,12 @@ pipeline: schema.#Pipeline & {
 		// schema its migrations build against the committed docs (tbls, from enve).
 		"@n8n/db": {
 			let P = _packages["@n8n/db"]
+			let Services = [n8n.services.postgres]
 			name:  "@n8n/db"
 			title: "n8n Database & Entities"
 			root:  P.dir
 			watch_paths: [
 				P.dir + "/**",
-				// The schema docs, their tbls configs and the PostgreSQL shim (schema_check).
 				"docs/generated/**",
 				".tbls.*.yml",
 				"helpers/schema-docs-postgres.mjs",
@@ -368,11 +355,11 @@ pipeline: schema.#Pipeline & {
 					"packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json",
 				]
 			}
-			services: [n8n.services.postgres]
-			shards:       P.shards
+			services: Services
+			shards:   P.shards
 			target_scope: _target_scope & {#dir: P.dir, #tests: P.tests}
-			lint:         _lint & {#pkg: P.pkg}
-			typecheck:    _typecheck & {#pkg: P.pkg}
+			lint: _lint & {#pkg: P.pkg}
+			typecheck: _typecheck & {#pkg: P.pkg}
 			// Diffs both the SQLite and PostgreSQL schemas built by db's migrations against
 			// the committed docs (`schema:check:sqlite`, `schema:check:postgres`). Upstream's
 			// script runs tbls in docker when CI is set and starts a testcontainer for
@@ -411,34 +398,40 @@ pipeline: schema.#Pipeline & {
 					}
 				}]
 			}
-			test:         "node scripts/generate-migration-index.mjs && " + _vitest
-			recorder:     "own_linux"
-			recorded_by: ["enact-node"]
+			test: {
+				command: "node scripts/generate-migration-index.mjs && " + _vitest
+				env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
+			}
+			recorder: "own_linux"
+			recorded_by: ["enact-node", "n8n-services"]
 		}
 
 		// The backend: its unit tests on SQLite, its integration tests on PostgreSQL and
 		// Redis (vitest-runner.sh), its migration tests in `migrate`.
 		cli: {
 			let P = _packages.cli
+			let Services = [n8n.services.postgres, n8n.services.redis]
 			name:  "cli"
 			title: "n8n CLI & Backend Service"
 			root:  P.dir
 			watch_paths: [
 				P.dir + "/**",
-				// Builds the integration tests' template database.
 				"helpers/n8n-template-db.cjs",
 			]
 			depends_on: ["root", for d in P.deps {d}]
 			workspace_scope: include_dependencies: true
-			services: [n8n.services.postgres, n8n.services.redis]
-			service:      n8n.services.cli
-			shards:       P.shards
+			services: Services
+			service:  n8n.services.cli
+			shards:   P.shards
 			target_scope: _target_scope & {#dir: P.dir, #tests: P.tests}
-			lint:         _lint & {#pkg: P.pkg}
-			typecheck:    _typecheck & {#pkg: P.pkg}
-			test:         _vitest
-			recorder:     "own_linux"
-			recorded_by: ["enact-node"]
+			lint: _lint & {#pkg: P.pkg}
+			typecheck: _typecheck & {#pkg: P.pkg}
+			test: {
+				command: _vitest
+				env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
+			}
+			recorder: "own_linux"
+			recorded_by: ["enact-node", "n8n-services"]
 			jobs: migrate: {
 				// Migration tests share one database and roll back: one process, in order
 				// (vitest.config.migration.ts), on PostgreSQL and on SQLite (upstream's
@@ -446,7 +439,7 @@ pipeline: schema.#Pipeline & {
 				// are db's, so they are selected like tests: a change to db or cli runs the
 				// tests it reaches.
 				recorder: "own_linux"
-				recorded_by: ["enact-node"]
+				recorded_by: ["enact-node", "n8n-services"]
 				target_scope: _target_scope & {
 					#dir: P.dir
 					#tests: [P.dir + "/test/migration/**/*.test.ts"]
@@ -455,6 +448,7 @@ pipeline: schema.#Pipeline & {
 					name:    "migrate"
 					command: "VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
 					env: {
+						ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
 						N8N_LOG_LEVEL:        "silent"
 						DB_TYPE:              "postgresdb"
 						DB_POSTGRESDB_SCHEMA: "alt_schema"
@@ -466,6 +460,7 @@ pipeline: schema.#Pipeline & {
 					// applies on top of task.env, so set DB_TYPE=sqlite in the shell too.
 					command: "DB_TYPE=sqlite DB_SQLITE_POOL_SIZE=4 VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
 					env: {
+						ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
 						N8N_LOG_LEVEL:       "silent"
 						DB_SQLITE_POOL_SIZE: "4"
 						DB_TYPE:             "sqlite"
@@ -533,7 +528,7 @@ pipeline: schema.#Pipeline & {
 				cpus:      4.0
 				memory_mb: 10240
 			}
-			lint:      _lint & {#pkg: P.pkg}
+			lint: _lint & {#pkg: P.pkg}
 			typecheck: _typecheck & {#pkg: P.pkg}
 			test: {
 				command: "helpers/playwright-runner.sh {relative_targets}"

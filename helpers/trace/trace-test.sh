@@ -9,8 +9,8 @@
 # `enact trace run` records the files the process tree opens while the test runs as its
 # test job runs it: from its package's directory, through vitest-runner.sh in the
 # repository's environment (unit tests on SQLite, integration tests on PostgreSQL). The
-# services an integration test uses are recorded as its own (`--service-dep`), so a change
-# to them reaches it. Exits as the test did; a test that fails is recorded incomplete.
+# task's declared services are conservatively recorded as its own (`--service-dep`), so a
+# change to them reaches it. Exits as the test did; a failing test is incomplete.
 #
 # Env: ENACT_EXE (the enact running the task, which sets it), else ENACT_BIN (default: enact on
 #      PATH)
@@ -22,9 +22,6 @@ ROOT=$(git rev-parse --show-toplevel)
 ENACT=${ENACT_EXE:-${ENACT_BIN:-$(command -v enact || true)}}
 [ -n "$ENACT" ] || { echo "trace-test.sh: no enact on PATH: put it there or set ENACT_BIN" >&2; exit 2; }
 
-# The tests vitest-runner.sh sends to PostgreSQL, and those connecting to it.
-INTEGRATION='^packages/cli/(test/(integration|migration)/.*|src/.*\.integration)\.test\.ts$|\.postgres\.test\.ts$'
-
 # The package the test belongs to: the nearest directory with a package.json.
 DIR=$(dirname "$TEST")
 while [ "$DIR" != . ] && [ ! -f "$ROOT/$DIR/package.json" ]; do
@@ -32,10 +29,33 @@ while [ "$DIR" != . ] && [ ! -f "$ROOT/$DIR/package.json" ]; do
 done
 
 FLAGS=()
-if [[ $TEST =~ $INTEGRATION ]]; then
-  FLAGS=(--service-dep postgres --service-dep redis)
+services=${ENACT_FOOTPRINT_SERVICES-${SERVICE_DEPS:-}}
+if [ "${ENACT_SERVICES_ACTIVE:-0}" = 1 ] && [ -z "$services" ]; then
+  echo "trace-test.sh: active services need declared recording services" >&2
+  exit 1
 fi
+for service in $services; do FLAGS+=(--service-dep "$service"); done
 
 cd "$ROOT/$DIR"
-exec "$ENACT" trace run --no-fingerprint --node-functions --reach-file "$MAP" -t "$TEST" "${FLAGS[@]}" -- \
-  enve run --locked -q -f "$ROOT/enve.cue" -- "$ROOT/helpers/vitest-runner.sh" "${TEST#"$DIR"/}"
+WORK=$(mktemp -d "${TMPDIR:-/tmp}/enact-trace-test.XXXXXX")
+trap 'rm -rf "$WORK"' EXIT
+status=0
+"$ENACT" trace run --no-fingerprint --node-functions --reach-file "$WORK/map.json" -t "$TEST" "${FLAGS[@]}" -- \
+  enve run --locked -q -f "$ROOT/enve.cue" -- "$ROOT/helpers/vitest-runner.sh" "${TEST#"$DIR"/}" || status=$?
+if [ ! -s "$WORK/map.json" ]; then
+  [ "$status" -ne 0 ] || status=1
+  exit "$status"
+fi
+# Only the fresh output of this invocation can acquire the adapter capability; never
+# stamp a pre-existing destination or another target the native recorder returned.
+node - "$WORK/map.json" "$MAP" "$TEST" "$services" <<'JS'
+const fs = require('node:fs');
+const [from, to, target, services] = process.argv.slice(2);
+const map = JSON.parse(fs.readFileSync(from, 'utf8'));
+const fp = map.targets?.[target];
+if (!fp) throw new Error(`trace-test.sh: the fresh trace has no target ${target}`);
+if (services) fp.recorders = [...new Set([...(fp.recorders || []), 'n8n-services/1'])];
+fs.writeFileSync(to + '.part', JSON.stringify(map));
+fs.renameSync(to + '.part', to);
+JS
+exit "$status"
