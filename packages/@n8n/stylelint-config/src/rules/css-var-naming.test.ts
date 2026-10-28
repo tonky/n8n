@@ -151,7 +151,7 @@ describe('css-var-naming rule', () => {
 				}
 			`;
 			const result = await lintCSS(invalidPattern);
-			expect(result.warnings.length).toBeGreaterThan(0);
+			expect(result.warnings).toHaveLength(1);
 			expect(result.warnings[0]).toMatchObject({
 				text: expect.stringContaining('Must have at least 2 groups'),
 			});
