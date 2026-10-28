@@ -7,6 +7,7 @@ async function expectExecuteButtonRightOfControls(n8n: n8nPage) {
 	const executeButton = n8n.canvas.getExecuteWorkflowButton();
 	const tidyUpButton = n8n.canvas.getTidyUpButton();
 	await expect(executeButton).toBeVisible();
+	await expect(executeButton).toBeEnabled();
 	await expect(tidyUpButton).toBeVisible();
 
 	// ADO-5630: Keep the run button clear of the rightmost canvas control.
