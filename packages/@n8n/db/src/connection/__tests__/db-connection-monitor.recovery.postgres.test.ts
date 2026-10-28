@@ -64,8 +64,6 @@ class FreezableProxy {
 
 	async close() {
 		for (const socket of this.sockets) socket.destroy();
-		this.sockets.clear();
-		this.frozen.clear();
 		await new Promise<void>((resolve) => this.server.close(() => resolve()));
 	}
 }
