@@ -190,6 +190,7 @@ pipeline: schema.#Pipeline & {
 			paths: [".turbo"]
 			key: ["package.json", "pnpm-lock.yaml"]
 			scope: "task"
+			refresh: "rolling"
 		}
 	}
 

@@ -561,9 +561,11 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
-          key: node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          key: node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-${{ github.sha }}
           path: .turbo
-          restore-keys: node_build-${{ runner.os }}-stage-check-and-lint-
+          restore-keys: |-
+            node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-
+            node_build-${{ runner.os }}-stage-check-and-lint-
       - name: Restore Cache [vitest_transforms]
         id: cache_vitest_transforms
         continue-on-error: true
@@ -913,7 +915,7 @@ jobs:
           node_l1_cache node_modules/.cache
     - parallel:
       - name: Save Cache [node_build]
-        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_node_build.outputs.cache-hit != 'true'
+        if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-stage-check-and-lint-{1}-', runner.os, hashFiles('package.json', 'pnpm-lock.yaml'))))) && steps.cache_node_build.outputs.cache-hit != 'true'
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
@@ -2309,9 +2311,11 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
-          key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-${{ github.sha }}
           path: .turbo
-          restore-keys: node_build-${{ runner.os }}-${{ matrix.task_id }}-
+          restore-keys: |-
+            node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-
+            node_build-${{ runner.os }}-${{ matrix.task_id }}-
       - name: Restore Cache [vitest_transforms]
         id: cache_vitest_transforms
         continue-on-error: true
@@ -2618,7 +2622,7 @@ jobs:
           key: ${{ steps.browsers_l1_cache.outputs.cache-primary-key }}
           path: /tmp/.cache/ms-playwright
       - name: Save Cache [node_build]
-        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_node_build.outputs.cache-hit != 'true'
+        if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-{1}-{2}-', runner.os, matrix.task_id, hashFiles('package.json', 'pnpm-lock.yaml'))))) && steps.cache_node_build.outputs.cache-hit != 'true'
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
