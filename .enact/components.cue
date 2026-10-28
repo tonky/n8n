@@ -141,7 +141,9 @@ pipeline: schema.#Pipeline & {
 			"/**/__tests__/**",
 			"/**/test/**",
 			"/**/*.md",
-		] {d + e}]
+		] {d + e}, for db in ["sqlite", "postgresdb"] {
+			"packages/@n8n/db/src/migrations/" + db + "/index.ts"
+		}]
 		mapped: [for d in [p.dir, for b in p.bundles {b}] {d + "/src/**"}]
 	}, {
 		outputs: ["packages/cli/test-exports-*/**"]
@@ -151,6 +153,15 @@ pipeline: schema.#Pipeline & {
 		inputs: [
 			"packages/@n8n/workflow-sdk/test-fixtures/real-workflows/public_published_templates.zip",
 			"packages/@n8n/workflow-sdk/test-fixtures/real-workflows/manifest.json",
+		]
+	}, for db in ["sqlite", "postgresdb"] {
+		// The generator reads migration names and exported class names. These ignored
+		// source indexes aren't restored by a Turbo cache hit containing only dist.
+		outputs: ["packages/@n8n/db/src/migrations/" + db + "/index.ts"]
+		inputs: [
+			"packages/@n8n/db/scripts/generate-migration-index.mjs",
+			"packages/@n8n/db/src/migrations/common/[0-9]*.ts",
+			"packages/@n8n/db/src/migrations/" + db + "/[0-9]*.ts",
 		]
 	}]
 
