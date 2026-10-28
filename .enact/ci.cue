@@ -23,25 +23,37 @@ pipeline: schema.#Pipeline & {
 		concurrency: {
 			max_parallel_jobs: 16
 		}
-		// The fork's jobs run on the user's tonky-ci fleet, one fresh container per job (enact's
-		// .enact/workflows.cue workers `tonky-ci`, `tonky-ci-arm64`): stage jobs on the x86_64
-		// slots, matrix rows on the cheapest slot they fit, so small ones take the arm64 slot.
+		// Each job asks for a runner size within ibp8's or mac1's shared host budget
+		// (agentic/KNOWLEDGE.md tonky-ci); matrix jobs choose the cheapest fitting pool.
 		workers: {
 			"standard": {
 				labels: ["self-hosted", "Linux", "X64", "tonky-ci"]
 				tier:         "dedicated"
-				available:    2
+				available:    1
 				cost_per_min: 0.010
-				cpus:         6
-				memory_mb:    13312
+				pool: {
+					cpus:      14
+					memory_mb: 28672
+					sizes: {
+						"tonky-ci-s": {cpus: 2, memory_mb: 4096}
+						"tonky-ci-m": {cpus: 4, memory_mb: 8192}
+						"tonky-ci-l": {cpus: 6, memory_mb: 13312}
+					}
+				}
 			}
 			"arm64": {
 				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci"]
 				tier:         "dedicated"
 				available:    1
 				cost_per_min: 0.008
-				cpus:         4
-				memory_mb:    8192
+				pool: {
+					cpus:      4
+					memory_mb: 8192
+					sizes: {
+						"tonky-ci-s": {cpus: 2, memory_mb: 4096}
+						"tonky-ci-m": {cpus: 4, memory_mb: 8192}
+					}
+				}
 			}
 		}
 	}

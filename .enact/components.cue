@@ -31,16 +31,22 @@ _vitest: "helpers/vitest-runner.sh {relative_targets}"
 // Test selection in a package: its traced test files (the reach map), else the TypeScript
 // import graph of its changed files. The tests it leaves out (`#ignore`: another suite's, or
 // none's) reach none of its own: a change to one selects nothing here, where the import
-// graph would find no test and run the suite whole (`fallback`).
+// graph would find no test and run the suite whole (`fallback`). The runner's files no traced
+// process reads (`#runner`: a helper run before the tests start) select the suite whole: no
+// footprint ever holds them, so the reach map would answer none.
 _target_scope: {
 	#dir: string
 	#tests: [...string]
 	#ignore: [...string] | *[]
+	#runner: [...string] | *[]
 	fallback: *"all" | "none"
 	tests:    #tests
 	rules: [
 		if len(#ignore) > 0 {
 			{match: #ignore, action: "ignore"}
+		},
+		if len(#runner) > 0 {
+			{match: #runner, action: "full_component"}
 		},
 		{
 			match: [#dir + "/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"]
@@ -125,13 +131,17 @@ pipeline: schema.#Pipeline & {
 	// git-ignored, never in a diff): a change to a package's sources reaches every test that
 	// read its build. Per package, not per file (a test reading any of db's `dist` is reached
 	// by any change to db). Rules don't chain: a bundled build (vite, tsdown...) lists the
-	// sources of the packages it may inline too. The packages' tests aren't built.
+	// sources of the packages it may inline too. The packages' tests aren't built. tsc, tsdown
+	// and vite emit each `src/` function as one with a source map, so a body edit under
+	// `mapped` reaches only the readers that ran the function, and a `.d.ts` reader too when
+	// the function's header doesn't declare its type (`body_edits.rs`).
 	analysis: derived: [for _, p in _packages if p.built {
 		outputs: [p.dir + "/dist/**"]
 		inputs: [p.dir + "/**", for b in p.bundles {b + "/**"}]
 		exclude: [for d in [p.dir, for b in p.bundles {b}] for e in [
 			"/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md",
 		] {d + e}]
+		mapped: [for d in [p.dir, for b in p.bundles {b}] {d + "/src/**"}]
 	},
 		// cli's source-control export test writes `test-exports-<uuid>` into the package and
 		// leaves it behind when it fails: the test's output, not a source, so a host that ran
@@ -509,6 +519,9 @@ pipeline: schema.#Pipeline & {
 			target_scope: _target_scope & {
 				#dir: P.dir
 				#tests: [P.dir + "/tests/**/*.spec.ts", P.dir + "/**/*.test.{ts,mjs}"]
+				// The runner and the specs' grouping by the env each declares (pw-spec-env.mjs,
+				// in its command substitution). n8n-ready.mjs loads into the traced Node.js.
+				#runner: ["helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs"]
 				// run-local-isolated.mjs runs the e2e project (tests/e2e); the runner fails
 				// on the other projects' specs.
 				not_run: [{

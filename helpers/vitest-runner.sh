@@ -283,6 +283,9 @@ done
 # VITEST_RUNNER_ARGS: what a job adds to every vitest run and listing of its own targets
 # (nodes-base's `integration`: `--config vitest.integration.config.ts --dir credentials`), so
 # a suite under another config is listed, run and recorded as the unit suite is.
+# Turbo's task logs aren't tests. Exclude the directory itself and its descendants:
+# Vitest's CLI patterns add to each config's excludes, for both listing and execution.
+DISCOVERY_ARGS=(--exclude '**/.turbo' --exclude '**/.turbo/**')
 RUNNER_ARGS=()
 [ -z "${VITEST_RUNNER_ARGS:-}" ] || read -ra RUNNER_ARGS <<<"$VITEST_RUNNER_ARGS"
 
@@ -319,7 +322,7 @@ unrun() {
   local args=() listed target
   while [ "$1" != -- ]; do args+=("$1"); shift; done
   shift
-  listed=$(pnpm exec vitest list --filesOnly "${args[@]}" "${RUNNER_ARGS[@]}" "$@" 2>/dev/null | awk -v d="$PWD/" '{ sub(/^\[[^]]*\] /, ""); print d $0 }') || true
+  listed=$(pnpm exec vitest list --filesOnly "${args[@]}" "${RUNNER_ARGS[@]}" "$@" "${DISCOVERY_ARGS[@]}" 2>/dev/null | awk -v d="$PWD/" '{ sub(/^\[[^]]*\] /, ""); print d $0 }') || true
   for target in "$@"; do
     [[ $listed == *"${target#./}"* ]] || echo "$target"
   done
@@ -376,7 +379,7 @@ if [ -n "${ENACT_ATTRIBUTION_FILE:-}" ]; then
     "--reporter=$SCRIPT_DIR/trace/vitest-attribution.mjs")
 fi
 run_vitest() {
-  pnpm exec vitest "$@" "${RUNNER_ARGS[@]}" "${ATTRIBUTION_ARGS[@]}"
+  pnpm exec vitest "$@" "${RUNNER_ARGS[@]}" "${ATTRIBUTION_ARGS[@]}" "${DISCOVERY_ARGS[@]}"
 }
 
 # run_integration <vitest args...>: cli's integration config, against PostgreSQL.
