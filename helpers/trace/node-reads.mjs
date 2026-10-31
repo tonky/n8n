@@ -339,3 +339,40 @@ if (dir && repo) {
         }
     }
 }
+
+// Playwright reporter (`--reporter=list,<this file>`): writes one JSON line per spec file to
+// $ENACT_SKIPS_FILE, saying whether the run skipped any test of it (`skipped_on`).
+export default class EnactAttribution {
+    printsToStdio() {
+        return false
+    }
+
+    onBegin(_config, suite) {
+        this.suite = suite
+    }
+
+    onEnd() {
+        const out = process.env.ENACT_SKIPS_FILE
+        if (!out || !this.suite) {
+            return
+        }
+        const files = new Map()
+        for (const test of this.suite.allTests()) {
+            const file = files.get(test.location.file) ?? { tests: 0, skipped: 0, failed: 0 }
+            const outcome = test.outcome()
+            file.tests += 1
+            if (outcome === 'skipped') {
+                file.skipped += 1
+            }
+            if (outcome === 'unexpected') {
+                file.failed += 1
+            }
+            files.set(test.location.file, file)
+        }
+        const lines = [...files].map(([target, { tests, skipped, failed }]) => {
+            const outcome = failed ? 'failed' : skipped === tests ? 'skipped' : 'passed'
+            return `${JSON.stringify({ target, outcome, skipped: skipped > 0, reads: [] })}\n`
+        })
+        fs.appendFileSync(out, lines.join(''))
+    }
+}

@@ -322,7 +322,7 @@ unrun() {
   local args=() listed target
   while [ "$1" != -- ]; do args+=("$1"); shift; done
   shift
-  listed=$(pnpm exec vitest list --filesOnly "${args[@]}" "${RUNNER_ARGS[@]}" "$@" "${DISCOVERY_ARGS[@]}" 2>/dev/null | awk -v d="$PWD/" '{ sub(/^\[[^]]*\] /, ""); print d $0 }') || true
+  listed=$(pnpm exec vitest list --filesOnly ${args[@]+"${args[@]}"} ${RUNNER_ARGS[@]+"${RUNNER_ARGS[@]}"} "$@" "${DISCOVERY_ARGS[@]}" 2>/dev/null | awk -v d="$PWD/" '{ sub(/^\[[^]]*\] /, ""); print d $0 }') || true
   for target in "$@"; do
     [[ $listed == *"${target#./}"* ]] || echo "$target"
   done
@@ -352,6 +352,11 @@ if [ ${#TARGETS[@]} -gt 0 ] && [ -z "${VITEST_RUNNER_LISTED:-}" ]; then
   export VITEST_RUNNER_LISTED=1
 fi
 
+if [ "$PWD" = "$REPO_ROOT/packages/@n8n/instance-ai" ] && [ ! -f "$PWD/.data/.gitignore" ]; then
+  mkdir -p "$PWD/.data"
+  printf '*\n' > "$PWD/.data/.gitignore"
+fi
+
 # Footprints enact asks for (ENACT_FOOTPRINT_DIR: `enact run` recording while it runs,
 # `enact trace record`): the wanted test files are traced one by one, the others run as
 # here. After the set-up above, so the traced tests find it done and don't record it.
@@ -369,17 +374,19 @@ CACHE_OPTS=()
 # get (npm_config_user_agent: node-cli's commands pick the package manager they were run with).
 # Traced by `enact trace run --attribution` (helpers/trace/trace-files.sh): one forked worker
 # per test file, and the reporter saying which modules each loaded.
-# A traced run is slower than a plain one (seccomp, one worker per file, shards side by side):
+# A traced run is slower than a plain one (eBPF, one worker per file, shards side by side):
 # its hooks get the most any config gives them (nodes-base's integration config, 120 s), not
 # the 10 s default cli's unit config keeps for the module-loading `setupTestServer` of its
 # `*.api.test.ts`, which a recording otherwise records as failed while plain runs pass.
 ATTRIBUTION_ARGS=()
 if [ -n "${ENACT_ATTRIBUTION_FILE:-}" ]; then
-  ATTRIBUTION_ARGS=(--pool=forks --isolate --hookTimeout=120000 --reporter=default
+  # Scheduling results are read then rewritten; retain transform caching without
+  # making the trace depend on its own results.json update.
+  ATTRIBUTION_ARGS=(--no-cache --pool=forks --isolate --hookTimeout=120000 --testTimeout=120000 --reporter=default
     "--reporter=$SCRIPT_DIR/trace/vitest-attribution.mjs")
 fi
 run_vitest() {
-  pnpm exec vitest "$@" "${RUNNER_ARGS[@]}" "${ATTRIBUTION_ARGS[@]}" "${DISCOVERY_ARGS[@]}"
+  pnpm exec vitest "$@" ${RUNNER_ARGS[@]+"${RUNNER_ARGS[@]}"} ${ATTRIBUTION_ARGS[@]+"${ATTRIBUTION_ARGS[@]}"} "${DISCOVERY_ARGS[@]}"
 }
 
 # run_integration <vitest args...>: cli's integration config, against PostgreSQL.
@@ -388,6 +395,11 @@ run_vitest() {
 # past the 30s hook timeout. The template is built in this run, so a traced run still reads
 # the migrations. N8N_TEST_DISABLE_TEMPLATE_DB=1 (upstream's switch) migrates per file.
 run_integration() (
+  if [ -n "${ENACT_ATTRIBUTION_FILE:-}" ]; then
+    mkdir -p "/tmp/enact-locks-$(id -u)"
+    exec 9>"/tmp/enact-locks-$(id -u)/n8n-pg-${DB_POSTGRESDB_PORT:-5432}.flock"
+    flock 9
+  fi
   export N8N_LOG_LEVEL=silent DB_TYPE=postgresdb DB_POSTGRESDB_USER=postgres PGUSER=postgres \
     DB_POSTGRESDB_DATABASE=n8n DB_POSTGRESDB_SCHEMA=alt_schema DB_TABLE_PREFIX=test_
   if [ "${N8N_TEST_DISABLE_TEMPLATE_DB:-}" != 1 ] && [ -z "${N8N_TEST_TEMPLATE_DB:-}" ] &&

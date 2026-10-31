@@ -24,10 +24,14 @@ ENACT=${ENACT_EXE:-${ENACT_BIN:-$(command -v enact || true)}}
 [ -n "$ENACT" ] || { echo "trace-files.sh: no enact on PATH: put it there or set ENACT_BIN" >&2; exit 2; }
 
 FLAGS=()
+ENVE_FLAGS=()
+case "${ENACT_NO_ISOLATE:-}" in
+  1 | true) ENVE_FLAGS+=(--isolation host) ;;
+esac
 for service in ${SERVICE_DEPS:-}; do
   FLAGS+=(--service-dep "$service")
 done
 
 exec "$ENACT" trace run --no-fingerprint --node-functions --reach-file "$MAP" --attribution "$MAP.attribution.jsonl" \
-  "${FLAGS[@]}" -- \
-  enve run --locked -q -f "$ROOT/enve.cue" -- "$ROOT/helpers/vitest-runner.sh" "$@"
+  ${FLAGS[@]+"${FLAGS[@]}"} -- \
+  enve run --locked -q ${ENVE_FLAGS[@]+"${ENVE_FLAGS[@]}"} -f "$ROOT/enve.cue" -- "$ROOT/helpers/vitest-runner.sh" "$@"

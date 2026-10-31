@@ -27,7 +27,28 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const MARKER_SOURCE = fileURLToPath(new URL('./vitest-marker.mjs', import.meta.url));
-const OUT = process.env.ENACT_ATTRIBUTION_FILE;
+const OUT = process.env.ENACT_ATTRIBUTION_FILE || process.env.ENACT_SKIPS_FILE;
+const FIFO = process.env.ENACT_TRACE_FIFO;
+let chunkSeq = 0;
+
+function streamFifo(event) {
+  if (!FIFO) return;
+  try {
+    const payload = JSON.stringify(event);
+    const line = `${payload}\n`;
+    if (Buffer.byteLength(line) <= 3800) {
+      fs.appendFileSync(FIFO, line);
+      return;
+    }
+    const chunkId = `attr-${process.pid}-${++chunkSeq}`;
+    const step = 3000;
+    for (let i = 0; i < payload.length; i += step) {
+      const data = payload.slice(i, i + step);
+      const eof = i + step >= payload.length;
+      fs.appendFileSync(FIFO, `${JSON.stringify({ type: 'chunk', id: chunkId, data, eof })}\n`);
+    }
+  } catch {}
+}
 
 /** The file a module id names, or null (virtual modules, ids that aren't paths). */
 export function modulePath(id) {
@@ -56,6 +77,7 @@ export function skippedSome(testModule) {
 
 export default class EnactAttribution {
   onInit(vitest) {
+    if (!process.env.ENACT_ATTRIBUTION_FILE) return;
     const projects = vitest.projects?.length ? vitest.projects : [vitest.getRootProject?.()].filter(Boolean);
     const configs = [vitest.config, ...projects.map((project) => project.config)];
     for (const config of configs) {
@@ -86,6 +108,7 @@ export default class EnactAttribution {
 
   write(entry) {
     if (OUT) fs.appendFileSync(OUT, `${JSON.stringify(entry)}\n`);
+    streamFifo({ type: 'attribution', ...entry });
   }
 
   onTestModuleEnd(testModule) {
@@ -93,7 +116,8 @@ export default class EnactAttribution {
     const config = testModule.project.config;
     const durations = testModule.diagnostic?.().importDurations;
     const ids = durations ? Object.keys(durations) : [];
-    const reads = [...new Set(ids.map(modulePath).filter(Boolean))];
+    const extra = testModule.meta?.().enactReads ?? testModule.task?.meta?.enactReads ?? [];
+    const reads = [...new Set([...ids, ...extra].map(modulePath).filter(Boolean))];
     const limit = config.experimental?.importDurations?.limit ?? Number.POSITIVE_INFINITY;
     const whole =
       durations !== undefined && ids.length < limit && reads.includes(target) && forkPerFile(config);

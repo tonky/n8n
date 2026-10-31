@@ -36,12 +36,17 @@ if [ "${ENACT_SERVICES_ACTIVE:-0}" = 1 ] && [ -z "$services" ]; then
 fi
 for service in $services; do FLAGS+=(--service-dep "$service"); done
 
+ENVE_FLAGS=()
+case "${ENACT_NO_ISOLATE:-}" in
+  1 | true) ENVE_FLAGS+=(--isolation host) ;;
+esac
+
 cd "$ROOT/$DIR"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/enact-trace-test.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 status=0
-"$ENACT" trace run --no-fingerprint --node-functions --reach-file "$WORK/map.json" -t "$TEST" "${FLAGS[@]}" -- \
-  enve run --locked -q -f "$ROOT/enve.cue" -- "$ROOT/helpers/vitest-runner.sh" "${TEST#"$DIR"/}" || status=$?
+"$ENACT" trace run --no-fingerprint --node-functions --reach-file "$WORK/map.json" -t "$TEST" ${FLAGS[@]+"${FLAGS[@]}"} -- \
+  enve run --locked -q ${ENVE_FLAGS[@]+"${ENVE_FLAGS[@]}"} -f "$ROOT/enve.cue" -- "$ROOT/helpers/vitest-runner.sh" "${TEST#"$DIR"/}" || status=$?
 if [ ! -s "$WORK/map.json" ]; then
   [ "$status" -ne 0 ] || status=1
   exit "$status"

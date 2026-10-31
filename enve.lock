@@ -2,8 +2,8 @@
   "platforms": {
     "aarch64-darwin": {
       "binding": {
-        "environment_sha256": "566db5528fe40a0d86b86e2ddc5d60c718ec3728dd7019fe6e7973a2d64ae8a4",
-        "inventory_sha256": "6af1341eb3ea31a9a677a5c0c7eb522a399d21c11baed8a50cf2f055fd83c744",
+        "environment_sha256": "946950f7cf1adc748ba7b9cafc1177be0265018c1000c7c5a83506316f0b57ee",
+        "inventory_sha256": "c0d292910a0bbb8b5ad4023a49da7eaa70c5e640e44c201e3da4846bb5300214",
         "profile": null,
         "version": 2
       },
@@ -31,31 +31,6 @@
           "references": [
             "0k4r9hnfbnyngn5f3j31siddfs0iglwl-sqlite-3.53.3",
             "phb97pafnka8z1qpj12is214rshpql65-zlib-1.3.2"
-          ]
-        },
-        {
-          "hash_name": "0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7",
-          "nar_hash": "sha256:1r1qq24pj9f7g2qap94905l24dq63abwsdjajafymagy7gb8jqlz",
-          "nar_size": 121142480,
-          "references": [
-            "0fz1gcmyam04pahr91fzjph2c5mi6rv0-bzip2-1.0.8",
-            "0k4r9hnfbnyngn5f3j31siddfs0iglwl-sqlite-3.53.3",
-            "0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7",
-            "2xyjpks2z1i91klny38h789j483fpz4x-libffi-40",
-            "8kn5h4pkns2wf662nvifg08vvz41c0dl-zstd-1.5.7",
-            "9496m45iskps77ngzq2i16a7snig4dx9-xz-5.8.4",
-            "c1jd49qp0wc5a9nzm2k6m7lw127z8v8x-mailcap-2.1.54",
-            "f0b9dbw2gl596cm03pvdsss72381qhlp-bash-5.3p15",
-            "ji7chjspdr4nxh0wys6n9klf13l9cxjb-apple-sdk-14.4",
-            "m1kwp7bxnlri7nm9x9x8br0d4zlr95f9-openssl-3.5.8",
-            "n9925m4950mn5i2bmlh50lds2ih6yg1v-ncurses-6.6",
-            "phb97pafnka8z1qpj12is214rshpql65-zlib-1.3.2",
-            "q34491gza1y1ghi36zj4c5zg2p5q02xc-readline-8.3p3",
-            "rhri8qncla0wkx4wpl10a48lxai3ng5b-tzdata-2026d",
-            "rj5p6rhnxpx4cprpx8y1yqpmh6npmbl3-gdbm-1.26-lib",
-            "v1zb8pqd25hsj0wd748nfczsa8ygciba-clang-wrapper-21.1.8",
-            "vj96qf8wawcr0i9wvg191ij0n7y59dg4-expat-2.8.5",
-            "xr5dvsavhkvb7bn1ga0mal6dgd7lb6rf-mpdecimal-4.0.1"
           ]
         },
         {
@@ -346,6 +321,15 @@
           "references": [
             "9pj0yyq467zw73w4lfqwv2n1f4yh46z4-clang-21.1.8-lib",
             "g22z7r4a76yncm4scwz8sm9saaw9apz2-llvm-21.1.8-lib"
+          ]
+        },
+        {
+          "hash_name": "9wqgn9s77g5fb9rkl37d8926g7zb188w-uv-0.12.22",
+          "nar_hash": "sha256:0084rl1nj44pxq2z3xwm6hk422rzrwsw5vch6sgq74ic8rxjlf36",
+          "nar_size": 51791200,
+          "references": [
+            "fgrxz4hr8f71hkhsddbvk8nxadpg67bv-libiconv-115.100.1",
+            "wwimghkn463vr6azwwxnd9f70zlzmcmd-jemalloc-5.3.1"
           ]
         },
         {
@@ -1126,6 +1110,15 @@
           ]
         },
         {
+          "hash_name": "wwimghkn463vr6azwwxnd9f70zlzmcmd-jemalloc-5.3.1",
+          "nar_hash": "sha256:1c9pgh75z71cvbn9n8mglsdrh6n6cq87vsjryvc6dnwmzz46mlaf",
+          "nar_size": 1254144,
+          "references": [
+            "f0b9dbw2gl596cm03pvdsss72381qhlp-bash-5.3p15",
+            "wwimghkn463vr6azwwxnd9f70zlzmcmd-jemalloc-5.3.1"
+          ]
+        },
+        {
           "hash_name": "wy9cy3g9s2pgzbpg6bwj6imjkpq1m5ah-zlib-1.3.2-static",
           "nar_hash": "sha256:0gh4rdarxlq7qd1ff87h98flgpgch2051b3ww65hxfn2vir55lxd",
           "nar_size": 111400,
@@ -1168,6 +1161,30 @@
           "nar_size": 223736,
           "references": [
             "xr5dvsavhkvb7bn1ga0mal6dgd7lb6rf-mpdecimal-4.0.1"
+          ]
+        },
+        {
+          "hash_name": "ydlh8id2c98nnlhiy87hwhalg501p1j5-python3-3.13.15",
+          "nar_hash": "sha256:1a7yw647njkprczn21vdcv6751vcqff2ii61y9n7fslmnymlvmpc",
+          "nar_size": 115795280,
+          "references": [
+            "0fz1gcmyam04pahr91fzjph2c5mi6rv0-bzip2-1.0.8",
+            "0k4r9hnfbnyngn5f3j31siddfs0iglwl-sqlite-3.53.3",
+            "2xyjpks2z1i91klny38h789j483fpz4x-libffi-40",
+            "9496m45iskps77ngzq2i16a7snig4dx9-xz-5.8.4",
+            "c1jd49qp0wc5a9nzm2k6m7lw127z8v8x-mailcap-2.1.54",
+            "f0b9dbw2gl596cm03pvdsss72381qhlp-bash-5.3p15",
+            "ji7chjspdr4nxh0wys6n9klf13l9cxjb-apple-sdk-14.4",
+            "m1kwp7bxnlri7nm9x9x8br0d4zlr95f9-openssl-3.5.8",
+            "n9925m4950mn5i2bmlh50lds2ih6yg1v-ncurses-6.6",
+            "phb97pafnka8z1qpj12is214rshpql65-zlib-1.3.2",
+            "q34491gza1y1ghi36zj4c5zg2p5q02xc-readline-8.3p3",
+            "rhri8qncla0wkx4wpl10a48lxai3ng5b-tzdata-2026d",
+            "rj5p6rhnxpx4cprpx8y1yqpmh6npmbl3-gdbm-1.26-lib",
+            "v1zb8pqd25hsj0wd748nfczsa8ygciba-clang-wrapper-21.1.8",
+            "vj96qf8wawcr0i9wvg191ij0n7y59dg4-expat-2.8.5",
+            "xr5dvsavhkvb7bn1ga0mal6dgd7lb6rf-mpdecimal-4.0.1",
+            "ydlh8id2c98nnlhiy87hwhalg501p1j5-python3-3.13.15"
           ]
         },
         {
@@ -1471,30 +1488,30 @@
             },
             {
               "constraint": {
-                "attr": "python3",
+                "attr": "python313",
                 "context": "profiles.dev",
                 "output": null,
                 "system": "aarch64-darwin",
-                "version": null
+                "version": "3.13"
               },
               "package": {
-                "attr_path": "python3",
+                "attr_path": "python313",
                 "name": "python3",
                 "origin": {
                   "Channel": {
-                    "build": 347196975,
+                    "build": 347196986,
                     "evaluation": 1829846,
                     "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
                   }
                 },
                 "outputs": {
-                  "out": "/nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7"
+                  "out": "/nix/store/ydlh8id2c98nnlhiy87hwhalg501p1j5-python3-3.13.15"
                 },
                 "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
                 "store_paths": [
-                  "/nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7"
+                  "/nix/store/ydlh8id2c98nnlhiy87hwhalg501p1j5-python3-3.13.15"
                 ],
-                "version": "3.14.7"
+                "version": "3.13.15"
               }
             },
             {
@@ -1608,6 +1625,34 @@
                 ],
                 "version": "6.0"
               }
+            },
+            {
+              "constraint": {
+                "attr": "uv",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "aarch64-darwin",
+                "version": null
+              },
+              "package": {
+                "attr_path": "uv",
+                "name": "uv",
+                "origin": {
+                  "Channel": {
+                    "build": 347919063,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "out": "/nix/store/9wqgn9s77g5fb9rkl37d8926g7zb188w-uv-0.12.22"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/9wqgn9s77g5fb9rkl37d8926g7zb188w-uv-0.12.22"
+                ],
+                "version": "0.12.22"
+              }
             }
           ],
           "selectionPolicy": 1,
@@ -1618,7 +1663,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "fc3861f947a19a9323b3d72275cb66c709b8c9b59b834df81088879360db90db"
+        "projectSha256": "438bf1f8d68edda959ae0677689cdb23b65f15e8a6e022d5d2ca7370a0cf5ffb"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -1654,13 +1699,16 @@
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
         "REDIS_HOST": "127.0.0.1",
         "REDIS_PORT": "6386",
         "REDIS_URL": "redis://127.0.0.1:6386/0",
         "TESTCONTAINERS_ENABLED": "false",
-        "TZ": "UTC"
+        "TZ": "UTC",
+        "UV_PYTHON_DOWNLOADS": "never",
+        "UV_PYTHON_PREFERENCE": "only-system"
       },
       "resolutionVersion": 3,
       "tools": {
@@ -1842,19 +1890,19 @@
           "version": "18.6"
         },
         "python3": {
-          "closure": "0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7",
+          "closure": "ydlh8id2c98nnlhiy87hwhalg501p1j5-python3-3.13.15",
           "outputs": [
-            "0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7"
+            "ydlh8id2c98nnlhiy87hwhalg501p1j5-python3-3.13.15"
           ],
           "source": {
-            "attr": "python3",
-            "build": 347196975,
+            "attr": "python313",
+            "build": 347196986,
             "evaluation": 1829846,
             "kind": "channel",
             "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
-          "version": "3.14.7"
+          "version": "3.13.15"
         },
         "redis": {
           "closure": "ijrgah3cj6cv6amqa70mwq7hxq7dpzfv-redis-8.10.2",
@@ -1900,13 +1948,28 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "1.96.1"
+        },
+        "uv": {
+          "closure": "9wqgn9s77g5fb9rkl37d8926g7zb188w-uv-0.12.22",
+          "outputs": [
+            "9wqgn9s77g5fb9rkl37d8926g7zb188w-uv-0.12.22"
+          ],
+          "source": {
+            "attr": "uv",
+            "build": 347919063,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "0.12.22"
         }
       }
     },
     "aarch64-linux": {
       "binding": {
-        "environment_sha256": "566db5528fe40a0d86b86e2ddc5d60c718ec3728dd7019fe6e7973a2d64ae8a4",
-        "inventory_sha256": "8a5e53bf2ca59c99163c265518332de00be055bfcc6c03d5fdc60189ed8247b4",
+        "environment_sha256": "946950f7cf1adc748ba7b9cafc1177be0265018c1000c7c5a83506316f0b57ee",
+        "inventory_sha256": "8c771d47c4d20921a5448efa849ff18260d28587a3caa3a5bebea82cffa2086b",
         "profile": null,
         "version": 2
       },
@@ -2321,6 +2384,17 @@
           "nar_size": 91320,
           "references": [
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
+          ]
+        },
+        {
+          "hash_name": "6jwqk0vli4zpdpxa2nqgm3p4yfb76g8s-jemalloc-5.3.1",
+          "nar_hash": "sha256:1k9v487irgrisx02ck0in6857blhk2978bz4r1jazwixqp4yk1i4",
+          "nar_size": 1171832,
+          "references": [
+            "6jwqk0vli4zpdpxa2nqgm3p4yfb76g8s-jemalloc-5.3.1",
+            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
+            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15",
+            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib"
           ]
         },
         {
@@ -3137,6 +3211,16 @@
           ]
         },
         {
+          "hash_name": "hzxpa7jp7d49vyiff2i56xmqval9jd1z-uv-0.12.22",
+          "nar_hash": "sha256:0dllivvschs5f5xfw2r4lsj5aqzidmfzzcncl97g08nlh9df93rr",
+          "nar_size": 61149264,
+          "references": [
+            "6jwqk0vli4zpdpxa2nqgm3p4yfb76g8s-jemalloc-5.3.1",
+            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
+            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib"
+          ]
+        },
+        {
           "hash_name": "ibj9znh6k4nz4641yrfcgz9h1b27i7xr-libpsl-0.21.5",
           "nar_hash": "sha256:1nl2yhzzyil42vq1ihsmdr3yry772ymwzz1i134qwh9bxz5zxpd8",
           "nar_size": 214224,
@@ -3895,6 +3979,31 @@
             "pkrbzjg78m0yxgmhfyld8jbds9jid1wh-dbus-1.16.2-lib",
             "q2pjg7wdh0dikxz506dcp72axrgf4rgg-libcap-ng-0.9.6",
             "svp8jj40jigqzf5a8546ircz5rbxj7hw-dbus-1.16.2"
+          ]
+        },
+        {
+          "hash_name": "v3n38bhgkjylj7wxk2shklk6yavasxnh-python3-3.13.15",
+          "nar_hash": "sha256:18954v2crd4ds55xi04pryyp5g028v3ybw63ssn3frqizskazqnn",
+          "nar_size": 138290728,
+          "references": [
+            "2lyx0wc6ccabpdwpviksww3x5xhsmnvk-sqlite-3.53.3",
+            "3anfddw01ai5ykdf393s3pbia6agx3df-bzip2-1.0.8",
+            "4av0n5zs4n8vk5allf6s4lig68crwl92-readline-8.3p3",
+            "5g0149dc72bz1rdxjc10qnr4vdh9yp1x-tzdata-2026d",
+            "5l2pjvrbxby6yrl2k3g07sp28j2bxrzv-ncurses-6.6",
+            "7d907izyink96xhqazkbw4wicvgkm76c-zlib-1.3.2",
+            "932xczyyw1mkrappjd5pn1rh3i09xyx6-libffi-3.8.0",
+            "d8aaaq83sdrzsqyxx19qfc14slcrdjix-xz-5.8.4",
+            "db07pw9avlwysb3v68cfp9cijg2mmfns-openssl-3.5.8",
+            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
+            "jiscfdlw4w8kmwfk8kwk5f72q66ncdz4-mpdecimal-4.0.1",
+            "lngldcdpyc39i41g3zrsf7n9rh7mn2gs-util-linux-minimal-2.42.3-lib",
+            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15",
+            "n7yllvdnm8p1g85b1g0rfc9dicgs0rhp-expat-2.8.5",
+            "n9arsp4izcszcydsggkbrlbxbzzr3dnr-gdbm-1.26-lib",
+            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib",
+            "v3n38bhgkjylj7wxk2shklk6yavasxnh-python3-3.13.15",
+            "xpzpw9ik1hwrb2dvsybgi5pwb3xmf5rl-mailcap-2.1.54"
           ]
         },
         {
@@ -5081,31 +5190,31 @@
             },
             {
               "constraint": {
-                "attr": "python3",
+                "attr": "python313",
                 "context": "profiles.dev",
                 "output": null,
                 "system": "aarch64-linux",
-                "version": null
+                "version": "3.13"
               },
               "package": {
-                "attr_path": "python3",
+                "attr_path": "python313",
                 "name": "python3",
                 "origin": {
                   "Channel": {
-                    "build": 347196976,
+                    "build": 347196985,
                     "evaluation": 1829846,
                     "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
                   }
                 },
                 "outputs": {
-                  "debug": "/nix/store/srgw0rb4aiyycf9xw3dv3y89q627lkzy-python3-3.14.7-debug",
-                  "out": "/nix/store/81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7"
+                  "debug": "/nix/store/cd7vbs9y5f0x2mglwja1754sgvnvrdvh-python3-3.13.15-debug",
+                  "out": "/nix/store/v3n38bhgkjylj7wxk2shklk6yavasxnh-python3-3.13.15"
                 },
                 "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
                 "store_paths": [
-                  "/nix/store/81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7"
+                  "/nix/store/v3n38bhgkjylj7wxk2shklk6yavasxnh-python3-3.13.15"
                 ],
-                "version": "3.14.7"
+                "version": "3.13.15"
               }
             },
             {
@@ -5249,6 +5358,34 @@
                 ],
                 "version": "6.0"
               }
+            },
+            {
+              "constraint": {
+                "attr": "uv",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "aarch64-linux",
+                "version": null
+              },
+              "package": {
+                "attr_path": "uv",
+                "name": "uv",
+                "origin": {
+                  "Channel": {
+                    "build": 347919064,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "out": "/nix/store/hzxpa7jp7d49vyiff2i56xmqval9jd1z-uv-0.12.22"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/hzxpa7jp7d49vyiff2i56xmqval9jd1z-uv-0.12.22"
+                ],
+                "version": "0.12.22"
+              }
             }
           ],
           "selectionPolicy": 1,
@@ -5259,7 +5396,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "fc3861f947a19a9323b3d72275cb66c709b8c9b59b834df81088879360db90db"
+        "projectSha256": "438bf1f8d68edda959ae0677689cdb23b65f15e8a6e022d5d2ca7370a0cf5ffb"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -5295,13 +5432,16 @@
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
         "REDIS_HOST": "127.0.0.1",
         "REDIS_PORT": "6386",
         "REDIS_URL": "redis://127.0.0.1:6386/0",
         "TESTCONTAINERS_ENABLED": "false",
-        "TZ": "UTC"
+        "TZ": "UTC",
+        "UV_PYTHON_DOWNLOADS": "never",
+        "UV_PYTHON_PREFERENCE": "only-system"
       },
       "resolutionVersion": 3,
       "tools": {
@@ -5525,19 +5665,19 @@
           "version": "18.6"
         },
         "python3": {
-          "closure": "81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7",
+          "closure": "v3n38bhgkjylj7wxk2shklk6yavasxnh-python3-3.13.15",
           "outputs": [
-            "81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7"
+            "v3n38bhgkjylj7wxk2shklk6yavasxnh-python3-3.13.15"
           ],
           "source": {
-            "attr": "python3",
-            "build": 347196976,
+            "attr": "python313",
+            "build": 347196985,
             "evaluation": 1829846,
             "kind": "channel",
             "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
-          "version": "3.14.7"
+          "version": "3.13.15"
         },
         "redis": {
           "closure": "k09msmwb5g97dkrgl3f9jdf85lrhbrzd-redis-8.10.2",
@@ -5583,13 +5723,28 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "1.96.1"
+        },
+        "uv": {
+          "closure": "hzxpa7jp7d49vyiff2i56xmqval9jd1z-uv-0.12.22",
+          "outputs": [
+            "hzxpa7jp7d49vyiff2i56xmqval9jd1z-uv-0.12.22"
+          ],
+          "source": {
+            "attr": "uv",
+            "build": 347919064,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "0.12.22"
         }
       }
     },
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "566db5528fe40a0d86b86e2ddc5d60c718ec3728dd7019fe6e7973a2d64ae8a4",
-        "inventory_sha256": "5876ef20499b66e741ffd81382dd3476dea2f37e32d5137cb05b141516c3e433",
+        "environment_sha256": "946950f7cf1adc748ba7b9cafc1177be0265018c1000c7c5a83506316f0b57ee",
+        "inventory_sha256": "55e4da0a7b690004e08a7041f2dd435229af8fa7abd1d047fe3aa834c7761bf5",
         "profile": null,
         "version": 2
       },
@@ -5809,6 +5964,16 @@
           ]
         },
         {
+          "hash_name": "3d7jqda0wk5iiw42wsv51ihxvg6z3w8y-uv-0.12.22",
+          "nar_hash": "sha256:120ipp8mrxdg8paym3k1525m45lvdwy0vd82wy5na6v8986dwfhi",
+          "nar_size": 66126280,
+          "references": [
+            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
+            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
+            "sf2rzaylqrxig1lz0xcrvmhdmm9zn6y0-jemalloc-5.3.1"
+          ]
+        },
+        {
           "hash_name": "3dkchpfn8r3ipsccl1001xhcl5smfjdx-glib-2.88.3",
           "nar_hash": "sha256:0gzmc4da0nw17ps3l8khnjzqclfbw6qgm7l3qiz6h5dnk8xw45ha",
           "nar_size": 16255496,
@@ -5819,6 +5984,31 @@
             "ffl0cic7f8zjkwrjvd8ikzbkbiij690a-libselinux-3.10",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "pi2b23y3gv6zgcziwbgnihf8gam1cmlp-libffi-3.8.0"
+          ]
+        },
+        {
+          "hash_name": "3gzjs8czrk47y7cpmr44jc568vqpb2p5-python3-3.13.15",
+          "nar_hash": "sha256:1p50ha1nv6hqmjf2knr79f8k9rshq7snp54mwr10nzhc39falfbq",
+          "nar_size": 134709784,
+          "references": [
+            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
+            "328fx8r0jb6l2ai4cli7fhp8g26fbfnh-util-linux-minimal-2.42.3-lib",
+            "3gzjs8czrk47y7cpmr44jc568vqpb2p5-python3-3.13.15",
+            "67v4318ajiy9ia2wz14hqj7idy5181is-gdbm-1.26-lib",
+            "9j086va2zn7ifgdc3h3jlqbi2c23j1x5-mailcap-2.1.54",
+            "9x0m6s73sg89fv5awb95vsac2mbns8n0-sqlite-3.53.3",
+            "cq65g1vyyiklplv6n2fgrjwxa6b4xfs9-mpdecimal-4.0.1",
+            "cxd8d2vg70c3pa31v2473hphaa1v0j44-openssl-3.5.8",
+            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
+            "hzqwc6pv8sb9qrwivc4h42cr811gs1mk-ncurses-6.6",
+            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
+            "mpqgjnlmzy3c5hslbgyc3s7zfz3m32lg-bzip2-1.0.8",
+            "n8fqcpnr5ni28l3i9svqa70wz46798v9-tzdata-2026d",
+            "pi2b23y3gv6zgcziwbgnihf8gam1cmlp-libffi-3.8.0",
+            "vkwq2iap75p0srizppc3jl2j5b1lxpln-xz-5.8.4",
+            "wgw25d181h0qks7qsfp1bh7c5nd3f0s7-zlib-1.3.2",
+            "xnam05aa3vc7aqbbdixpwcdb8dpv71xn-readline-8.3p3",
+            "zrkqwk0989k5wa1gn3cjb76jfga3d8i3-expat-2.8.5"
           ]
         },
         {
@@ -7376,6 +7566,17 @@
           ]
         },
         {
+          "hash_name": "sf2rzaylqrxig1lz0xcrvmhdmm9zn6y0-jemalloc-5.3.1",
+          "nar_hash": "sha256:1iw9r6k90mfikka3mx3rs1rz6nr9ib4cic7zdbnrmpnk5qgns5a8",
+          "nar_size": 1385552,
+          "references": [
+            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
+            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
+            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
+            "sf2rzaylqrxig1lz0xcrvmhdmm9zn6y0-jemalloc-5.3.1"
+          ]
+        },
+        {
           "hash_name": "shyg9m58wag3nn7y6nq7jq04ri2bj6cb-pnpm-12.4.2"
         },
         {
@@ -8765,31 +8966,31 @@
             },
             {
               "constraint": {
-                "attr": "python3",
+                "attr": "python313",
                 "context": "profiles.dev",
                 "output": null,
                 "system": "x86_64-linux",
-                "version": null
+                "version": "3.13"
               },
               "package": {
-                "attr_path": "python3",
+                "attr_path": "python313",
                 "name": "python3",
                 "origin": {
                   "Channel": {
-                    "build": 347196977,
+                    "build": 347196987,
                     "evaluation": 1829846,
                     "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
                   }
                 },
                 "outputs": {
-                  "debug": "/nix/store/7wws7qhgbm7g979l50h4z7dwxbgbdbc9-python3-3.14.7-debug",
-                  "out": "/nix/store/lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7"
+                  "debug": "/nix/store/r61fvgv4bavfaqiha0p6869jv4c0h488-python3-3.13.15-debug",
+                  "out": "/nix/store/3gzjs8czrk47y7cpmr44jc568vqpb2p5-python3-3.13.15"
                 },
                 "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
                 "store_paths": [
-                  "/nix/store/lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7"
+                  "/nix/store/3gzjs8czrk47y7cpmr44jc568vqpb2p5-python3-3.13.15"
                 ],
-                "version": "3.14.7"
+                "version": "3.13.15"
               }
             },
             {
@@ -8933,6 +9134,34 @@
                 ],
                 "version": "6.0"
               }
+            },
+            {
+              "constraint": {
+                "attr": "uv",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "x86_64-linux",
+                "version": null
+              },
+              "package": {
+                "attr_path": "uv",
+                "name": "uv",
+                "origin": {
+                  "Channel": {
+                    "build": 347919065,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "out": "/nix/store/3d7jqda0wk5iiw42wsv51ihxvg6z3w8y-uv-0.12.22"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/3d7jqda0wk5iiw42wsv51ihxvg6z3w8y-uv-0.12.22"
+                ],
+                "version": "0.12.22"
+              }
             }
           ],
           "selectionPolicy": 1,
@@ -8943,7 +9172,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "fc3861f947a19a9323b3d72275cb66c709b8c9b59b834df81088879360db90db"
+        "projectSha256": "438bf1f8d68edda959ae0677689cdb23b65f15e8a6e022d5d2ca7370a0cf5ffb"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -8979,13 +9208,16 @@
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
         "REDIS_HOST": "127.0.0.1",
         "REDIS_PORT": "6386",
         "REDIS_URL": "redis://127.0.0.1:6386/0",
         "TESTCONTAINERS_ENABLED": "false",
-        "TZ": "UTC"
+        "TZ": "UTC",
+        "UV_PYTHON_DOWNLOADS": "never",
+        "UV_PYTHON_PREFERENCE": "only-system"
       },
       "resolutionVersion": 3,
       "tools": {
@@ -9209,19 +9441,19 @@
           "version": "18.6"
         },
         "python3": {
-          "closure": "lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7",
+          "closure": "3gzjs8czrk47y7cpmr44jc568vqpb2p5-python3-3.13.15",
           "outputs": [
-            "lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7"
+            "3gzjs8czrk47y7cpmr44jc568vqpb2p5-python3-3.13.15"
           ],
           "source": {
-            "attr": "python3",
-            "build": 347196977,
+            "attr": "python313",
+            "build": 347196987,
             "evaluation": 1829846,
             "kind": "channel",
             "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
-          "version": "3.14.7"
+          "version": "3.13.15"
         },
         "redis": {
           "closure": "19hzzx7c1ryvbpxs5wf0y6bkvxvj9057-redis-8.10.2",
@@ -9267,6 +9499,21 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "1.96.1"
+        },
+        "uv": {
+          "closure": "3d7jqda0wk5iiw42wsv51ihxvg6z3w8y-uv-0.12.22",
+          "outputs": [
+            "3d7jqda0wk5iiw42wsv51ihxvg6z3w8y-uv-0.12.22"
+          ],
+          "source": {
+            "attr": "uv",
+            "build": 347919065,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "0.12.22"
         }
       }
     }

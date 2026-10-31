@@ -18,7 +18,7 @@
 # targets here, so the traced run finds them, as generate-reach-map.sh builds before it
 # traces: the footprints hold what the tests read, not a build.
 #
-# Not recorded: anything off Linux. `enact trace run` traces with seccomp, and off Linux it
+# Not recorded: anything off Linux. `enact trace run` traces with eBPF, and off Linux it
 # fails (there is no file tracer), so the tests run together, untraced. A run the tracer
 # couldn't start (no map written) runs untraced.
 #
