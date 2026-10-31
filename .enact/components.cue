@@ -67,7 +67,7 @@ pipeline: schema.#Pipeline & {
 			"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "turbo.json",
 			"tsconfig.json", "tsconfig.configs.json", "biome.jsonc", "vitest.workspace.ts",
 			".prettierrc.js", ".prettierignore", ".boundaries-baseline.json",
-			"packages/@n8n/typescript-config",
+			"packages/@n8n/module-cli", "packages/@n8n/typescript-config",
 		]
 	}
 

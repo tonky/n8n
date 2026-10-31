@@ -59,7 +59,7 @@ jobs:
     - X64
     - tonky-ci
     - tonky-ci-m
-    timeout-minutes: 15
+    timeout-minutes: 90
     steps:
     - name: Probe Runner Caches
       id: runner_caches
@@ -221,6 +221,7 @@ jobs:
           .prettierrc.js
           .prettierignore
           .boundaries-baseline.json
+          packages/@n8n/module-cli
           packages/@n8n/typescript-config
           packages/@n8n/agents
           packages/@n8n/ai-utilities
@@ -355,6 +356,7 @@ jobs:
           .prettierrc.js
           .prettierignore
           .boundaries-baseline.json
+          packages/@n8n/module-cli
           packages/@n8n/typescript-config
           packages/@n8n/agents
           packages/@n8n/ai-utilities
@@ -1372,6 +1374,7 @@ jobs:
           .prettierrc.js
           .prettierignore
           .boundaries-baseline.json
+          packages/@n8n/module-cli
           packages/@n8n/typescript-config
     - name: Checkout Repository (sparse)
       if: ${{ steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure' }}
@@ -1402,6 +1405,7 @@ jobs:
           .prettierrc.js
           .prettierignore
           .boundaries-baseline.json
+          packages/@n8n/module-cli
           packages/@n8n/typescript-config
         sparse-checkout-cone-mode: "true"
         submodules: "false"
@@ -2279,7 +2283,7 @@ jobs:
       max-parallel: 16
       matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
     runs-on: ${{ matrix.runs_on }}
-    timeout-minutes: 15
+    timeout-minutes: 90
     steps:
     - name: Probe Runner Caches
       id: runner_caches

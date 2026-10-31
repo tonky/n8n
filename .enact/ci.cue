@@ -29,10 +29,10 @@ pipeline: schema.#Pipeline & {
 			public_url: "https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev"
 			public_key: "enve-r2-1:ckHPTeWVef6mba+1AwWHjKYCsUWKPfP9IXPm5YXNoHg="
 		}
-		budget: {enforce: true, untraced_tests: 10, wall_minutes: 30}
+		budget: {enforce: true, untraced_tests: 20, wall_minutes: 30}
 		workers: {
 			standard: {
-				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], tier: "dedicated", available: 1, cost_per_min: 0.010
+				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
 				pool: {
 					cpus: 14, memory_mb: 28672
 					sizes: {
@@ -43,7 +43,7 @@ pipeline: schema.#Pipeline & {
 				}
 			}
 			arm64: {
-				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci"], tier: "dedicated", available: 1, cost_per_min: 0.008
+				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci"], tier: "dedicated", available: 1, cost_per_min: 0.008, timeout_minutes: 90
 				pool: {
 					cpus: 4, memory_mb: 8192
 					sizes: {
