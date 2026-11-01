@@ -15,6 +15,7 @@ _lint: {
 	#format: bool | *false
 	let _tasks = strings.Join(["lint", if #styles {"lint:styles"}, if #format {"format:check"}], " ")
 	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' @n8n/eslint-config @n8n/oxlint-config && pnpm turbo run " + _tasks + " --filter=" + #pkg + " --output-logs=errors-only"
+	env: {GOMEMLIMIT: "4096MiB", GOGC: "50"}
 }
 
 _typecheck: {
@@ -258,10 +259,13 @@ pipeline: schema.#Pipeline & {
 				{protocol: schema.#Protocol.Redis, target: "redis", title: "Queue mode job coordination & cache"},
 				{protocol: schema.#Protocol.Tcp, target: "@n8n/task-runner-python", title: "Dispatches Python code node tasks"},
 			]
-			root:            P.dir
-			watch_paths:     [P.dir + "/**", "helpers/n8n-template-db.cjs"]
-			depends_on:      ["root", for d in P.deps {d}]
-			workspace_scope: include_dependencies: true
+			root:        P.dir
+			watch_paths: [P.dir + "/**", "helpers/n8n-template-db.cjs"]
+			depends_on:  ["root", for d in P.deps {d}]
+			workspace_scope: {
+				include_dependencies: true
+				include:              [P.dir, "packages/frontend/editor-ui/index.js"]
+			}
 			services:        Services
 			service:         n8n.services.cli
 			resources:       {cpus: 2.0, memory_mb: 6144}

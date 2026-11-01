@@ -315,6 +315,7 @@ jobs:
           packages/frontend/@n8n/rest-api-client
           packages/frontend/@n8n/stores
           packages/frontend/editor-ui
+          packages/frontend/editor-ui/index.js
           packages/modules/inbox/frontend
           packages/modules/insights/frontend
           packages/modules/instance-registry/frontend
@@ -450,6 +451,7 @@ jobs:
           packages/frontend/@n8n/rest-api-client
           packages/frontend/@n8n/stores
           packages/frontend/editor-ui
+          packages/frontend/editor-ui/index.js
           packages/modules/inbox/frontend
           packages/modules/insights/frontend
           packages/modules/instance-registry/frontend
