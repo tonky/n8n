@@ -264,9 +264,9 @@ pipeline: schema.#Pipeline & {
 			workspace_scope: include_dependencies: true
 			services:        Services
 			service:         n8n.services.cli
-			resources:       {cpus: 2.0, memory_mb: 4096}
+			resources:       {cpus: 2.0, memory_mb: 6144}
 			shards:          P.shards
-			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests, #ignore: [P.dir + "/test/migration/**/*.test.ts"]}
+			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests}
 			test: {
 				command: _vitest
 				env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
@@ -279,7 +279,7 @@ pipeline: schema.#Pipeline & {
 				migrate: {
 					recorder:     "own_linux"
 					recorded_by:  ["enact-node", "n8n-services"]
-					target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"], #ignore: P.tests}
+					target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
 					tasks: [
 						{
 							name:    "migrate"
