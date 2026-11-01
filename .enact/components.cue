@@ -26,7 +26,7 @@ _typecheck: {
 	][0]
 }
 
-_browserCheck: {direct: true, services: false, resources: {cpus: 4.0, memory_mb: 7168}}
+_browserCheck: {direct: true, services: false, resources: {cpus: 4.0, memory_mb: 10240}}
 _vitest:       "helpers/vitest-runner.sh {relative_targets}"
 
 _unsetPgEnv: [
@@ -266,7 +266,7 @@ pipeline: schema.#Pipeline & {
 			service:         n8n.services.cli
 			resources:       {cpus: 2.0, memory_mb: 4096}
 			shards:          P.shards
-			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests}
+			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests, #ignore: [P.dir + "/test/migration/**/*.test.ts"]}
 			test: {
 				command: _vitest
 				env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
@@ -279,7 +279,7 @@ pipeline: schema.#Pipeline & {
 				migrate: {
 					recorder:     "own_linux"
 					recorded_by:  ["enact-node", "n8n-services"]
-					target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
+					target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"], #ignore: P.tests}
 					tasks: [
 						{
 							name:    "migrate"
