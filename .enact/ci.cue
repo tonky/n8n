@@ -60,7 +60,7 @@ pipeline: schema.#Pipeline & {
 			concurrency: {scope: "branch", cancel_in_progress: true}
 			triggers: {
 				push: branches:         ["main", "master", "perf/ci-modernization", "perf/ci-showcase"]
-				pull_request: branches: ["main", "master", "perf/ci-modernization"]
+				pull_request: branches: ["main", "master", "perf/ci-modernization", "perf/ci-showcase"]
 			}
 			stages: [
 				{

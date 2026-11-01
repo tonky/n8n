@@ -12,6 +12,7 @@ on:
     - main
     - master
     - perf/ci-modernization
+    - perf/ci-showcase
   workflow_dispatch:
     inputs:
       all:
