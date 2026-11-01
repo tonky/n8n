@@ -119,7 +119,7 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   if [ ! -f "$VITEST_HEALED_SENTINEL" ] || \
      [ ! -e "$REPO_ROOT/node_modules/vitest" ] || \
      [ ! -e "$PWD/node_modules/vitest" ] || \
-     { [ -f "$REPO_ROOT/packages/frontend/editor-ui/index.js" ] && [ ! -e "$REPO_ROOT/node_modules/n8n-editor-ui" ]; } || \
+     { [ ! -f "$REPO_ROOT/packages/frontend/editor-ui/index.js" ] && [ ! -e "$REPO_ROOT/node_modules/n8n-editor-ui/index.js" ]; } || \
      { [ -d "$REPO_ROOT/packages/@n8n/vitest-config" ] && [ ! -e "$REPO_ROOT/packages/@n8n/vitest-config/node_modules/vitest" ]; }; then
     # Link all workspace @n8n packages into root node_modules/@n8n so configs and tools resolve them
     mkdir -p "$REPO_ROOT/node_modules/@n8n"
@@ -130,8 +130,14 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
         ln -sfn "$pkg" "$REPO_ROOT/node_modules/@n8n/$name" 2>/dev/null || true
       fi
     done
-    if [ -f "$REPO_ROOT/packages/frontend/editor-ui/index.js" ] && [ ! -e "$REPO_ROOT/node_modules/n8n-editor-ui" ]; then
-      ln -sfn "$REPO_ROOT/packages/frontend/editor-ui" "$REPO_ROOT/node_modules/n8n-editor-ui" 2>/dev/null || true
+    if [ ! -f "$REPO_ROOT/packages/frontend/editor-ui/index.js" ]; then
+      rm -rf "$REPO_ROOT/node_modules/n8n-editor-ui" 2>/dev/null || true
+      mkdir -p "$REPO_ROOT/node_modules/n8n-editor-ui"
+      printf '{"name":"n8n-editor-ui","main":"index.js"}\n' > "$REPO_ROOT/node_modules/n8n-editor-ui/package.json"
+      : > "$REPO_ROOT/node_modules/n8n-editor-ui/index.js"
+      if [ -d "$REPO_ROOT/packages/cli/node_modules" ]; then
+        ln -sfn "$REPO_ROOT/node_modules/n8n-editor-ui" "$REPO_ROOT/packages/cli/node_modules/n8n-editor-ui" 2>/dev/null || true
+      fi
     fi
 
     # Self-heal vitest and vite resolution for ESM imports across workspace boundaries

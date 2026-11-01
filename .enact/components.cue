@@ -17,7 +17,7 @@ _lint: {
 	let _depFilter = [if #pkg == "n8n-nodes-base" {"'" + #pkg + "...'"}, "'" + #pkg + "^...'"][0]
 	let _extraDeps = strings.Join(["@n8n/eslint-config", "@n8n/oxlint-config", if #styles {"@n8n/stylelint-config"}], " ")
 	command: "helpers/build-workspace-deps.sh --checked " + _depFilter + " " + _extraDeps + " && pnpm turbo run --only --env-mode=loose " + _tasks + " --filter=" + #pkg + " --output-logs=errors-only"
-	env: {GOMEMLIMIT: "4096MiB", GOGC: "50"}
+	env: {GOMEMLIMIT: "3072MiB", GOGC: "50"}
 }
 
 _typecheck: {
@@ -266,7 +266,7 @@ pipeline: schema.#Pipeline & {
 			depends_on:  ["root", for d in P.deps {d}]
 			workspace_scope: {
 				include_dependencies: true
-				include:              [P.dir, "packages/frontend/editor-ui/index.js"]
+				include:              [P.dir]
 			}
 			services:        Services
 			service:         n8n.services.cli
