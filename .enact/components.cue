@@ -99,7 +99,7 @@ pipeline: schema.#Pipeline & {
 	]
 
 	caches: {
-		vitest_transforms: {paths: ["node_modules/.vitest-cache"], key: ["pnpm-lock.yaml"], scope: "task"}
+		vitest_transforms: {paths: ["node_modules/.vitest-cache"], key: ["pnpm-lock.yaml"], scope: "task", used_by: jobs: ["test", "migrate"]}
 		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml"], scope: "task", refresh: "rolling"}
 	}
 
@@ -184,6 +184,8 @@ pipeline: schema.#Pipeline & {
 			let Dir = "packages/@n8n/task-runner-python"
 			name:            "@n8n/task-runner-python"
 			title:           "n8n Python Task Runner"
+			kind:            "service"
+			domain:          "execution"
 			root:            Dir
 			watch_paths:     [Dir + "/**"]
 			depends_on:      ["root"]
@@ -204,6 +206,9 @@ pipeline: schema.#Pipeline & {
 			let Services = [n8n.services.postgres]
 			name:        "@n8n/db"
 			title:       "n8n Database & Entities"
+			kind:        "library"
+			domain:      "backend"
+			uses:        [{protocol: schema.#Protocol.Sql, target: "postgres", title: "Workflow & execution persistence"}]
 			root:        P.dir
 			watch_paths: [P.dir + "/**", "docs/generated/**", ".tbls.*.yml", "helpers/schema-docs-postgres.mjs"]
 			depends_on:  ["root", for d in P.deps {d}]
@@ -246,12 +251,20 @@ pipeline: schema.#Pipeline & {
 			let Services = [n8n.services.postgres, n8n.services.redis]
 			name:            "cli"
 			title:           "n8n CLI & Backend Service"
+			kind:            "service"
+			domain:          "backend"
+			uses: [
+				{protocol: schema.#Protocol.Sql, target: "postgres", title: "Stores workflows, credentials & executions"},
+				{protocol: schema.#Protocol.Redis, target: "redis", title: "Queue mode job coordination & cache"},
+				{protocol: schema.#Protocol.Tcp, target: "@n8n/task-runner-python", title: "Dispatches Python code node tasks"},
+			]
 			root:            P.dir
 			watch_paths:     [P.dir + "/**", "helpers/n8n-template-db.cjs"]
 			depends_on:      ["root", for d in P.deps {d}]
 			workspace_scope: include_dependencies: true
 			services:        Services
 			service:         n8n.services.cli
+			resources:       {cpus: 2.0, memory_mb: 4096}
 			shards:          P.shards
 			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests}
 			lint:            _lint & {#pkg: P.pkg, #styles: P.lint_styles, #format: P.format_check}
@@ -292,6 +305,8 @@ pipeline: schema.#Pipeline & {
 			let P = _packages.playwright
 			name:            "playwright"
 			title:           "n8n End-to-End Playwright Suite"
+			kind:            "verification"
+			domain:          "verification"
 			root:            P.dir
 			watch_paths:     [P.dir + "/**", "helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs"]
 			depends_on:      ["root", "frontend", for d in P.deps {d}]

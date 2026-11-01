@@ -28,6 +28,8 @@ pipeline: schema.#Pipeline & {
 			secrets: {bucket: "R2_BUCKET", access_key_id: "R2_ACCESS_KEY_ID", secret_access_key: "R2_SECRET_ACCESS_KEY"}
 			public_url: "https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev"
 			public_key: "enve-r2-1:ckHPTeWVef6mba+1AwWHjKYCsUWKPfP9IXPm5YXNoHg="
+			repo:       "tonky/n8n"
+			branch:     "perf/ci-showcase"
 		}
 		budget: {enforce: true, untraced_tests: 20, wall_minutes: 30}
 		workers: {

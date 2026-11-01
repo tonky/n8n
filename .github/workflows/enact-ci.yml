@@ -44,6 +44,7 @@ env:
   COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
   ENVE_SERVICE_GID: "1000"
   ENVE_SERVICE_UID: "1000"
+  ENVE_SUBSTITUTERS: https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev https://cache.nixos.org
   ENVE_TRUSTED_PUBLIC_KEYS: enve-r2-1:ckHPTeWVef6mba+1AwWHjKYCsUWKPfP9IXPm5YXNoHg=
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   GOCACHE: /tmp/go-build
@@ -174,10 +175,18 @@ jobs:
                 git -C "$mirror" config uploadpack.allowAnySHA1InWant true
                 git -C "$mirror" config gc.auto 0
             fi
-            git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
-            if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+            ref_current=""
+            case "$GITHUB_REF" in
+                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+                *) ref_current="$GITHUB_SHA" ;;
+            esac
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+                if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                fi
             fi
+            touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
         ) 9>"$mirror.lock"
         cd "$GITHUB_WORKSPACE"
         # A half-made repository would mislead the fallback checkout into reusing it.
@@ -659,6 +668,7 @@ jobs:
         # A job handed detect's map (ENACT_REACH_FILE) plans with that one.
         if [ -z "${ENACT_REACH_FILE:-}" ]; then
           enact trace store pull || true
+          export ENACT_REACH_PULLED=1
         fi
         # The reach map's footprints are aged by what changed since the revisions they were
         # traced at: fetch those the shallow clone lacks, else each ages whole. Their
@@ -757,7 +767,7 @@ jobs:
           restore-keys: ${{ runner.os }}-enact-tasks-
       - name: Restore Node dependency cache
         id: node_l1_cache
-        if: ${{ (steps.runner_caches.outputs.host == '') && steps.stage_plan.outputs.stage_has_work == 'true' }}
+        if: ${{ (steps.stage_plan.outputs.stage_needs_node == 'true' && steps.runner_caches.outputs.host == '') && steps.stage_plan.outputs.stage_has_work == 'true' }}
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
@@ -779,15 +789,6 @@ jobs:
           restore-keys: |-
             node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-
             node_build-${{ runner.os }}-stage-check-and-lint-
-      - name: Restore Cache [vitest_transforms]
-        id: cache_vitest_transforms
-        if: ${{ steps.stage_plan.outputs.stage_has_work == 'true' }}
-        continue-on-error: true
-        uses: actions/cache/restore@v6
-        with:
-          key: vitest_transforms-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('pnpm-lock.yaml') }}
-          path: node_modules/.vitest-cache
-          restore-keys: vitest_transforms-${{ runner.os }}-stage-check-and-lint-
     - name: Record Restored Package Caches
       if: ${{ (steps.runner_caches.outputs.host == '') && steps.stage_plan.outputs.stage_has_work == 'true' }}
       continue-on-error: true
@@ -857,7 +858,7 @@ jobs:
         done
         echo "enve stores into the host cache: $ENVE_STORE_DIR"
     - name: Install Project Dependencies
-      if: ${{ (hashFiles('package.json') != '') && steps.stage_plan.outputs.stage_has_work == 'true' }}
+      if: ${{ (hashFiles('package.json') != '' && steps.stage_plan.outputs.stage_needs_node == 'true') && steps.stage_plan.outputs.stage_has_work == 'true' }}
       run: |-
         RUN_PREFIX=""
         if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
@@ -1030,6 +1031,7 @@ jobs:
         # A job handed detect's map (ENACT_REACH_FILE) plans with that one.
         if [ -z "${ENACT_REACH_FILE:-}" ]; then
           enact trace store pull || true
+          export ENACT_REACH_PULLED=1
         fi
         # The reach map's footprints are aged by what changed since the revisions they were
         # traced at: fetch those the shallow clone lacks, else each ages whole. Their
@@ -1167,15 +1169,8 @@ jobs:
         with:
           key: ${{ steps.cache_node_build.outputs.cache-primary-key }}
           path: .turbo
-      - name: Save Cache [vitest_transforms]
-        if: ${{ ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_vitest_transforms.outputs.cache-hit != 'true') && steps.stage_plan.outputs.stage_has_work == 'true' }}
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          key: ${{ steps.cache_vitest_transforms.outputs.cache-primary-key }}
-          path: node_modules/.vitest-cache
       - name: Save Node dependency cache
-        if: ${{ (((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_delta.outputs.node_l1_cache == 'true' && steps.runner_caches.outputs.host == '') && steps.node_l1_cache.outputs.cache-hit != 'true') && steps.stage_plan.outputs.stage_has_work == 'true' }}
+        if: ${{ (((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.stage_plan.outputs.stage_needs_node == 'true' && steps.cache_delta.outputs.node_l1_cache == 'true' && steps.runner_caches.outputs.host == '') && steps.node_l1_cache.outputs.cache-hit != 'true') && steps.stage_plan.outputs.stage_has_work == 'true' }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
@@ -1328,10 +1323,18 @@ jobs:
                 git -C "$mirror" config uploadpack.allowAnySHA1InWant true
                 git -C "$mirror" config gc.auto 0
             fi
-            git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
-            if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+            ref_current=""
+            case "$GITHUB_REF" in
+                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+                *) ref_current="$GITHUB_SHA" ;;
+            esac
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+                if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                fi
             fi
+            touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
         ) 9>"$mirror.lock"
         cd "$GITHUB_WORKSPACE"
         # A half-made repository would mislead the fallback checkout into reusing it.
@@ -1611,6 +1614,7 @@ jobs:
         # A job handed detect's map (ENACT_REACH_FILE) plans with that one.
         if [ -z "${ENACT_REACH_FILE:-}" ]; then
           enact trace store pull || true
+          export ENACT_REACH_PULLED=1
         fi
         # The reach map's footprints are aged by what changed since the revisions they were
         # traced at: fetch those the shallow clone lacks, else each ages whole. Their
@@ -1673,19 +1677,12 @@ jobs:
         if [ "${ENACT_FORCE_NO_CACHE:-}" = "true" ]; then
           set -- "$@" --no-cache
         fi
-        ADMISSION_ARGS=()
-        for arg in "$@"; do
-          if [ "$arg" != "--no-cache" ]; then
-            ADMISSION_ARGS+=("$arg")
-          fi
-        done
         ADMISSION_REPORT="$RUNNER_TEMP/enact-admission.json"
-        enact dry-run --pipeline .enact --workflow ci "${ADMISSION_ARGS[@]}" --budget --json > "$ADMISSION_REPORT" || {
+        MATRIX=$(enact affected --pipeline .enact --workflow ci --reach-hand-off "$RUNNER_TEMP/enact-reach" --budget --budget-report "$ADMISSION_REPORT" "$@" --format json) || {
           status=$?
           echo "::error::CI budget admission failed; report: $ADMISSION_REPORT" >&2
           exit "$status"
         }
-        MATRIX=$(enact affected --pipeline .enact --workflow ci --reach-hand-off "$RUNNER_TEMP/enact-reach" "$@" --format json)
         echo "$MATRIX"
         echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
       env:
@@ -1842,10 +1839,18 @@ jobs:
                 git -C "$mirror" config uploadpack.allowAnySHA1InWant true
                 git -C "$mirror" config gc.auto 0
             fi
-            git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
-            if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+            ref_current=""
+            case "$GITHUB_REF" in
+                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+                *) ref_current="$GITHUB_SHA" ;;
+            esac
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+                if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                fi
             fi
+            touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
         ) 9>"$mirror.lock"
         cd "$GITHUB_WORKSPACE"
         # A half-made repository would mislead the fallback checkout into reusing it.
@@ -1983,10 +1988,16 @@ jobs:
         path: ${{ runner.temp }}/enact-footprints
         pattern: enact-footprints-*
     - name: Consolidate the Reach Map
+      id: consolidate_reach
       run: |-
         cd "${GITHUB_WORKSPACE}"
-        enact trace store pull || true
-        enact trace store push --deltas "$RUNNER_TEMP/enact-footprints"
+        if [ -n "$(find "$RUNNER_TEMP/enact-footprints" -name '*.bin' -print -quit 2>/dev/null)" ]; then
+          enact trace store pull || true
+          enact trace store push --deltas "$RUNNER_TEMP/enact-footprints"
+          echo "consolidated=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "🗺️  Reach store: no deltas to consolidate"
+        fi
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
         AWS_REGION: auto
@@ -1997,7 +2008,7 @@ jobs:
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     - name: Save Reach Store
-      if: ${{ always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
+      if: ${{ always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) && steps.consolidate_reach.outputs.consolidated == 'true' }}
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -2130,10 +2141,18 @@ jobs:
                 git -C "$mirror" config uploadpack.allowAnySHA1InWant true
                 git -C "$mirror" config gc.auto 0
             fi
-            git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
-            if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+            ref_current=""
+            case "$GITHUB_REF" in
+                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+                *) ref_current="$GITHUB_SHA" ;;
+            esac
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+                if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                fi
             fi
+            touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
         ) 9>"$mirror.lock"
         cd "$GITHUB_WORKSPACE"
         # A half-made repository would mislead the fallback checkout into reusing it.
@@ -2402,10 +2421,18 @@ jobs:
                 git -C "$mirror" config uploadpack.allowAnySHA1InWant true
                 git -C "$mirror" config gc.auto 0
             fi
-            git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
-            if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+            ref_current=""
+            case "$GITHUB_REF" in
+                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+                *) ref_current="$GITHUB_SHA" ;;
+            esac
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+                if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                fi
             fi
+            touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
         ) 9>"$mirror.lock"
         cd "$GITHUB_WORKSPACE"
         # A half-made repository would mislead the fallback checkout into reusing it.
@@ -2585,6 +2612,7 @@ jobs:
             node_build-${{ runner.os }}-${{ matrix.task_id }}-
       - name: Restore Cache [vitest_transforms]
         id: cache_vitest_transforms
+        if: contains(format(',{0},', matrix.caches), ',vitest_transforms,')
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
@@ -2901,7 +2929,7 @@ jobs:
           key: ${{ steps.cache_node_build.outputs.cache-primary-key }}
           path: .turbo
       - name: Save Cache [vitest_transforms]
-        if: (github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && steps.cache_vitest_transforms.outputs.cache-hit != 'true'
+        if: ((github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && contains(format(',{0},', matrix.caches), ',vitest_transforms,')) && steps.cache_vitest_transforms.outputs.cache-hit != 'true'
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
