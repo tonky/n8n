@@ -267,37 +267,39 @@ pipeline: schema.#Pipeline & {
 			resources:       {cpus: 2.0, memory_mb: 4096}
 			shards:          P.shards
 			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests}
-			lint:            _lint & {#pkg: P.pkg, #styles: P.lint_styles, #format: P.format_check}
-			typecheck:       _typecheck & {#pkg: P.pkg}
 			test: {
 				command: _vitest
 				env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
 			}
 			recorder:    "own_linux"
 			recorded_by: ["enact-node", "n8n-services"]
-			jobs: migrate: {
-				recorder:     "own_linux"
-				recorded_by:  ["enact-node", "n8n-services"]
-				target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
-				tasks: [
-					{
-						name:    "migrate"
-						command: "VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
-						env: {
-							ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
-							N8N_LOG_LEVEL:            "silent"
-							DB_TYPE:                  "postgresdb"
-							DB_POSTGRESDB_SCHEMA:     "alt_schema"
-							DB_TABLE_PREFIX:          "test_"
-						}
-					},
-					{
-						name:      "migrate-sqlite"
-						command:   "DB_TYPE=sqlite DB_SQLITE_POOL_SIZE=4 VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
-						env:       {ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " "), N8N_LOG_LEVEL: "silent", DB_SQLITE_POOL_SIZE: "4", DB_TYPE: "sqlite"}
-						unset_env: _unsetPgEnv
-					},
-				]
+			jobs: {
+				lint:      _browserCheck & {name: "Lint", tasks: [_lint & {#pkg: P.pkg, #styles: P.lint_styles, #format: P.format_check, name: "Run Linter"}]}
+				typecheck: _browserCheck & {name: "Typecheck", tasks: [_typecheck & {#pkg: P.pkg, name: "Typecheck"}]}
+				migrate: {
+					recorder:     "own_linux"
+					recorded_by:  ["enact-node", "n8n-services"]
+					target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
+					tasks: [
+						{
+							name:    "migrate"
+							command: "VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
+							env: {
+								ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
+								N8N_LOG_LEVEL:            "silent"
+								DB_TYPE:                  "postgresdb"
+								DB_POSTGRESDB_SCHEMA:     "alt_schema"
+								DB_TABLE_PREFIX:          "test_"
+							}
+						},
+						{
+							name:      "migrate-sqlite"
+							command:   "DB_TYPE=sqlite DB_SQLITE_POOL_SIZE=4 VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
+							env:       {ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " "), N8N_LOG_LEVEL: "silent", DB_SQLITE_POOL_SIZE: "4", DB_TYPE: "sqlite"}
+							unset_env: _unsetPgEnv
+						},
+					]
+				}
 			}
 		}
 
