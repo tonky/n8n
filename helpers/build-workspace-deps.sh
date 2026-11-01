@@ -39,6 +39,23 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 . helpers/pnpm-store.sh
 filters=()
 for filter in "$@"; do filters+=("--filter=$filter"); done
+# In a sparse checkout where packages/frontend/editor-ui/src is absent (e.g. cli, which drops
+# the editor-ui edge in tools/gen_packages.py), exclude n8n-editor-ui and the frontend-only
+# workspace packages reached solely through it so `n8n^...` does not try to build packages
+# outside the sparse cone.
+if [ ! -d packages/frontend/editor-ui/src ]; then
+  for excl in \
+    n8n-editor-ui \
+    @n8n/chat \
+    @n8n/rest-api-client \
+    @n8n/stores \
+    '@n8n/codemirror-lang*' \
+    '@n8n/frontend-module-*' \
+    @n8n/frontend-test-utils \
+    @n8n/frontend-vite-config; do
+    filters+=("--filter=!$excl")
+  done
+fi
 locks="/tmp/enact-locks-$(id -u)/$(pwd -P | cksum | cut -d ' ' -f 1)"
 mkdir -p "$locks"
 exec flock -o "$locks/workspace-build.flock" \

@@ -14,14 +14,16 @@ _lint: {
 	#styles: bool | *false
 	#format: bool | *false
 	let _tasks = strings.Join(["lint", if #styles {"lint:styles"}, if #format {"format:check"}], " ")
-	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' @n8n/eslint-config @n8n/oxlint-config && pnpm turbo run " + _tasks + " --filter=" + #pkg + " --output-logs=errors-only"
+	let _depFilter = [if #pkg == "n8n-nodes-base" {"'" + #pkg + "...'"}, "'" + #pkg + "^...'"][0]
+	let _extraDeps = strings.Join(["@n8n/eslint-config", "@n8n/oxlint-config", if #styles {"@n8n/stylelint-config"}], " ")
+	command: "helpers/build-workspace-deps.sh --checked " + _depFilter + " " + _extraDeps + " && pnpm turbo run --only --env-mode=loose " + _tasks + " --filter=" + #pkg + " --output-logs=errors-only"
 	env: {GOMEMLIMIT: "4096MiB", GOGC: "50"}
 }
 
 _typecheck: {
 	#pkg:          string
 	#declarations: bool | *false
-	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' && pnpm turbo run typecheck --filter=" + #pkg + " --output-logs=errors-only" + [
+	command: "helpers/build-workspace-deps.sh --checked '" + #pkg + "^...' && pnpm turbo run --only --env-mode=loose typecheck --filter=" + #pkg + " --output-logs=errors-only" + [
 		if #declarations {" && RELEASE=true helpers/build-workspace-deps.sh --checked " + #pkg + " && test -f dist/index.d.ts"},
 		"",
 	][0]
