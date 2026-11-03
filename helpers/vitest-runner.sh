@@ -130,11 +130,10 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
         ln -sfn "$pkg" "$REPO_ROOT/node_modules/@n8n/$name" 2>/dev/null || true
       fi
     done
-    if [ ! -f "$REPO_ROOT/packages/frontend/editor-ui/index.js" ]; then
-      rm -rf "$REPO_ROOT/node_modules/n8n-editor-ui" 2>/dev/null || true
+    if [ ! -f "$REPO_ROOT/packages/frontend/editor-ui/index.js" ] && [ ! -f "$REPO_ROOT/node_modules/n8n-editor-ui/index.js" ]; then
       mkdir -p "$REPO_ROOT/node_modules/n8n-editor-ui"
-      printf '{"name":"n8n-editor-ui","main":"index.js"}\n' > "$REPO_ROOT/node_modules/n8n-editor-ui/package.json"
-      : > "$REPO_ROOT/node_modules/n8n-editor-ui/index.js"
+      printf '{"name":"n8n-editor-ui","main":"index.js"}\n' > "$REPO_ROOT/node_modules/n8n-editor-ui/package.json" 2>/dev/null || true
+      : > "$REPO_ROOT/node_modules/n8n-editor-ui/index.js" 2>/dev/null || true
       if [ -d "$REPO_ROOT/packages/cli/node_modules" ]; then
         ln -sfn "$REPO_ROOT/node_modules/n8n-editor-ui" "$REPO_ROOT/packages/cli/node_modules/n8n-editor-ui" 2>/dev/null || true
       fi

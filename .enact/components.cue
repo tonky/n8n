@@ -78,7 +78,7 @@ pipeline: schema.#Pipeline & {
 
 	analysis: derived: [
 		for _, p in _packages if p.built {
-			outputs: [p.dir + "/dist/**"]
+			outputs: [p.dir + "/dist/**", p.dir + "/.turbo/**"]
 			inputs:  [p.dir + "/**", for b in p.bundles {b + "/**"}]
 			exclude: [
 				for d in [p.dir, for b in p.bundles {b}] for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e},
@@ -110,7 +110,7 @@ pipeline: schema.#Pipeline & {
 		root: {
 			name: "root", title: "n8n Environment, Pipeline & pnpm Workspace", technology: "typescript", root: "."
 			watch_paths: [
-				"enve.cue", "enve.lock", ".enact/**", "cue.mod", "bin/**", ".github/workflows/**",
+				"enve.cue", "enve.lock", "ENACT.md", ".enact/**", "cue.mod", "bin/**", ".github/workflows/**",
 				".githooks/**", ".gitignore", ".gitattributes", ".editorconfig",
 				"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "turbo.json",
 				"tsconfig.json", "tsconfig.configs.json", "biome.jsonc", "vitest.workspace.ts",
@@ -337,6 +337,9 @@ pipeline: schema.#Pipeline & {
 				not_run: [{
 					tests:  [for d in ["cli-workflows", "evals", "infrastructure", "performance"] {P.dir + "/tests/" + d + "/**/*.spec.ts"}]
 					reason: "Playwright projects other than e2e and dev-server-smoke: upstream runs them against containers (infrastructure, performance), workflow fixtures (cli-workflows) or an LLM (evals)"
+				}, {
+					tests:  [P.dir + "/tests/framework/harness-contract.test.ts"]
+					reason: "drives Playwright in a subprocess under its own Vitest config (test:harness), which the runner's vitest.config.ts leaves out"
 				}]
 			}
 			resources: {cpus: 4.0, memory_mb: 10240}
