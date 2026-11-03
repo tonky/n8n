@@ -136,7 +136,7 @@ pipeline: schema.#Pipeline & {
 				if p.shards > 0 {shards: p.shards}
 				if len(p.tests) > 0 {
 					target_scope: _target_scope & {#dir: p.dir, #tests: p.tests, #ignore: p.exclude}
-					test:         _vitest
+					if n != "nodes-base" {test: _vitest}
 					recorder:     "own_linux"
 					recorded_by:  ["enact-node"]
 				}
@@ -159,14 +159,23 @@ pipeline: schema.#Pipeline & {
 
 		"nodes-base": {
 			let P = _packages["nodes-base"]
-			let NotRun = [P.dir + "/nodes/Kafka/test/v2/kafka.integration.test.ts", P.dir + "/nodes/MySql/test/v2/mysql.integration.test.ts"]
+			let Services = {kafka: n8n.services.kafka, mysql: n8n.services.mysql}
+			// Its services are the integration job's: the unit suite starts none.
+			services: Services
+			jobs: test: {name: "Test", services: false, tasks: [{name: "Run Tests", command: _vitest}]}
+			// Every `*.integration.test.ts`, under upstream's integration config (upstream runs
+			// them by hand, test:integration:skip). Kafka's and MySQL's reach enve's broker and
+			// server (N8N_TEST_KAFKA_BROKER, N8N_TEST_MYSQL_*: patches/0001), not testcontainers.
 			jobs: integration: {
 				recorder:     "own_linux"
 				recorded_by:  ["enact-node"]
-				target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/credentials/**/*.integration.test.ts"], #ignore: NotRun}
-				tasks:        [{name: "integration", command: "VITEST_RUNNER_ARGS='--config vitest.integration.config.ts --dir credentials --coverage.enabled=false' helpers/vitest-runner.sh {relative_targets}"}]
+				target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/{credentials,nodes}/**/*.integration.test.ts"]}
+				tasks: [{
+					name:    "integration"
+					command: "VITEST_RUNNER_ARGS='--config vitest.integration.config.ts --coverage.enabled=false' helpers/vitest-runner.sh {relative_targets}"
+					env: ENACT_FOOTPRINT_SERVICES: strings.Join([for name, _ in Services {name}], " ")
+				}]
 			}
-			target_scope: not_run: [{tests: NotRun, reason: "testcontainers (n8n-containers) starts their Kafka and MySQL: no container runtime under enve"}]
 		}
 
 		"@n8n/agents": target_scope: not_run: [{
@@ -270,7 +279,7 @@ pipeline: schema.#Pipeline & {
 			}
 			services:        Services
 			service:         n8n.services.cli
-			resources:       {cpus: 2.0, memory_mb: 6144}
+			resources:       {cpus: 2.0, memory_mb: 3072}
 			shards:          P.shards
 			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests}
 			test: {
@@ -334,6 +343,11 @@ pipeline: schema.#Pipeline & {
 				#ignore: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]
 				exclude: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]
 				#runner: ["helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs"]
+				// Not run either: the `engine-v2:e2e` project (upstream's "E2E on engine v2", the
+				// `@engine:*` specs of tests/e2e, which this suite runs on engine v1). It exists only
+				// in container mode: n8n-containers starts Postgres, a main in remote engine mode and
+				// an `n8n engine` container sharing its storage, and the parity fixture reads the
+				// engine mode from that stack's config.
 				not_run: [{
 					tests:  [for d in ["cli-workflows", "evals", "infrastructure", "performance"] {P.dir + "/tests/" + d + "/**/*.spec.ts"}]
 					reason: "Playwright projects other than e2e and dev-server-smoke: upstream runs them against containers (infrastructure, performance), workflow fixtures (cli-workflows) or an LLM (evals)"

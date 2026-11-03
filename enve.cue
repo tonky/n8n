@@ -24,21 +24,31 @@ let pnpm = schema.#ArchiveBuildSpec & {
 	installPhase: "mkdir -p \"$out/bin\" && cp pnpm \"$out/bin/\" && chmod +x \"$out/bin/pnpm\""
 }
 
+// Every PostgreSQL service's server flags and its n8n database, in UTC.
+let _postgres = {
+	command:     "postgres -D \"$DATA_DIR\" -k \"$SOCKET_DIR\" -p $PORT -c shared_buffers=32MB -c work_mem=4MB -c max_connections=100 -c max_locks_per_transaction=256 -c fsync=off -c synchronous_commit=off"
+	environment: {TZ: "UTC", PGTZ: "UTC"}
+	lifecycle: postStart: "createdb -h 127.0.0.1 -p $PORT -U postgres n8n 2>/dev/null || true; psql -h 127.0.0.1 -p $PORT -U postgres -c \"ALTER DATABASE n8n SET timezone TO 'UTC';\" -c \"ALTER ROLE postgres SET timezone TO 'UTC';\" || true"
+}
+
 profiles: dev: schema.#Profile & {
 	name: "n8n-platform-dev"
 	tools: [
 		pnpm, pkgs.nodejs & {version: "24"}, pkgs.postgresql, pkgs.redis, {pname: "tbls"},
 		{pname: "curl"}, {pname: "ripgrep"}, {pname: "bash"}, {pname: "coreutils"},
 		pkgs.python & {version: "3.13"}, pkgs.uv, {pname: "flock"},
+		// nodes-base's Kafka integration test drives the broker's CLI (kafka-topics.sh, ...).
+		pkgs.kafka,
 		pkgs.#PlaywrightBrowsers & {version: "1.62.1", features: ["chromium-headless-shell", "ffmpeg"]},
 	]
 	services: {
-		postgres: {
-			name:        "postgres"
-			port:        5438
-			command:     "postgres -D \"$DATA_DIR\" -k \"$SOCKET_DIR\" -p $PORT -c shared_buffers=32MB -c work_mem=4MB -c max_connections=100 -c max_locks_per_transaction=256 -c fsync=off -c synchronous_commit=off"
-			environment: {TZ: "UTC", PGTZ: "UTC"}
-			lifecycle: postStart: "createdb -h 127.0.0.1 -p $PORT -U postgres n8n 2>/dev/null || true; psql -h 127.0.0.1 -p $PORT -U postgres -c \"ALTER DATABASE n8n SET timezone TO 'UTC';\" -c \"ALTER ROLE postgres SET timezone TO 'UTC';\" || true"
+		postgres: _postgres & {name: "postgres", port: 5438}
+		// nodes-base's Kafka and MySQL integration tests (n8n-containers' kafka and mysql
+		// services): a KRaft broker, and the database and user its MySqlContainer creates.
+		kafka: port: 9095
+		mysql: {
+			port: 3329
+			lifecycle: postStart: "mysql -h 127.0.0.1 -P $PORT -u root -e \"CREATE DATABASE IF NOT EXISTS n8n_test\" && mysql -h 127.0.0.1 -P $PORT -u root -e \"CREATE USER IF NOT EXISTS 'n8n_user'@'%' IDENTIFIED BY 'test_password'\" && mysql -h 127.0.0.1 -P $PORT -u root -e \"GRANT ALL PRIVILEGES ON n8n_test.* TO 'n8n_user'@'%'\""
 		}
 		redis: {name: "redis", port: 6386}
 		cli: {
@@ -67,6 +77,7 @@ profiles: dev: schema.#Profile & {
 	environment: {
 		TZ:                                   "UTC"
 		PGTZ:                                 "UTC"
+		DATABASE_URL:                         "postgresql://postgres@127.0.0.1:${ENVE_SERVICE_POSTGRES_PORT}/postgres"
 		DB_TYPE:                              "postgresdb"
 		DB_POSTGRESDB_HOST:                   "127.0.0.1"
 		DB_POSTGRESDB_PORT:                   "${ENVE_SERVICE_POSTGRES_PORT}"
@@ -79,6 +90,12 @@ profiles: dev: schema.#Profile & {
 		QUEUE_BULL_REDIS_PORT:                "${ENVE_SERVICE_REDIS_PORT}"
 		N8N_TEST_REDIS_HOST:                  "127.0.0.1"
 		N8N_TEST_REDIS_PORT:                  "${ENVE_SERVICE_REDIS_PORT}"
+		N8N_TEST_KAFKA_BROKER:                "127.0.0.1:${ENVE_SERVICE_KAFKA_PORT}"
+		N8N_TEST_MYSQL_HOST:                  "127.0.0.1"
+		N8N_TEST_MYSQL_PORT:                  "${ENVE_SERVICE_MYSQL_PORT}"
+		N8N_TEST_MYSQL_DATABASE:              "n8n_test"
+		N8N_TEST_MYSQL_USER:                  "n8n_user"
+		N8N_TEST_MYSQL_PASSWORD:              "test_password"
 		TESTCONTAINERS_ENABLED:               "false"
 		COREPACK_ENABLE_DOWNLOAD_PROMPT:      "0"
 		PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS: "false"

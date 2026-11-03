@@ -10,6 +10,8 @@ let J = pipeline.#jobs
 n8n: services: enve.profiles.dev.services & {
 	postgres: enact: kind: "postgres"
 	redis: enact: kind:    "redis"
+	kafka: enact: kind:    "kafka"
+	mysql: enact: kind:    "mysql"
 	cli: enact: kind:      "http"
 }
 
@@ -81,6 +83,13 @@ pipeline: schema.#Pipeline & {
 		local: {
 			services: "on_demand"
 			stages:   [{name: "dev", select: [J.test, J.migrate, J.integration, J.dev_server_smoke]}]
+		}
+		nightly: {
+			layout: "staged", scope: "all", services: "on_demand"
+			triggers: {schedule: ["0 3 * * *"], workflow_dispatch: true}
+			stages: [
+				{name: "test", matrix: true, select: [J.test, J.migrate, J.integration, J.dev_server_smoke], fail_fast: false, services: "on_demand"},
+			]
 		}
 	}
 }

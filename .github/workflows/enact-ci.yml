@@ -1678,7 +1678,7 @@ jobs:
           set -- "$@" --no-cache
         fi
         ADMISSION_REPORT="$RUNNER_TEMP/enact-admission.json"
-        MATRIX=$(enact affected --pipeline .enact --workflow ci --reach-hand-off "$RUNNER_TEMP/enact-reach" --budget --budget-report "$ADMISSION_REPORT" "$@" --format json) || {
+        MATRIX=$(enact affected --pipeline .enact --workflow ci --reach-hand-off "$RUNNER_TEMP/enact-reach" --selection-record .enact/state/selection.json --budget --budget-report "$ADMISSION_REPORT" "$@" --format json) || {
           status=$?
           echo "::error::CI budget admission failed; report: $ADMISSION_REPORT" >&2
           exit "$status"
@@ -1703,6 +1703,15 @@ jobs:
         ENACT_SAME_REPO_PR: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    - name: Upload the Selection Record
+      if: always()
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
+      with:
+        if-no-files-found: ignore
+        name: enact-selection
+        path: .enact/state/selection.json
+        retention-days: "30"
     - name: Hand the Reach Map to the Jobs
       if: always()
       continue-on-error: true

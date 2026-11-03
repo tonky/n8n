@@ -306,7 +306,7 @@ for target in "${OWN[@]}"; do
   clean_target="${target%%::*}"
   # Targets are relative to the package (`test/integration/...`) or to the repository.
   # Only a package with an integration config (cli) runs them on PostgreSQL: core's run
-  # under its one config, nodes-base's own config leaves them out (they need testcontainers).
+  # under its one config, nodes-base's own config leaves them out (its integration job's).
   if [ -f vitest.config.integration.ts ] && { [[ "$clean_target" == *".integration.test.ts" ]] || [[ "/$clean_target" == *"/test/integration/"* ]]; }; then
     INTEGRATIONS+=("$clean_target")
   elif [ -f vitest.config.migration.ts ] && [[ "/$clean_target" == *"/test/migration/"* ]]; then
@@ -317,7 +317,7 @@ for target in "${OWN[@]}"; do
 done
 
 # The targets vitest wouldn't run: its config's include/exclude leave them out
-# (nodes-base's own config excludes its `*.integration.test.ts`, which need testcontainers),
+# (nodes-base's own config excludes its `*.integration.test.ts`, its integration job's),
 # or they name no file. Given them beside others, vitest runs the others and passes: a test
 # asked for and never run would read as passed. So the targets are listed first (`vitest list
 # --filesOnly`: no test runs), each kind under the config that runs it, the handed ones in
