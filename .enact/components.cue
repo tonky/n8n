@@ -116,7 +116,7 @@ pipeline: schema.#Pipeline & {
 				"tsconfig.json", "tsconfig.configs.json", "biome.jsonc", "vitest.workspace.ts",
 				".prettierrc.js", ".prettierignore", "lefthook.yml", "knip.ts",
 				".boundaries-baseline.json", ".code-health-baseline.json", "agent-harness.lock.json",
-				"patches/**", "scripts/**", "helpers/vitest-runner.sh", "helpers/pnpm-store.sh",
+				"patches/**", "scripts/**", "helpers/vitest-runner.sh", "helpers/repair-node-modules.sh", "helpers/pnpm-store.sh",
 				"helpers/build-workspace-deps.sh", "helpers/trace/**",
 			]
 			depends_on:      []
@@ -233,22 +233,43 @@ pipeline: schema.#Pipeline & {
 			target_scope: _target_scope & {#dir: P.dir, #tests: P.tests}
 			lint:         _lint & {#pkg: P.pkg, #styles: P.lint_styles, #format: P.format_check}
 			typecheck:    _typecheck & {#pkg: P.pkg}
-			jobs: schema_check: {
-				name: "Schema Check"
-				tasks: [
-					{
-						name:      "Verify SQLite Schema Docs"
-						command:   "node scripts/generate-migration-index.mjs && helpers/build-workspace-deps.sh " + P.pkg + " && node scripts/schema-docs.mjs diff --db=sqlite"
-						unset_env: ["CI"]
-						filter:    {include: [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "docs/generated/sqlite-schema/**", ".tbls.sqlite.yml"], on_empty: "skip"}
-					},
-					{
-						name:      "Verify Postgres Schema Docs"
-						command:   "node scripts/generate-migration-index.mjs && helpers/build-workspace-deps.sh " + P.pkg + " && node --import helpers/schema-docs-postgres.mjs scripts/schema-docs.mjs diff --db=postgres"
-						unset_env: ["CI"]
-						filter:    {include: [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "helpers/schema-docs-postgres.mjs", "docs/generated/postgres-schema/**", ".tbls.postgres.yml"], on_empty: "skip"}
-					},
-				]
+			jobs: {
+				build: {
+					name: "Build @n8n/db", services: false
+					outputs: {
+						paths: [
+							P.dir + "/dist", P.dir + "/dist/index.js",
+							P.dir + "/src/migrations/sqlite/index.ts",
+							P.dir + "/src/migrations/postgresdb/index.ts",
+						]
+						key: [
+							P.dir + "/**",
+							for d in P.deps if _packages[d].built {_packages[d].dir + "/**"},
+							"helpers/build-workspace-deps.sh", "helpers/pnpm-store.sh",
+							"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml",
+							"tsconfig.json", "turbo.json",
+						]
+					}
+					tasks: [{command: "node scripts/generate-migration-index.mjs && helpers/build-workspace-deps.sh " + P.pkg}]
+				}
+				schema_check: {
+					name:  "Schema Check"
+					needs: ["build"]
+					tasks: [
+						{
+							name:      "Verify SQLite Schema Docs"
+							command:   "node scripts/schema-docs.mjs diff --db=sqlite"
+							unset_env: ["CI"]
+							filter:    {include: [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "docs/generated/sqlite-schema/**", ".tbls.sqlite.yml"], on_empty: "skip"}
+						},
+						{
+							name:      "Verify Postgres Schema Docs"
+							command:   "node --import helpers/schema-docs-postgres.mjs scripts/schema-docs.mjs diff --db=postgres"
+							unset_env: ["CI"]
+							filter:    {include: [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "helpers/schema-docs-postgres.mjs", "docs/generated/postgres-schema/**", ".tbls.postgres.yml"], on_empty: "skip"}
+						},
+					]
+				}
 			}
 			test: {
 				command: "node scripts/generate-migration-index.mjs && " + _vitest
@@ -358,10 +379,28 @@ pipeline: schema.#Pipeline & {
 			}
 			resources: {cpus: 4.0, memory_mb: 10240}
 			jobs: {
+				build: {
+					name: "Build Playwright workspace dependencies", services: false, resources: {cpus: 4.0, memory_mb: 8192}
+					needs: ["@n8n/db:build"]
+					outputs: {
+						paths: [
+							"packages/cli/dist", "packages/cli/dist/commands/start.js",
+							"packages/frontend/editor-ui/dist", "packages/frontend/editor-ui/dist/index.html",
+						]
+						key: [
+							for _, d in _packages if d.built {d.dir + "/**"},
+							"helpers/build-workspace-deps.sh", "helpers/pnpm-store.sh",
+							"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml",
+							"tsconfig.json", "turbo.json",
+						]
+					}
+					tasks: [{command: "helpers/build-workspace-deps.sh 'n8n-playwright^...'"}]
+				}
 				lint:      _browserCheck & {name: "Lint", tasks: [_lint & {#pkg: P.pkg, #styles: P.lint_styles, #format: P.format_check, name: "Run Linter"}]}
 				typecheck: _browserCheck & {name: "Typecheck", tasks: [_typecheck & {#pkg: P.pkg, name: "Typecheck"}]}
 				dev_server_smoke: {
 					name:     "Dev-Server Boot Smoke"
+					needs:    ["build", "@n8n/db:build"]
 					recorder: "trace"
 					target_scope: _target_scope & {
 						#dir:   P.dir
@@ -372,26 +411,33 @@ pipeline: schema.#Pipeline & {
 							P.dir + "/**/*.test.{ts,mjs}",
 						]
 					}
+					// `--trace=off`: the config's `trace: 'on'` writes and rereads trace resources
+					// under test-results/ while a spec runs, which unsettles its footprint.
 					tasks: [
 						{
 							name:      "Run dev-server smoke spec (non-default ports)"
-							command:   "DB_TYPE=sqlite helpers/build-workspace-deps.sh 'n8n-playwright^...' && DB_TYPE=sqlite pnpm test:dev-server-smoke:alt-port --reporter=list {relative_targets}"
+							command:   "DB_TYPE=sqlite pnpm test:dev-server-smoke:alt-port --reporter=list --trace=off {relative_targets}"
 							env:       DB_TYPE: "sqlite"
 							unset_env: _unsetPgEnv
 						},
 						{
 							name:      "Run dev-server smoke spec"
-							command:   "DB_TYPE=sqlite helpers/build-workspace-deps.sh 'n8n-playwright^...' && DB_TYPE=sqlite pnpm test:dev-server-smoke --reporter=list {relative_targets}"
+							command:   "DB_TYPE=sqlite pnpm test:dev-server-smoke --reporter=list --trace=off {relative_targets}"
 							env:       DB_TYPE: "sqlite"
 							unset_env: _unsetPgEnv
 						},
 					]
 				}
-			}
-			test: {
-				command:   "helpers/playwright-runner.sh {relative_targets}"
-				env:       DB_TYPE: "sqlite"
-				unset_env: _unsetPgEnv
+				test: {
+					name:  "Test"
+					needs: ["build", "@n8n/db:build"]
+					tasks: [{
+						name:      "Run Tests"
+						command:   "helpers/playwright-runner.sh {relative_targets}"
+						env:       DB_TYPE: "sqlite"
+						unset_env: _unsetPgEnv
+					}]
+				}
 			}
 		}
 	}

@@ -12,7 +12,7 @@
 # The tests import the workspace packages they depend on from their builds (`dist/`):
 # `analysis.derived` maps a change to a package's sources to the tests that read its build.
 #
-# Incremental: over the stored map at HEAD (or an ancestor), only the tests `enact trace stale`
+# Incremental: over the stored map at HEAD (or an ancestor), only the tests `enact reach stale`
 # lists are traced (untraced, failed, or a file, directory or service they used changed
 # since), and their traces replace theirs in it; a phase with none starts nothing.
 #
@@ -29,10 +29,10 @@ ENACT=${ENACT_EXE:-${ENACT_BIN:-$(command -v enact || true)}}
 [ -n "$ENACT" ] || { echo "generate-reach-map.sh: no enact on PATH: put it there or set ENACT_BIN" >&2; exit 2; }
 JOBS=${JOBS:-$(nproc)}
 WORK=$ROOT/.enact/state/cache/trace-work
-# The map is recorded into the reach store (`enact trace store where`), over the stored
+# The map is recorded into the reach store (`enact reach store where`), over the stored
 # map selected at HEAD unless FULL.
 BASE=
-[ -n "${FULL:-}" ] || BASE=$("$ENACT" trace store where --path)
+[ -n "${FULL:-}" ] || BASE=$("$ENACT" reach store where --path)
 read -r -a PHASES <<<"${*:-unit integration}"
 ENACT_BIN=$ENACT
 export ROOT ENACT ENACT_BIN WORK
@@ -81,15 +81,15 @@ lines() { if [ -n "$1" ]; then wc -l <<<"$1" | tr -d ' '; else echo 0; fi; }
 
 # to_trace <phase> <glob...>: the tests to trace (every one, or the stale ones over BASE),
 # counted on stderr. Run after the builds the tests read: their outputs are in the
-# footprints. Fails when `enact trace stale` does (its reasons go to the log): an error
+# footprints. Fails when `enact reach stale` does (its reasons go to the log): an error
 # must not read as nothing to trace.
 to_trace() {
   local all stale
   all=$(tests "$@")
   stale=$all
   if [ -n "$BASE" ] && [ -n "$all" ]; then
-    if ! stale=$(xargs "$ENACT" trace stale --reach-file "$BASE" <<<"$all" 2>>"$WORK/logs/stale.log"); then
-      echo "❌ enact trace stale failed for $2: $WORK/logs/stale.log" >&2
+    if ! stale=$(xargs "$ENACT" reach stale --reach-file "$BASE" <<<"$all" 2>>"$WORK/logs/stale.log"); then
+      echo "❌ enact reach stale failed for $2: $WORK/logs/stale.log" >&2
       return 1
     fi
   fi
@@ -181,10 +181,11 @@ phase_integration() {
 rm -rf "$WORK/maps" "$WORK/logs"
 mkdir -p "$WORK/maps" "$WORK/logs"
 
-# The tests import the built workspace packages: build them once, not in every traced run.
+# The tests import the built workspace packages: build them once via build-workspace-deps.sh
+# (`enact helper ensure-outputs` / `enact helper lock`), not in every traced run.
 if [ "${BUILD:-1}" != 0 ]; then
   echo "🔨 building the workspace packages the suites import"
-  enve run --locked -q -- pnpm turbo run build --concurrency="$JOBS" --continue \
+  enve run --locked -q -- helpers/build-workspace-deps.sh n8n... \
     >"$WORK/logs/build.log" 2>&1 || echo "⚠️  some builds failed: $WORK/logs/build.log"
 fi
 # The traced runs' vitest-runner.sh doesn't build (build-workspace-deps.sh): its turbo's reads
@@ -197,7 +198,7 @@ for phase in "${PHASES[@]}"; do
   "phase_$phase"
   phase_maps=("$MAPS"/*.json)
   if [ -e "${phase_maps[0]}" ]; then
-    "$ENACT" trace pack --fingerprint "${phase_maps[@]}" -o "$WORK/maps/$phase.json" >/dev/null
+    "$ENACT" reach pack --fingerprint "${phase_maps[@]}" -o "$WORK/maps/$phase.json" >/dev/null
   fi
 done
 
@@ -206,5 +207,5 @@ if [ ! -e "${maps[0]}" ]; then
   echo "✅ every test's trace is current: the stored map is unchanged"
   exit 0
 fi
-"$ENACT" trace pack ${BASE:+--base "$BASE"} "${maps[@]}" -o "$WORK/reach.bin"
-"$ENACT" trace store put "$WORK/reach.bin"
+"$ENACT" reach pack ${BASE:+--base "$BASE"} "${maps[@]}" -o "$WORK/reach.bin"
+"$ENACT" reach store put "$WORK/reach.bin"

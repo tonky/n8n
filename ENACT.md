@@ -15,7 +15,7 @@ tests a change reaches and starts PostgreSQL and Redis rootless through enve, wi
 ```bash
 git clone --depth 2 https://github.com/tonky/n8n && cd n8n
 ./bin/enact setup      # environment, reach map and the commits it was traced at, pnpm install
-./bin/enact dry-run    # what the working tree's changes would run, and why
+./bin/enact plan    # what the working tree's changes would run, and why
 ./bin/enact run        # run them
 ```
 

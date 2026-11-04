@@ -24,7 +24,7 @@ pipeline: schema.#Pipeline & {
 		env: {ELECTRON_SKIP_BINARY_DOWNLOAD: "1", GITHUB_TOKEN: ""}
 	}
 	ci: {
-		no_cache: {labels: ["no-cache", "showcase"], branch_prefixes: ["showcase/"]}
+		rerun: {labels: ["rerun", "showcase"], branch_prefixes: ["showcase/"]}
 		concurrency: max_parallel_jobs: 16
 		remote_cache: {
 			secrets: {bucket: "R2_BUCKET", access_key_id: "R2_ACCESS_KEY_ID", secret_access_key: "R2_SECRET_ACCESS_KEY"}
@@ -49,10 +49,11 @@ pipeline: schema.#Pipeline & {
 			arm64: {
 				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci"], tier: "dedicated", available: 1, cost_per_min: 0.008, timeout_minutes: 90
 				pool: {
-					cpus: 4, memory_mb: 8192
+					cpus: 16, memory_mb: 36864
 					sizes: {
 						"tonky-ci-s": {cpus: 2, memory_mb: 4096}
 						"tonky-ci-m": {cpus: 4, memory_mb: 8192}
+						"tonky-ci-l": {cpus: 6, memory_mb: 13312}
 					}
 				}
 			}

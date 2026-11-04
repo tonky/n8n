@@ -116,7 +116,7 @@ fi
 
 if [ ${#SPECS[@]} -gt 0 ]; then
   echo "🎯 [enact:playwright] Executing ${#SPECS[@]} Playwright E2E spec(s) with isolated environment..."
-  # Footprints enact asks for (ENACT_FOOTPRINT_DIR: `enact trace record`, `enact run`
+  # Footprints enact asks for (ENACT_FOOTPRINT_DIR: `enact reach record`, `enact run`
   # recording): each wanted spec alone, recorded (trace/e2e-footprints.sh).
   if [ -n "${ENACT_FOOTPRINT_DIR:-}" ]; then
     "$SCRIPT_DIR/trace/e2e-footprints.sh" "${SPECS[@]}"

@@ -2,32 +2,10 @@
 # ==============================================================================
 # build-workspace-deps.sh [--checked] <turbo filter...> - Builds workspace packages when their sources changed
 # ==============================================================================
-# The tests, Playwright and the cli service import the workspace packages from their builds
-# (`dist/`, git-ignored). This runs `turbo run build:unchecked` on the filters (`n8n^...`:
-# what the cli package depends on; `n8n...`: it too), and turbo decides what builds: a
-# package's task hash covers its sources (git's view: tracked and untracked files, not
-# ignored ones), its dependencies' hashes, the lockfile and turbo.json. A package whose hash
-# changed builds, and so do its dependents; the others are cache hits, whose outputs turbo
-# rewrites only when they differ from the cached ones. An unchanged tree costs turbo's
-# start (0.2-0.6 s); a checkout without turbo's cache builds once.
-#
-# Every run calls it: checking only whether a dist file exists would run tests against an
-# edited dependency's stale build.
-#
-# One build at a time per checkout, under the env's flock: side-by-side shards (and the cli
-# service) would build the same packages into the same dist; the second waits and finds them
-# built. The kernel releases it when its holder dies, however it dies, and turbo runs without
-# its descriptor (`-o`) so a background turbo daemon doesn't inherit and hold the lock.
-#
-# --checked runs turbo's `build` (type-checked) instead: what `lint` and `typecheck` depend on
-# (turbo.json: `^build`). The check stage runs a package's lint, typecheck and schema check
-# side by side, each a turbo of its own building the same dependencies into the same dist
-# and turbo cache; unlocked, one read another's half-written build (TS2571 in @n8n/db's
-# build, turbo cache renames failing). They build here, under the lock, first.
-#
-# N8N_WORKSPACE_DEPS_BUILT=1 skips it: the runs a run starts once it built (a handed
-# package's, footprints.sh's traced one), and generate-reach-map.sh, which builds up front,
-# so a traced run records the tests' reads, not turbo's.
+# Standalone callers targeting declared `#Job.outputs` producers (`n8n...`, `n8n-playwright^...`,
+# `@n8n/db`) materialize them through `enact helper ensure-outputs`. Dynamic per-package filters
+# and `--checked` builds serialize `pnpm turbo run` under `enact helper lock workspace-build`.
+# N8N_WORKSPACE_DEPS_BUILT=1 skips it when a caller already built up front.
 # ==============================================================================
 set -euo pipefail
 [ "${N8N_WORKSPACE_DEPS_BUILT:-}" = 1 ] && exit 0
@@ -37,9 +15,31 @@ if [ "${1:-}" = --checked ]; then task=build; shift; fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 . helpers/pnpm-store.sh
+if [ -d node_modules ] && [ -d packages/@n8n ]; then
+  mkdir -p node_modules/@n8n
+  for pkg in packages/@n8n/*; do
+    [ -d "$pkg" ] || continue
+    name="${pkg##*/}"
+    [ -e "node_modules/@n8n/$name" ] || ln -sfn "../../$pkg" "node_modules/@n8n/$name" 2>/dev/null || true
+  done
+fi
+enact="${ENACT_EXE:-${ENACT_BIN:-$(command -v enact || true)}}"
+[ -n "$enact" ] || { echo "build-workspace-deps.sh: enact not found (set ENACT_EXE, ENACT_BIN, or put enact on PATH)" >&2; exit 2; }
+if [ "$task" = "build:unchecked" ] && [ $# -eq 1 ] && [ -d .enact ]; then
+  case "$1" in
+    n8n-playwright^... | n8n...)
+      if [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "playwright:build" ]; then
+        exec "$enact" helper ensure-outputs playwright:build
+      fi
+      ;;
+    @n8n/db)
+      if [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "@n8n/db:build" ]; then
+        exec "$enact" helper ensure-outputs @n8n/db:build
+      fi
+      ;;
+  esac
+fi
 filters=()
 for filter in "$@"; do filters+=("--filter=$filter"); done
-locks="/tmp/enact-locks-$(id -u)/$(pwd -P | cksum | cut -d ' ' -f 1)"
-mkdir -p "$locks"
-exec flock -o "$locks/workspace-build.flock" \
+exec "$enact" helper lock workspace-build -- \
   pnpm turbo run "$task" "${filters[@]}" --output-logs=errors-only

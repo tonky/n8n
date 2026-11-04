@@ -3,7 +3,7 @@
 # e2e-footprints.sh <spec...> - Runs Playwright e2e specs, recording their footprints
 # ==============================================================================
 # playwright-runner.sh hands its specs here (relative to the playwright package, as the
-# job passes them) when enact wants footprints (ENACT_FOOTPRINT_DIR: `enact trace record`,
+# job passes them) when enact wants footprints (ENACT_FOOTPRINT_DIR: `enact reach record`,
 # every spec; `enact run` recording, the specs ENACT_FOOTPRINT_TARGETS lists). Each wanted
 # spec runs alone through run-local-isolated.mjs: an n8n server started for it on its own
 # SQLite database, so what the server and the browser did is that spec's (a server serving

@@ -4,7 +4,7 @@
 # ==============================================================================
 # The per-file way a test file is traced: generate-reach-map.sh calls it for every test it
 # traces, while footprints.sh uses trace-files.sh to trace a shard's tests in one batch with
-# `--attribution` during `enact run` and `enact trace record`.
+# `--attribution` during `enact run` and `enact reach record`.
 #
 # `enact trace run` records the files the process tree opens while the test runs as its
 # test job runs it: from its package's directory, through vitest-runner.sh in the
