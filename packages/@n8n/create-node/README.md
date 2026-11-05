@@ -48,7 +48,7 @@ $ npm create @n8n/node
 │ my-awesome-api-node
 │
 ◇ What kind of node are you building?
-│ HTTP API
+│ Declarative
 │
 ◇ What template do you want to use?
 │ Start from scratch
