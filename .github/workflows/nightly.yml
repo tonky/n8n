@@ -2157,6 +2157,32 @@ jobs:
       with:
         path: .enact/state/telemetry
         pattern: telemetry-*
+    - name: Download the Audited Runs' Selection Records
+      continue-on-error: true
+      run: |
+        set -uo pipefail
+        if ! command -v gh >/dev/null 2>&1; then
+          echo "::warning::no gh on this runner: the escape audit has no selection records"
+          exit 0
+        fi
+        runs=$(gh run list -R "$GITHUB_REPOSITORY" --workflow "$ENACT_AUDIT_WORKFLOW" --event push \
+          --branch "$GITHUB_REF_NAME" --status completed --limit "$ENACT_AUDIT_RUNS" \
+          --json databaseId --jq '.[].databaseId') || {
+          echo "::warning::could not list $ENACT_AUDIT_WORKFLOW runs: the escape audit has no selection records"
+          exit 0
+        }
+        for id in $runs; do
+          if gh run download "$id" -R "$GITHUB_REPOSITORY" --name enact-selection \
+            --dir ".enact/state/telemetry/selection-$id" >/dev/null 2>&1; then
+            echo "Selection record of run $id"
+          else
+            echo "::notice::run $id of $ENACT_AUDIT_WORKFLOW kept no selection record"
+          fi
+        done
+      env:
+        ENACT_AUDIT_RUNS: "5"
+        ENACT_AUDIT_WORKFLOW: n8n-platform
+        GH_TOKEN: ${{ github.token }}
     - name: Generate Consolidated Telemetry Summary
       continue-on-error: true
       run: enact runs report --dir .enact/state/telemetry
