@@ -99,6 +99,14 @@ pipeline: schema.#Pipeline & {
 			outputs: ["packages/@n8n/task-runner-python/.venv/**"]
 			inputs:  ["packages/@n8n/task-runner-python/pyproject.toml", "packages/@n8n/task-runner-python/uv.lock", "packages/@n8n/task-runner-python/.python-version"]
 		},
+		// The editable install's setuptools metadata, written into the source tree by
+		// `uv run` (LEARNINGS.md): PKG-INFO and requires.txt from pyproject.toml and the
+		// README, SOURCES.txt from the files under src/.
+		{
+			outputs: ["packages/@n8n/task-runner-python/*.egg-info/**"]
+			inputs:  ["packages/@n8n/task-runner-python/pyproject.toml", "packages/@n8n/task-runner-python/README.md"]
+			layout:  ["packages/@n8n/task-runner-python/src/**"]
+		},
 	]
 
 	caches: {
