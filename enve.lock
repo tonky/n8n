@@ -2,8 +2,8 @@
   "platforms": {
     "aarch64-darwin": {
       "binding": {
-        "environment_sha256": "2ced1f38fb9256f39e336fe28bf2cd78bf8daf27458443c901dead4da090a144",
-        "inventory_sha256": "322cdf0d59049426b56d5145827e6c6242357c95ec92654e8d3e335fb09acf30",
+        "environment_sha256": "2dc36f860a55f00a4edd737df5693313f2ecbe985c8a3f8388daeea6744fbcee",
+        "inventory_sha256": "749e8b57faeb630a69159e0ca7611b33f529785403f8dd4399c1f7a33520ed12",
         "profile": null,
         "version": 2
       },
@@ -732,9 +732,6 @@
           ]
         },
         {
-          "hash_name": "kfdws2wlq624kv9mx5gpz6cfvk96xj2y-playwright-browsers-1.62.1"
-        },
-        {
           "hash_name": "khq0g5x3r1mzb2yya8ddbph9w8532c4l-set-java-classpath-hook",
           "nar_hash": "sha256:150qy2q5j8a4fcn6j54lhcbpml0zammb6wfy0wfac673490i8033",
           "nar_size": 792,
@@ -956,6 +953,9 @@
             "m1kwp7bxnlri7nm9x9x8br0d4zlr95f9-openssl-3.5.8",
             "xkj3i84sphv82plsnpa17h86v9awyyxc-xar-minimal-503-lib"
           ]
+        },
+        {
+          "hash_name": "r943xbay6qh7kiw5rif4jk2kiamq21iq-playwright-browsers-1.62.1"
         },
         {
           "hash_name": "r9cljv2bvqi3ci3n6m0z0wi3ldpvlyzq-sqlite-3.53.3-dev",
@@ -1855,7 +1855,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "17bff93692e5d903c3c76b3974dbd52d6ab9f7820f9ab7899b832c0d86e3e87b"
+        "projectSha256": "dca9aa5777b02f83fd2d1ab96a7c1c9ab071fe87ae5b4d9a96503e7f4476963c"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -1886,7 +1886,7 @@
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
-        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/kfdws2wlq624kv9mx5gpz6cfvk96xj2y-playwright-browsers-1.62.1/fonts.conf",
+        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/r943xbay6qh7kiw5rif4jk2kiamq21iq-playwright-browsers-1.62.1/fonts.conf",
         "KAFKA_BROKERS": "127.0.0.1:9095",
         "KAFKA_HOST": "127.0.0.1",
         "KAFKA_PORT": "9095",
@@ -1905,7 +1905,7 @@
         "PGDATABASE": "n8n",
         "PGTZ": "UTC",
         "PGUSER": "postgres",
-        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/kfdws2wlq624kv9mx5gpz6cfvk96xj2y-playwright-browsers-1.62.1",
+        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/r943xbay6qh7kiw5rif4jk2kiamq21iq-playwright-browsers-1.62.1",
         "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS": "1",
         "PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS": "false",
         "POSTGRES_HOST": "127.0.0.1",
@@ -2073,7 +2073,7 @@
             "s2vi23sgwpjv4qvnyfknv7l041m8vm94-bash-interactive-5.3p15",
             "sjzhqc66j881n9lyg3m15aqiykad4h5k-bash-interactive-5.3p15-dev"
           ],
-          "closure": "kfdws2wlq624kv9mx5gpz6cfvk96xj2y-playwright-browsers-1.62.1",
+          "closure": "r943xbay6qh7kiw5rif4jk2kiamq21iq-playwright-browsers-1.62.1",
           "version": "1.62.1"
         },
         "pnpm": {
@@ -2213,8 +2213,8 @@
     },
     "aarch64-linux": {
       "binding": {
-        "environment_sha256": "2ced1f38fb9256f39e336fe28bf2cd78bf8daf27458443c901dead4da090a144",
-        "inventory_sha256": "c9d91584ed9656e089e6d86bc25cd260566e00bb50c76d5acc30201a29858c97",
+        "environment_sha256": "2dc36f860a55f00a4edd737df5693313f2ecbe985c8a3f8388daeea6744fbcee",
+        "inventory_sha256": "b9a46681fb29161e1481221fdeddec22395e644f34e39526d0444625d48e376d",
         "profile": null,
         "version": 2
       },
@@ -3463,9 +3463,6 @@
           ]
         },
         {
-          "hash_name": "g8r4yv9q99w0ghgy37s4fpqfncchvswx-playwright-browsers-1.62.1"
-        },
-        {
           "hash_name": "gdhx6ypka8fq50kf479qpiqgqlsiq7wq-icu4c-78.3",
           "nar_hash": "sha256:1pws0p7339kzljsi4h32hpaf406d681q913r4h6g160ni9zm1cdc",
           "nar_size": 41566832,
@@ -4519,6 +4516,9 @@
           "references": [
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
           ]
+        },
+        {
+          "hash_name": "vfq397hvp5j96cglrffl0p880lky80gf-playwright-browsers-1.62.1"
         },
         {
           "hash_name": "vmgxnnnb50pwdj22p5amsqzmnpkd3chb-libmicrohttpd-1.0.10",
@@ -5946,7 +5946,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "17bff93692e5d903c3c76b3974dbd52d6ab9f7820f9ab7899b832c0d86e3e87b"
+        "projectSha256": "dca9aa5777b02f83fd2d1ab96a7c1c9ab071fe87ae5b4d9a96503e7f4476963c"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -5977,7 +5977,7 @@
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
-        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/g8r4yv9q99w0ghgy37s4fpqfncchvswx-playwright-browsers-1.62.1/fonts.conf",
+        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/vfq397hvp5j96cglrffl0p880lky80gf-playwright-browsers-1.62.1/fonts.conf",
         "KAFKA_BROKERS": "127.0.0.1:9095",
         "KAFKA_HOST": "127.0.0.1",
         "KAFKA_PORT": "9095",
@@ -5996,7 +5996,7 @@
         "PGDATABASE": "n8n",
         "PGTZ": "UTC",
         "PGUSER": "postgres",
-        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/g8r4yv9q99w0ghgy37s4fpqfncchvswx-playwright-browsers-1.62.1",
+        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/vfq397hvp5j96cglrffl0p880lky80gf-playwright-browsers-1.62.1",
         "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS": "1",
         "PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS": "false",
         "POSTGRES_HOST": "127.0.0.1",
@@ -6206,7 +6206,7 @@
             "z5jjq635b8n3yaf7i4dw1rkfv4bxfzl5-libxfixes-6.0.2-dev",
             "zvslra1w3iwm9hvrmnyrz85dvsj5bkgl-systemd-minimal-libs-261.3-dev"
           ],
-          "closure": "g8r4yv9q99w0ghgy37s4fpqfncchvswx-playwright-browsers-1.62.1",
+          "closure": "vfq397hvp5j96cglrffl0p880lky80gf-playwright-browsers-1.62.1",
           "version": "1.62.1"
         },
         "pnpm": {
@@ -6346,8 +6346,8 @@
     },
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "2ced1f38fb9256f39e336fe28bf2cd78bf8daf27458443c901dead4da090a144",
-        "inventory_sha256": "590695a24f6ee88ab1c91422eccc4ecfe8f97b4d198e9833e11ef84d656a4aaa",
+        "environment_sha256": "2dc36f860a55f00a4edd737df5693313f2ecbe985c8a3f8388daeea6744fbcee",
+        "inventory_sha256": "50c874fb9743a70825da83c067c9f3301d4eb7263d414ab13400e9fec505e9cd",
         "profile": null,
         "version": 2
       },
@@ -7052,6 +7052,9 @@
           ]
         },
         {
+          "hash_name": "9dnfi22vcpl4bzs87s20v111ygvbwssh-playwright-browsers-1.62.1"
+        },
+        {
           "hash_name": "9ia7882m3hhvdk6qi4p3p650pfhxg75r-nghttp2-1.70.0-dev",
           "nar_hash": "sha256:0v8nmhkpiw0kx0fiwpb6qxfsavinnd0hbpxh1ps9s71y5iqhigmj",
           "nar_size": 247368,
@@ -7171,9 +7174,6 @@
             "bxcddj1bbg7s3kqjr7gnc0wdd0xjvzy1-gtest-1.18.0-dev",
             "yjqhjaw5w50jb1yls4y36gxgrgv3w53v-gtest-1.18.0"
           ]
-        },
-        {
-          "hash_name": "c8s1q6y1221qvagsaiywpn4ax8m32ibn-playwright-browsers-1.62.1"
         },
         {
           "hash_name": "ca5a9x0y311vmw1a1sj6d00z0jwaviwv-libxau-1.0.12-dev",
@@ -10080,7 +10080,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "17bff93692e5d903c3c76b3974dbd52d6ab9f7820f9ab7899b832c0d86e3e87b"
+        "projectSha256": "dca9aa5777b02f83fd2d1ab96a7c1c9ab071fe87ae5b4d9a96503e7f4476963c"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -10111,7 +10111,7 @@
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
-        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/c8s1q6y1221qvagsaiywpn4ax8m32ibn-playwright-browsers-1.62.1/fonts.conf",
+        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/9dnfi22vcpl4bzs87s20v111ygvbwssh-playwright-browsers-1.62.1/fonts.conf",
         "KAFKA_BROKERS": "127.0.0.1:9095",
         "KAFKA_HOST": "127.0.0.1",
         "KAFKA_PORT": "9095",
@@ -10130,7 +10130,7 @@
         "PGDATABASE": "n8n",
         "PGTZ": "UTC",
         "PGUSER": "postgres",
-        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/c8s1q6y1221qvagsaiywpn4ax8m32ibn-playwright-browsers-1.62.1",
+        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/9dnfi22vcpl4bzs87s20v111ygvbwssh-playwright-browsers-1.62.1",
         "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS": "1",
         "PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS": "false",
         "POSTGRES_HOST": "127.0.0.1",
@@ -10340,7 +10340,7 @@
             "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13",
             "zrkqwk0989k5wa1gn3cjb76jfga3d8i3-expat-2.8.5"
           ],
-          "closure": "c8s1q6y1221qvagsaiywpn4ax8m32ibn-playwright-browsers-1.62.1",
+          "closure": "9dnfi22vcpl4bzs87s20v111ygvbwssh-playwright-browsers-1.62.1",
           "version": "1.62.1"
         },
         "pnpm": {

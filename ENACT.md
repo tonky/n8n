@@ -5,10 +5,9 @@ tests a change reaches and starts PostgreSQL and Redis rootless through enve, wi
 
 ## Prerequisites
 
-- git.
-- macOS (Apple silicon): a local `/nix/store`. Install Nix once with
-  `curl -fsSL https://install.determinate.systems/nix | sh -s -- install`.
-- Linux (x86_64, aarch64): nothing else. enve remaps its store in a user namespace.
+- `git`.
+- A writable `enve` store: on macOS (Apple silicon), `/nix/store` links to `~/.local/share/enve/store` (no `nix-daemon` or external Nix installer needed). Run `./bin/enact setup --check` (or `./bin/enve doctor`) to inspect store readiness, and `./bin/enve setup --dry-run` followed by `./bin/enve setup` if `/nix/store` needs to be provisioned once.
+- Linux (`x86_64`, `aarch64`): nothing else. `enve` remaps `~/.local/share/enve/store` at `/nix/store` in a user namespace.
 
 ## Quickstart
 
