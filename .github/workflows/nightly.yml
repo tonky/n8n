@@ -798,7 +798,7 @@ jobs:
       env:
         ENACT_OUTPUTS_NEEDED: ${{ toJson(matrix.output_keys) }}
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
-        ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/cli/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
+        ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/@n8n/agents/dist\\npackages/@n8n/ai-node-sdk/dist\\npackages/@n8n/ai-utilities/dist\\npackages/@n8n/ai-workflow-builder.ee/dist\\npackages/@n8n/api-types/dist\\npackages/@n8n/backend-common/dist\\npackages/@n8n/backend-network/dist\\npackages/@n8n/backend-services/dist\\npackages/@n8n/backend-test-utils/dist\\npackages/@n8n/blob-storage/dist\\npackages/@n8n/chat-hub/dist\\npackages/@n8n/client-oauth2/dist\\npackages/@n8n/codemirror-lang/dist\\npackages/@n8n/codemirror-lang-html/dist\\npackages/@n8n/codemirror-lang-sql/dist\\npackages/@n8n/config/dist\\npackages/@n8n/constants/dist\\npackages/@n8n/decorators/dist\\npackages/@n8n/di/dist\\npackages/@n8n/engine/dist\\npackages/@n8n/errors/dist\\npackages/@n8n/eslint-config/dist\\npackages/@n8n/eslint-plugin-community-nodes/dist\\npackages/@n8n/expression-runtime/dist\\npackages/@n8n/imap/dist\\npackages/@n8n/inbound-auth/dist\\npackages/@n8n/instance-ai/dist\\npackages/@n8n/json-schema-to-zod/dist\\npackages/@n8n/mcp-apps/dist\\npackages/@n8n/mcp-browser/dist\\npackages/@n8n/node-engine-compatibility/dist\\npackages/@n8n/nodes-langchain/dist\\npackages/@n8n/oxlint-config/dist\\npackages/@n8n/permissions/dist\\npackages/@n8n/scheduler/dist\\npackages/@n8n/stylelint-config/dist\\npackages/@n8n/syslog-client/dist\\npackages/@n8n/task-runner/dist\\npackages/@n8n/telemetry/dist\\npackages/@n8n/tournament/dist\\npackages/@n8n/typeorm/dist\\npackages/@n8n/utils/dist\\npackages/@n8n/vitest-config/dist\\npackages/@n8n/workflow-sdk/dist\\npackages/cli/dist\\npackages/core/dist\\npackages/frontend/@n8n/chat/dist\\npackages/frontend/@n8n/composables/dist\\npackages/frontend/@n8n/design-system/dist\\npackages/frontend/@n8n/eslint-plugin-design-system/dist\\npackages/frontend/@n8n/frontend-constants/dist\\npackages/frontend/@n8n/frontend-utils/dist\\npackages/frontend/@n8n/i18n/dist\\npackages/frontend/@n8n/rest-api-client/dist\\npackages/frontend/@n8n/stores/dist\\npackages/frontend/editor-ui/dist\\npackages/modules/apps/backend/dist\\npackages/modules/insights/backend/dist\\npackages/modules/quick-connect/backend/dist\\npackages/modules/workflow-builder/backend/dist\\npackages/nodes-base/dist\\npackages/quality/policy/rules-engine/dist\\npackages/quality/testing/janitor/dist\\npackages/quality/testing/test-impact/dist\\npackages/workflow/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
     - name: Restore Built Outputs (@n8n/db:build)
       id: outputs--n8n-db--build
       if: ${{ (matrix.output_keys['-n8n-db--build'] != '' && steps.outputs-host.outputs['-n8n-db--build'] != 'true') && !steps.skip.outputs.hit }}
@@ -820,9 +820,72 @@ jobs:
       with:
         key: enact-outputs-playwright--build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_keys['playwright--build'] }}
         path: |-
+          packages/@n8n/agents/dist
+          packages/@n8n/ai-node-sdk/dist
+          packages/@n8n/ai-utilities/dist
+          packages/@n8n/ai-workflow-builder.ee/dist
+          packages/@n8n/api-types/dist
+          packages/@n8n/backend-common/dist
+          packages/@n8n/backend-network/dist
+          packages/@n8n/backend-services/dist
+          packages/@n8n/backend-test-utils/dist
+          packages/@n8n/blob-storage/dist
+          packages/@n8n/chat-hub/dist
+          packages/@n8n/client-oauth2/dist
+          packages/@n8n/codemirror-lang/dist
+          packages/@n8n/codemirror-lang-html/dist
+          packages/@n8n/codemirror-lang-sql/dist
+          packages/@n8n/config/dist
+          packages/@n8n/constants/dist
+          packages/@n8n/decorators/dist
+          packages/@n8n/di/dist
+          packages/@n8n/engine/dist
+          packages/@n8n/errors/dist
+          packages/@n8n/eslint-config/dist
+          packages/@n8n/eslint-plugin-community-nodes/dist
+          packages/@n8n/expression-runtime/dist
+          packages/@n8n/imap/dist
+          packages/@n8n/inbound-auth/dist
+          packages/@n8n/instance-ai/dist
+          packages/@n8n/json-schema-to-zod/dist
+          packages/@n8n/mcp-apps/dist
+          packages/@n8n/mcp-browser/dist
+          packages/@n8n/node-engine-compatibility/dist
+          packages/@n8n/nodes-langchain/dist
+          packages/@n8n/oxlint-config/dist
+          packages/@n8n/permissions/dist
+          packages/@n8n/scheduler/dist
+          packages/@n8n/stylelint-config/dist
+          packages/@n8n/syslog-client/dist
+          packages/@n8n/task-runner/dist
+          packages/@n8n/telemetry/dist
+          packages/@n8n/tournament/dist
+          packages/@n8n/typeorm/dist
+          packages/@n8n/utils/dist
+          packages/@n8n/vitest-config/dist
+          packages/@n8n/workflow-sdk/dist
           packages/cli/dist
-          packages/cli/dist/commands/start.js
+          packages/core/dist
+          packages/frontend/@n8n/chat/dist
+          packages/frontend/@n8n/composables/dist
+          packages/frontend/@n8n/design-system/dist
+          packages/frontend/@n8n/eslint-plugin-design-system/dist
+          packages/frontend/@n8n/frontend-constants/dist
+          packages/frontend/@n8n/frontend-utils/dist
+          packages/frontend/@n8n/i18n/dist
+          packages/frontend/@n8n/rest-api-client/dist
+          packages/frontend/@n8n/stores/dist
           packages/frontend/editor-ui/dist
+          packages/modules/apps/backend/dist
+          packages/modules/insights/backend/dist
+          packages/modules/quick-connect/backend/dist
+          packages/modules/workflow-builder/backend/dist
+          packages/nodes-base/dist
+          packages/quality/policy/rules-engine/dist
+          packages/quality/testing/janitor/dist
+          packages/quality/testing/test-impact/dist
+          packages/workflow/dist
+          packages/cli/dist/commands/start.js
           packages/frontend/editor-ui/dist/index.html
           .enact/state/outputs/playwright--build.key
     - name: Require Built Outputs
@@ -831,7 +894,7 @@ jobs:
       env:
         ENACT_OUTPUTS_NEEDED: ${{ toJson(matrix.output_keys) }}
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
-        ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/cli/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
+        ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/@n8n/agents/dist\\npackages/@n8n/ai-node-sdk/dist\\npackages/@n8n/ai-utilities/dist\\npackages/@n8n/ai-workflow-builder.ee/dist\\npackages/@n8n/api-types/dist\\npackages/@n8n/backend-common/dist\\npackages/@n8n/backend-network/dist\\npackages/@n8n/backend-services/dist\\npackages/@n8n/backend-test-utils/dist\\npackages/@n8n/blob-storage/dist\\npackages/@n8n/chat-hub/dist\\npackages/@n8n/client-oauth2/dist\\npackages/@n8n/codemirror-lang/dist\\npackages/@n8n/codemirror-lang-html/dist\\npackages/@n8n/codemirror-lang-sql/dist\\npackages/@n8n/config/dist\\npackages/@n8n/constants/dist\\npackages/@n8n/decorators/dist\\npackages/@n8n/di/dist\\npackages/@n8n/engine/dist\\npackages/@n8n/errors/dist\\npackages/@n8n/eslint-config/dist\\npackages/@n8n/eslint-plugin-community-nodes/dist\\npackages/@n8n/expression-runtime/dist\\npackages/@n8n/imap/dist\\npackages/@n8n/inbound-auth/dist\\npackages/@n8n/instance-ai/dist\\npackages/@n8n/json-schema-to-zod/dist\\npackages/@n8n/mcp-apps/dist\\npackages/@n8n/mcp-browser/dist\\npackages/@n8n/node-engine-compatibility/dist\\npackages/@n8n/nodes-langchain/dist\\npackages/@n8n/oxlint-config/dist\\npackages/@n8n/permissions/dist\\npackages/@n8n/scheduler/dist\\npackages/@n8n/stylelint-config/dist\\npackages/@n8n/syslog-client/dist\\npackages/@n8n/task-runner/dist\\npackages/@n8n/telemetry/dist\\npackages/@n8n/tournament/dist\\npackages/@n8n/typeorm/dist\\npackages/@n8n/utils/dist\\npackages/@n8n/vitest-config/dist\\npackages/@n8n/workflow-sdk/dist\\npackages/cli/dist\\npackages/core/dist\\npackages/frontend/@n8n/chat/dist\\npackages/frontend/@n8n/composables/dist\\npackages/frontend/@n8n/design-system/dist\\npackages/frontend/@n8n/eslint-plugin-design-system/dist\\npackages/frontend/@n8n/frontend-constants/dist\\npackages/frontend/@n8n/frontend-utils/dist\\npackages/frontend/@n8n/i18n/dist\\npackages/frontend/@n8n/rest-api-client/dist\\npackages/frontend/@n8n/stores/dist\\npackages/frontend/editor-ui/dist\\npackages/modules/apps/backend/dist\\npackages/modules/insights/backend/dist\\npackages/modules/quick-connect/backend/dist\\npackages/modules/workflow-builder/backend/dist\\npackages/nodes-base/dist\\npackages/quality/policy/rules-engine/dist\\npackages/quality/testing/janitor/dist\\npackages/quality/testing/test-impact/dist\\npackages/workflow/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
         ENACT_OUTPUTS_STEPS: ${{ toJson(steps) }}
     - parallel:
       - name: Restore enact Task CAS Cache
@@ -1627,6 +1690,32 @@ jobs:
       with:
         path: .enact/state/telemetry
         pattern: telemetry-*
+    - name: Download the Audited Runs' Selection Records
+      continue-on-error: true
+      run: |
+        set -uo pipefail
+        if ! command -v gh >/dev/null 2>&1; then
+          echo "::warning::no gh on this runner: the escape audit has no selection records"
+          exit 0
+        fi
+        runs=$(gh run list -R "$GITHUB_REPOSITORY" --workflow "$ENACT_AUDIT_WORKFLOW" --event push \
+          --branch "$GITHUB_REF_NAME" --status completed --limit "$ENACT_AUDIT_RUNS" \
+          --json databaseId --jq '.[].databaseId') || {
+          echo "::warning::could not list $ENACT_AUDIT_WORKFLOW runs: the escape audit has no selection records"
+          exit 0
+        }
+        for id in $runs; do
+          if gh run download "$id" -R "$GITHUB_REPOSITORY" --name enact-selection \
+            --dir ".enact/state/telemetry/selection-$id" >/dev/null 2>&1; then
+            echo "Selection record of run $id"
+          else
+            echo "::notice::run $id of $ENACT_AUDIT_WORKFLOW kept no selection record"
+          fi
+        done
+      env:
+        ENACT_AUDIT_RUNS: "5"
+        ENACT_AUDIT_WORKFLOW: n8n-platform
+        GH_TOKEN: ${{ github.token }}
     - name: Generate Consolidated Telemetry Summary
       continue-on-error: true
       run: enact runs report --dir .enact/state/telemetry
@@ -2151,7 +2240,7 @@ jobs:
       env:
         ENACT_OUTPUTS_NEEDED: ${{ toJson(matrix.output_keys) }}
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
-        ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/cli/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
+        ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/@n8n/agents/dist\\npackages/@n8n/ai-node-sdk/dist\\npackages/@n8n/ai-utilities/dist\\npackages/@n8n/ai-workflow-builder.ee/dist\\npackages/@n8n/api-types/dist\\npackages/@n8n/backend-common/dist\\npackages/@n8n/backend-network/dist\\npackages/@n8n/backend-services/dist\\npackages/@n8n/backend-test-utils/dist\\npackages/@n8n/blob-storage/dist\\npackages/@n8n/chat-hub/dist\\npackages/@n8n/client-oauth2/dist\\npackages/@n8n/codemirror-lang/dist\\npackages/@n8n/codemirror-lang-html/dist\\npackages/@n8n/codemirror-lang-sql/dist\\npackages/@n8n/config/dist\\npackages/@n8n/constants/dist\\npackages/@n8n/decorators/dist\\npackages/@n8n/di/dist\\npackages/@n8n/engine/dist\\npackages/@n8n/errors/dist\\npackages/@n8n/eslint-config/dist\\npackages/@n8n/eslint-plugin-community-nodes/dist\\npackages/@n8n/expression-runtime/dist\\npackages/@n8n/imap/dist\\npackages/@n8n/inbound-auth/dist\\npackages/@n8n/instance-ai/dist\\npackages/@n8n/json-schema-to-zod/dist\\npackages/@n8n/mcp-apps/dist\\npackages/@n8n/mcp-browser/dist\\npackages/@n8n/node-engine-compatibility/dist\\npackages/@n8n/nodes-langchain/dist\\npackages/@n8n/oxlint-config/dist\\npackages/@n8n/permissions/dist\\npackages/@n8n/scheduler/dist\\npackages/@n8n/stylelint-config/dist\\npackages/@n8n/syslog-client/dist\\npackages/@n8n/task-runner/dist\\npackages/@n8n/telemetry/dist\\npackages/@n8n/tournament/dist\\npackages/@n8n/typeorm/dist\\npackages/@n8n/utils/dist\\npackages/@n8n/vitest-config/dist\\npackages/@n8n/workflow-sdk/dist\\npackages/cli/dist\\npackages/core/dist\\npackages/frontend/@n8n/chat/dist\\npackages/frontend/@n8n/composables/dist\\npackages/frontend/@n8n/design-system/dist\\npackages/frontend/@n8n/eslint-plugin-design-system/dist\\npackages/frontend/@n8n/frontend-constants/dist\\npackages/frontend/@n8n/frontend-utils/dist\\npackages/frontend/@n8n/i18n/dist\\npackages/frontend/@n8n/rest-api-client/dist\\npackages/frontend/@n8n/stores/dist\\npackages/frontend/editor-ui/dist\\npackages/modules/apps/backend/dist\\npackages/modules/insights/backend/dist\\npackages/modules/quick-connect/backend/dist\\npackages/modules/workflow-builder/backend/dist\\npackages/nodes-base/dist\\npackages/quality/policy/rules-engine/dist\\npackages/quality/testing/janitor/dist\\npackages/quality/testing/test-impact/dist\\npackages/workflow/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
     - name: Restore Built Outputs (@n8n/db:build)
       id: outputs--n8n-db--build
       if: ${{ matrix.output_keys['-n8n-db--build'] != '' && steps.outputs-host.outputs['-n8n-db--build'] != 'true' }}
@@ -2173,9 +2262,72 @@ jobs:
       with:
         key: enact-outputs-playwright--build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_keys['playwright--build'] }}
         path: |-
+          packages/@n8n/agents/dist
+          packages/@n8n/ai-node-sdk/dist
+          packages/@n8n/ai-utilities/dist
+          packages/@n8n/ai-workflow-builder.ee/dist
+          packages/@n8n/api-types/dist
+          packages/@n8n/backend-common/dist
+          packages/@n8n/backend-network/dist
+          packages/@n8n/backend-services/dist
+          packages/@n8n/backend-test-utils/dist
+          packages/@n8n/blob-storage/dist
+          packages/@n8n/chat-hub/dist
+          packages/@n8n/client-oauth2/dist
+          packages/@n8n/codemirror-lang/dist
+          packages/@n8n/codemirror-lang-html/dist
+          packages/@n8n/codemirror-lang-sql/dist
+          packages/@n8n/config/dist
+          packages/@n8n/constants/dist
+          packages/@n8n/decorators/dist
+          packages/@n8n/di/dist
+          packages/@n8n/engine/dist
+          packages/@n8n/errors/dist
+          packages/@n8n/eslint-config/dist
+          packages/@n8n/eslint-plugin-community-nodes/dist
+          packages/@n8n/expression-runtime/dist
+          packages/@n8n/imap/dist
+          packages/@n8n/inbound-auth/dist
+          packages/@n8n/instance-ai/dist
+          packages/@n8n/json-schema-to-zod/dist
+          packages/@n8n/mcp-apps/dist
+          packages/@n8n/mcp-browser/dist
+          packages/@n8n/node-engine-compatibility/dist
+          packages/@n8n/nodes-langchain/dist
+          packages/@n8n/oxlint-config/dist
+          packages/@n8n/permissions/dist
+          packages/@n8n/scheduler/dist
+          packages/@n8n/stylelint-config/dist
+          packages/@n8n/syslog-client/dist
+          packages/@n8n/task-runner/dist
+          packages/@n8n/telemetry/dist
+          packages/@n8n/tournament/dist
+          packages/@n8n/typeorm/dist
+          packages/@n8n/utils/dist
+          packages/@n8n/vitest-config/dist
+          packages/@n8n/workflow-sdk/dist
           packages/cli/dist
-          packages/cli/dist/commands/start.js
+          packages/core/dist
+          packages/frontend/@n8n/chat/dist
+          packages/frontend/@n8n/composables/dist
+          packages/frontend/@n8n/design-system/dist
+          packages/frontend/@n8n/eslint-plugin-design-system/dist
+          packages/frontend/@n8n/frontend-constants/dist
+          packages/frontend/@n8n/frontend-utils/dist
+          packages/frontend/@n8n/i18n/dist
+          packages/frontend/@n8n/rest-api-client/dist
+          packages/frontend/@n8n/stores/dist
           packages/frontend/editor-ui/dist
+          packages/modules/apps/backend/dist
+          packages/modules/insights/backend/dist
+          packages/modules/quick-connect/backend/dist
+          packages/modules/workflow-builder/backend/dist
+          packages/nodes-base/dist
+          packages/quality/policy/rules-engine/dist
+          packages/quality/testing/janitor/dist
+          packages/quality/testing/test-impact/dist
+          packages/workflow/dist
+          packages/cli/dist/commands/start.js
           packages/frontend/editor-ui/dist/index.html
           .enact/state/outputs/playwright--build.key
     - name: Require Built Outputs
@@ -2183,7 +2335,7 @@ jobs:
       env:
         ENACT_OUTPUTS_NEEDED: ${{ toJson(matrix.output_keys) }}
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
-        ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/cli/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
+        ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/@n8n/agents/dist\\npackages/@n8n/ai-node-sdk/dist\\npackages/@n8n/ai-utilities/dist\\npackages/@n8n/ai-workflow-builder.ee/dist\\npackages/@n8n/api-types/dist\\npackages/@n8n/backend-common/dist\\npackages/@n8n/backend-network/dist\\npackages/@n8n/backend-services/dist\\npackages/@n8n/backend-test-utils/dist\\npackages/@n8n/blob-storage/dist\\npackages/@n8n/chat-hub/dist\\npackages/@n8n/client-oauth2/dist\\npackages/@n8n/codemirror-lang/dist\\npackages/@n8n/codemirror-lang-html/dist\\npackages/@n8n/codemirror-lang-sql/dist\\npackages/@n8n/config/dist\\npackages/@n8n/constants/dist\\npackages/@n8n/decorators/dist\\npackages/@n8n/di/dist\\npackages/@n8n/engine/dist\\npackages/@n8n/errors/dist\\npackages/@n8n/eslint-config/dist\\npackages/@n8n/eslint-plugin-community-nodes/dist\\npackages/@n8n/expression-runtime/dist\\npackages/@n8n/imap/dist\\npackages/@n8n/inbound-auth/dist\\npackages/@n8n/instance-ai/dist\\npackages/@n8n/json-schema-to-zod/dist\\npackages/@n8n/mcp-apps/dist\\npackages/@n8n/mcp-browser/dist\\npackages/@n8n/node-engine-compatibility/dist\\npackages/@n8n/nodes-langchain/dist\\npackages/@n8n/oxlint-config/dist\\npackages/@n8n/permissions/dist\\npackages/@n8n/scheduler/dist\\npackages/@n8n/stylelint-config/dist\\npackages/@n8n/syslog-client/dist\\npackages/@n8n/task-runner/dist\\npackages/@n8n/telemetry/dist\\npackages/@n8n/tournament/dist\\npackages/@n8n/typeorm/dist\\npackages/@n8n/utils/dist\\npackages/@n8n/vitest-config/dist\\npackages/@n8n/workflow-sdk/dist\\npackages/cli/dist\\npackages/core/dist\\npackages/frontend/@n8n/chat/dist\\npackages/frontend/@n8n/composables/dist\\npackages/frontend/@n8n/design-system/dist\\npackages/frontend/@n8n/eslint-plugin-design-system/dist\\npackages/frontend/@n8n/frontend-constants/dist\\npackages/frontend/@n8n/frontend-utils/dist\\npackages/frontend/@n8n/i18n/dist\\npackages/frontend/@n8n/rest-api-client/dist\\npackages/frontend/@n8n/stores/dist\\npackages/frontend/editor-ui/dist\\npackages/modules/apps/backend/dist\\npackages/modules/insights/backend/dist\\npackages/modules/quick-connect/backend/dist\\npackages/modules/workflow-builder/backend/dist\\npackages/nodes-base/dist\\npackages/quality/policy/rules-engine/dist\\npackages/quality/testing/janitor/dist\\npackages/quality/testing/test-impact/dist\\npackages/workflow/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
         ENACT_OUTPUTS_STEPS: ${{ toJson(steps) }}
     - parallel:
       - name: Restore enact Task CAS Cache

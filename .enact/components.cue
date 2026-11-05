@@ -32,6 +32,17 @@ _typecheck: {
 _browserCheck: {direct: true, services: false, resources: {cpus: 4.0, memory_mb: 10240}}
 _vitest:       "helpers/vitest-runner.sh {relative_targets}"
 
+// A whole traced suite on a fresh map (the nightly) runs past the 600 s default step limit,
+// which judges a shard with no recorded durations: frontend's 6 shards take ~1,200 s traced.
+_wholeSuiteTimeout: "45m"
+
+// Test tasks that differ from `_vitest`. expression-runtime's tests load its own build
+// (`dist/bundle/runtime.iife.js`): vitest-runner.sh builds the package itself too.
+_testTask: {
+	"frontend": {command: _vitest, timeout: _wholeSuiteTimeout}
+	"@n8n/expression-runtime": {command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}
+}
+
 _unsetPgEnv: [
 	"PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGPASSWORD",
 	"DB_POSTGRESDB_HOST", "DB_POSTGRESDB_PORT", "DB_POSTGRESDB_DATABASE", "DB_POSTGRESDB_USER", "DB_POSTGRESDB_PASSWORD",
@@ -144,7 +155,9 @@ pipeline: schema.#Pipeline & {
 				if p.shards > 0 {shards: p.shards}
 				if len(p.tests) > 0 {
 					target_scope: _target_scope & {#dir: p.dir, #tests: p.tests, #ignore: p.exclude}
-					if n != "nodes-base" {test: _vitest}
+					if n != "nodes-base" && n != "frontend" && n != "@n8n/expression-runtime" {test: _vitest}
+					if n == "frontend" {test: _testTask.frontend}
+					if n == "@n8n/expression-runtime" {test: _testTask["@n8n/expression-runtime"]}
 					recorder:     "own_linux"
 					recorded_by:  ["enact-node"]
 				}
@@ -313,6 +326,7 @@ pipeline: schema.#Pipeline & {
 			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests}
 			test: {
 				command: _vitest
+				timeout: _wholeSuiteTimeout
 				env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
 			}
 			recorder:    "own_linux"
@@ -391,9 +405,11 @@ pipeline: schema.#Pipeline & {
 					name: "Build Playwright workspace dependencies", services: false, resources: {cpus: 4.0, memory_mb: 8192}
 					needs: ["@n8n/db:build"]
 					outputs: {
+						// Every package build the suite imports or serves, not only cli's and the
+						// editor's: a shard restoring these runs on them as they are.
 						paths: [
-							"packages/cli/dist", "packages/cli/dist/commands/start.js",
-							"packages/frontend/editor-ui/dist", "packages/frontend/editor-ui/dist/index.html",
+							for d in _e2eBuilds {d + "/dist"},
+							"packages/cli/dist/commands/start.js", "packages/frontend/editor-ui/dist/index.html",
 						]
 						key: [
 							for _, d in _packages if d.built {d.dir + "/**"},

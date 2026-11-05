@@ -81,30 +81,35 @@ run_kind() {
   fi
   # Every target conservatively holds its task's services: even a unit-named file can
   # make real Redis connections. Filenames determine runner mode, never service usage.
-  node -e '
-    const fs = require("fs");
-    const [from, to, listed, services] = process.argv.slice(1);
-    const map = JSON.parse(fs.readFileSync(from, "utf8"));
-    const list = listed ? fs.readFileSync(listed, "utf8").split("\n").filter(Boolean) : null;
-    const wanted = (t) => !list || list.some((l) => l === t || l.startsWith(t + "::"));
-    for (const target of Object.keys(map.targets || {})) {
-      if (wanted(target)) continue;
-      delete map.targets[target];
-      if (map.target_service_deps) delete map.target_service_deps[target];
-    }
-    if (services) {
-      for (const fp of Object.values(map.targets || {})) {
-        fp.recorders = [...new Set([...(fp.recorders || []), "n8n-services/1"])];
-      }
-    }
-    map.outcomes = true;
-    fs.writeFileSync(to + ".part", JSON.stringify(map));
-    fs.renameSync(to + ".part", to);
-    for (const [target, fp] of Object.entries(map.targets || {})) {
-      const complete = fp.outcome === undefined;
-      console.log(`🎯 [footprints] recorded \x27${target}\x27 (${complete ? "complete" : "incomplete"})`);
-    }
-  ' "$WORK/$name.json" "$OUT/$name-${ENACT_SHARD_INDEX:-1}-$$.json" "$LISTED" "$services" || status=1
+  # Python, not node: a whole traced suite's map (frontend's 237 files a shard) passes
+  # V8's 512 MiB string limit (ERR_STRING_TOO_LONG in JSON.parse).
+  python3 -I -X utf8 -c '
+import json, os, sys
+src, to, listed, services = sys.argv[1:5]
+with open(src, encoding="utf-8") as f:
+    m = json.load(f)
+want = None
+if listed:
+    with open(listed, encoding="utf-8") as f:
+        want = [l for l in f.read().split("\n") if l]
+def wanted(t):
+    return want is None or any(l == t or l.startswith(t + "::") for l in want)
+targets = m.get("targets") or {}
+for t in [t for t in targets if not wanted(t)]:
+    del targets[t]
+    (m.get("target_service_deps") or {}).pop(t, None)
+if services:
+    for fp in targets.values():
+        rs = fp.get("recorders") or []
+        if "n8n-services/1" not in rs:
+            fp["recorders"] = rs + ["n8n-services/1"]
+m["outcomes"] = True
+with open(to + ".part", "w", encoding="utf-8") as f:
+    json.dump(m, f, ensure_ascii=False, separators=(",", ":"))
+os.replace(to + ".part", to)
+for t, fp in targets.items():
+    print("🎯 [footprints] recorded \x27%s\x27 (%s)" % (t, "complete" if "outcome" not in fp else "incomplete"))
+' "$WORK/$name.json" "$OUT/$name-${ENACT_SHARD_INDEX:-1}-$$.json" "$LISTED" "$services" || status=1
   return "$status"
 }
 
