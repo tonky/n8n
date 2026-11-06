@@ -37,7 +37,8 @@ _vitest:       "helpers/vitest-runner.sh {relative_targets}"
 _wholeSuiteTimeout: "45m"
 
 // Test tasks that differ from `_vitest`. expression-runtime's tests load its own build
-// (`dist/bundle/runtime.iife.js`): vitest-runner.sh builds the package itself too.
+// (`dist/bundle/runtime.iife.js`): vitest-runner.sh builds the package itself too (so does
+// cli's, below).
 _testTask: {
 	"frontend": {command: _vitest, timeout: _wholeSuiteTimeout}
 	"@n8n/expression-runtime": {command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}
@@ -327,7 +328,12 @@ pipeline: schema.#Pipeline & {
 			test: {
 				command: _vitest
 				timeout: _wholeSuiteTimeout
-				env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
+				env: {
+					ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
+					// The event bus's log writer runs cli's own build in a worker thread
+					// (`dist/eventbus/.../message-event-bus-log-writer-worker.js` under NODE_ENV=test).
+					N8N_TESTS_READ_OWN_BUILD: "1"
+				}
 			}
 			recorder:    "own_linux"
 			recorded_by: ["enact-node", "n8n-services"]
@@ -458,6 +464,7 @@ pipeline: schema.#Pipeline & {
 					tasks: [{
 						name:      "Run Tests"
 						command:   "helpers/playwright-runner.sh {relative_targets}"
+						timeout:   _wholeSuiteTimeout
 						env:       DB_TYPE: "sqlite"
 						unset_env: _unsetPgEnv
 					}]

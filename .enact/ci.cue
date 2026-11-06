@@ -87,7 +87,7 @@ pipeline: schema.#Pipeline & {
 		}
 		nightly: {
 			layout: "staged", scope: "all", services: "on_demand"
-			triggers: {schedule: ["0 3 * * *"], workflow_dispatch: true}
+			triggers: {workflow_dispatch: true}
 			// Judge failures by what the last push runs of `ci` selected (escape audit).
 			audit_escapes: {workflow: "ci", runs: 5}
 			stages: [

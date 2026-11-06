@@ -14,14 +14,6 @@ MAX_WORKERS="${MAX_WORKERS:-${ENACT_SHARD_WORKERS:-$NPROCS}}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/pnpm-store.sh"
-# A temporary directory per package and shard: a package's shards run side by side on one
-# runner, and suites keyed by VITEST_POOL_ID alone (workflow-sdk's `n8n-schema-tests-<id>`)
-# would wipe each other's files. A traced run gets its own TMPDIR; this nests in it.
-if [ -z "${N8N_VITEST_TMPDIR:-}" ]; then
-  N8N_VITEST_TMPDIR="${TMPDIR:-/tmp}/n8n-vitest-$(basename "$PWD")-${ENACT_SHARD_INDEX:-1}"
-  mkdir -p "$N8N_VITEST_TMPDIR"
-  export N8N_VITEST_TMPDIR TMPDIR="$N8N_VITEST_TMPDIR"
-fi
 REPO_ROOT="$PWD"
 while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-workspace.yaml" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
   REPO_ROOT="$(dirname "$REPO_ROOT")"
