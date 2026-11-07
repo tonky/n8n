@@ -210,6 +210,7 @@ pipeline: schema.#Pipeline & {
 		"@n8n/node-cli": jobs: {
 			lint:      resources: {cpus: 4.0, memory_mb: 6144}
 			typecheck: resources: {cpus: 4.0, memory_mb: 6144}
+			test: {worker: "standard", resource_forecast: {mode: "advisory"}}
 		}
 
 		"nodes-base": {
@@ -284,6 +285,8 @@ pipeline: schema.#Pipeline & {
 			jobs: {
 				build: {
 					name: "Build @n8n/db", services: false
+					// Preserve the previous cold producer allocation as a workload floor.
+					resources: {cpus: 4.0, memory_mb: 8192}
 					outputs: {
 						paths: [
 							P.dir + "/dist", P.dir + "/dist/index.js",
