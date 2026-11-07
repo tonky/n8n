@@ -287,6 +287,22 @@ jobs:
           helpers/playwright-runner.sh
           helpers/pw-spec-env.mjs
           helpers/n8n-ready.mjs
+          ENACT.md
+          .github/workflows
+          .githooks
+          .gitignore
+          .gitattributes
+          .editorconfig
+          lefthook.yml
+          knip.ts
+          .code-health-baseline.json
+          agent-harness.lock.json
+          helpers/vitest-runner.sh
+          helpers/repair-node-modules.sh
+          helpers/pnpm-store.sh
+          helpers/build-workspace-deps.sh
+          helpers/schema-docs-postgres.mjs
+          helpers/trace
     - name: Checkout Repository (sparse)
       if: ${{ steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure' }}
       uses: actions/checkout@v7
@@ -422,6 +438,22 @@ jobs:
           helpers/playwright-runner.sh
           helpers/pw-spec-env.mjs
           helpers/n8n-ready.mjs
+          ENACT.md
+          .github/workflows
+          .githooks
+          .gitignore
+          .gitattributes
+          .editorconfig
+          lefthook.yml
+          knip.ts
+          .code-health-baseline.json
+          agent-harness.lock.json
+          helpers/vitest-runner.sh
+          helpers/repair-node-modules.sh
+          helpers/pnpm-store.sh
+          helpers/build-workspace-deps.sh
+          helpers/schema-docs-postgres.mjs
+          helpers/trace
         sparse-checkout-cone-mode: "true"
         submodules: "false"
     - name: Install committed enact & enve builds
@@ -541,46 +573,6 @@ jobs:
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
         GITHUB_TOKEN: ""
-    - name: Check workspace package integrity
-      if: ${{ steps.stage_plan.outputs.stage_has_work == 'true' }}
-      run: |-
-        if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
-          enve run --locked -- sh -c "$ENACT_STAGE_TASK"
-        else
-          sh -c "$ENACT_STAGE_TASK"
-        fi
-      env:
-        ENACT_STAGE_TASK: node scripts/check-workspace-private-deps.mjs
-    - name: Check module boundaries
-      if: ${{ steps.stage_plan.outputs.stage_has_work == 'true' }}
-      run: |-
-        if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
-          enve run --locked -- sh -c "$ENACT_STAGE_TASK"
-        else
-          sh -c "$ENACT_STAGE_TASK"
-        fi
-      env:
-        ENACT_STAGE_TASK: node scripts/check-boundaries.mjs
-    - name: Check formatting
-      if: ${{ steps.stage_plan.outputs.stage_has_work == 'true' }}
-      run: |-
-        if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
-          enve run --locked -- sh -c "$ENACT_STAGE_TASK"
-        else
-          sh -c "$ENACT_STAGE_TASK"
-        fi
-      env:
-        ENACT_STAGE_TASK: pnpm format:check
-    - name: Check packaging
-      if: ${{ steps.stage_plan.outputs.stage_has_work == 'true' }}
-      run: |-
-        if command -v enve >/dev/null 2>&1 && [ -f "enve.lock" ]; then
-          enve run --locked -- sh -c "$ENACT_STAGE_TASK"
-        else
-          sh -c "$ENACT_STAGE_TASK"
-        fi
-      env:
-        ENACT_STAGE_TASK: helpers/build-workspace-deps.sh --checked 'n8n-node-dev^...' && CI=true pnpm -r pack --dry-run
     - name: Verify Pipeline Contracts (enact check --contracts)
       run: |-
         ENACT_BIN=""

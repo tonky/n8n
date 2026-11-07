@@ -137,10 +137,21 @@ pipeline: schema.#Pipeline & {
 				".prettierrc.js", ".prettierignore", "lefthook.yml", "knip.ts",
 				".boundaries-baseline.json", ".code-health-baseline.json", "agent-harness.lock.json",
 				"patches/**", "scripts/**", "helpers/vitest-runner.sh", "helpers/repair-node-modules.sh", "helpers/pnpm-store.sh",
-				"helpers/build-workspace-deps.sh", "helpers/trace/**",
+				"helpers/build-workspace-deps.sh", "helpers/schema-docs-postgres.mjs", "helpers/trace/**",
 			]
 			depends_on:      []
 			workspace_scope: include_dependencies: true
+			jobs: lint: {
+				name:     "Workspace Integrity, Boundaries, Formatting & Packaging"
+				direct:   true
+				services: false
+				tasks: [
+					{name: "Check workspace package integrity", command: "node scripts/check-workspace-private-deps.mjs"},
+					{name: "Check module boundaries", command: "node scripts/check-boundaries.mjs"},
+					{name: "Check formatting", command: "pnpm format:check"},
+					{name: "Check packaging", command: "helpers/build-workspace-deps.sh --checked 'n8n-node-dev^...' && CI=true pnpm -r --reporter=silent pack --dry-run >/dev/null"},
+				]
+			}
 		}
 
 		for n, p in _packages {
@@ -194,6 +205,11 @@ pipeline: schema.#Pipeline & {
 				lint:      _browserCheck
 				typecheck: _browserCheck
 			}
+		}
+
+		"@n8n/node-cli": jobs: {
+			lint:      resources: {cpus: 4.0, memory_mb: 6144}
+			typecheck: resources: {cpus: 4.0, memory_mb: 6144}
 		}
 
 		"nodes-base": {
@@ -285,9 +301,15 @@ pipeline: schema.#Pipeline & {
 					tasks: [{command: "node scripts/generate-migration-index.mjs && helpers/build-workspace-deps.sh " + P.pkg}]
 				}
 				schema_check: {
-					name:  "Schema Check"
-					needs: ["build"]
+					name:   "Schema Check"
+					direct: true
+					let _schemaFilter = [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "docs/generated/sqlite-schema/**", "docs/generated/postgres-schema/**", ".tbls.sqlite.yml", ".tbls.postgres.yml"]
 					tasks: [
+						{
+							name:    "Build @n8n/db for Schema Check"
+							command: "node scripts/generate-migration-index.mjs && helpers/build-workspace-deps.sh " + P.pkg
+							filter:  {include: _schemaFilter, on_empty: "skip"}
+						},
 						{
 							name:      "Verify SQLite Schema Docs"
 							command:   "node scripts/schema-docs.mjs diff --db=sqlite"
@@ -324,7 +346,7 @@ pipeline: schema.#Pipeline & {
 			watch_paths: [P.dir + "/**", "helpers/n8n-template-db.cjs"]
 			services:    Services
 			service:     n8n.services.cli
-			resources:   {cpus: 2.0, memory_mb: 3072}
+			resources:   {cpus: 2.0, memory_mb: 4096}
 			recorded_by: ["enact-node", "n8n-services"]
 			jobs: {
 				lint:      _browserCheck

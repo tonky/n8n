@@ -85,13 +85,7 @@ pipeline: schema.#Pipeline & {
 			}
 			stages: [
 				{
-					name: "check-and-lint"
-					tasks: [
-						{name: "Check workspace package integrity", command: "node scripts/check-workspace-private-deps.mjs"},
-						{name: "Check module boundaries", command: "node scripts/check-boundaries.mjs"},
-						{name: "Check formatting", command: "pnpm format:check"},
-						{name: "Check packaging", command: "helpers/build-workspace-deps.sh --checked 'n8n-node-dev^...' && CI=true pnpm -r pack --dry-run"},
-					]
+					name:   "check-and-lint"
 					select: [J.lint, J.typecheck, J.schema_check], fail_fast: true, services: "on_demand"
 				},
 				{name: "test", matrix: true, select: [J.test, J.migrate, J.integration, J.dev_server_smoke], fail_fast: false, services: "on_demand"},

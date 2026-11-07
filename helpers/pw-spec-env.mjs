@@ -4,8 +4,8 @@
 // A spec's `test.use({ capability: { env: {...} } })` is the env upstream's container mode
 // starts its n8n with (N8N_DEPRECATED_NODES_BLOCK, N8N_PUSH_BACKEND, TEST_ISOLATION, ...).
 // run-local-isolated.mjs starts one n8n for all the specs it is given, with N8N_TEST_ENV's
-// env alone: a spec run beside others without its env fails (deprecated-nodes.spec.ts:
-// "this node type is deprecated"). Each line printed is one group, an n8n of its own:
+// env alone: a spec run beside others without its env fails (e.g. a deprecated-node
+// check expecting "this node type is deprecated"). Each line printed is one group, an n8n of its own:
 // `<N8N_TEST_ENV JSON>\t<workers>\t<spec>\t<spec>...`, the caller's N8N_TEST_ENV under each
 // spec's env. <workers> is `1` for specs tagging `@db:reset` (each such test resets the
 // database: upstream gives every Playwright worker an n8n container of its own, while one
