@@ -44,7 +44,7 @@ pipeline: schema.#Pipeline & {
 					cpus: 14, memory_mb: 28672
 					quantization: {
 						label_prefix: "tonky-ci", cpu_step: 1, memory_step_mb: 1024
-						runtime_reserve_mb: 1024
+						runtime_reserve_mb: 2048
 						// Retain the existing cold JavaScript setup floor during the canary.
 						min: {cpus: 1, memory_mb: 4096}
 						max: {cpus: 6, memory_mb: 13312}
@@ -74,7 +74,7 @@ pipeline: schema.#Pipeline & {
 					cpus: 8, memory_mb: 12288
 					quantization: {
 						label_prefix: "tonky-ci", cpu_step: 1, memory_step_mb: 1024
-						runtime_reserve_mb: 1024
+						runtime_reserve_mb: 2048
 						min: {cpus: 1, memory_mb: 4096}
 						max: {cpus: 4, memory_mb: 8192}
 						control: {cpus: 2, memory_mb: 4096}
