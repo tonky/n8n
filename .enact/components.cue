@@ -493,6 +493,9 @@ pipeline: schema.#Pipeline & {
 				test: {
 					name:  "Test"
 					needs: ["build", "@n8n/db:build"]
+					// Keep the owned recorder within the existing 13 GiB full carrier:
+					// 11 GiB payload plus the pool's 2 GiB setup reserve.
+					record_resources: {cpus: 4.0, memory_mb: 11264}
 					tasks: [{
 						name:      "Run Tests"
 						command:   "helpers/playwright-runner.sh {relative_targets}"
