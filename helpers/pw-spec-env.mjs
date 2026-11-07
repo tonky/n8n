@@ -6,7 +6,11 @@
 // run-local-isolated.mjs starts one n8n for all the specs it is given, with N8N_TEST_ENV's
 // env alone: a spec run beside others without its env fails (deprecated-nodes.spec.ts:
 // "this node type is deprecated"). Each line printed is one group, an n8n of its own:
-// `<N8N_TEST_ENV JSON>\t<spec>\t<spec>...`, the caller's N8N_TEST_ENV under each spec's env.
+// `<N8N_TEST_ENV JSON>\t<workers>\t<spec>\t<spec>...`, the caller's N8N_TEST_ENV under each
+// spec's env. <workers> is `1` for specs tagging `@db:reset` (each such test resets the
+// database: upstream gives every Playwright worker an n8n container of its own, while one
+// local n8n serves all the workers, so a reset beside another worker's test failed it:
+// "SQLITE_CONSTRAINT: FOREIGN KEY constraint failed"), else `-`, the caller's.
 // Specs paths are relative to <dir> (the Playwright package), as the runner takes them.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -39,8 +43,10 @@ function capabilityEnv(source) {
 
 const groups = new Map();
 for (const spec of specs) {
-	const env = JSON.stringify({ ...base, ...capabilityEnv(readFileSync(resolve(dir, spec), 'utf8')) });
-	if (!groups.has(env)) groups.set(env, []);
-	groups.get(env).push(spec);
+	const source = readFileSync(resolve(dir, spec), 'utf8');
+	const env = JSON.stringify({ ...base, ...capabilityEnv(source) });
+	const key = `${env}\t${source.includes('@db:reset') ? '1' : '-'}`;
+	if (!groups.has(key)) groups.set(key, []);
+	groups.get(key).push(spec);
 }
-for (const [env, members] of groups) console.log([env, ...members].join('\t'));
+for (const [key, members] of groups) console.log([key, ...members].join('\t'));

@@ -84,6 +84,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
+    - ibp8
     - tonky-ci-l
     timeout-minutes: 90
     steps:

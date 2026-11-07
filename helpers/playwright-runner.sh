@@ -123,10 +123,13 @@ if [ ${#SPECS[@]} -gt 0 ]; then
   else
     # The specs grouped by the n8n env each declares (pw-spec-env.mjs): each group on an n8n
     # of its own, started with that env; every group runs, the first failure fails the run.
+    # A group's second field is its workers: `1` for specs resetting the database, else `-`.
     status=0
     while IFS=$'\t' read -r -a group; do
+      group_workers=("${WORKERS[@]}")
+      [ "${group[1]}" = - ] || group_workers=(--workers "${group[1]}")
       N8N_TEST_ENV="${group[0]}" node --import "$SCRIPT_DIR/n8n-ready.mjs" \
-        "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${WORKERS[@]}" "${group[@]:1}" ||
+        "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${group_workers[@]}" "${group[@]:2}" ||
         { s=$?; [ "$status" -ne 0 ] || status=$s; }
     done < <(node "$SCRIPT_DIR/pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${SPECS[@]}")
     exit "$status"

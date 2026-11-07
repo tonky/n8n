@@ -114,14 +114,18 @@ if [ ! -f "$VITEST_HEALED_SENTINEL" ] || \
         ln -sfn "${VITEST_MOD_SRCS[$i]}" "$REPO_ROOT/node_modules/@vitest/${VITEST_MOD_NAMES[$i]}" 2>/dev/null || true
       done
     fi
+    # Only where the install linked none: the lock gives packages different vitest builds
+    # (peer variants), and a package's `.bin/vitest` and deps (vitest-mock-extended) keep
+    # the install's. Relinked to the first package's, node-cli's tests imported one vitest
+    # under another's runner and every `rejects.toThrow('<string>')` failed (LEARNINGS: vitest builds).
     for p in "$REPO_ROOT"/packages/@n8n/* "$REPO_ROOT"/packages/frontend/@n8n/* "$REPO_ROOT"/packages/frontend/* "$REPO_ROOT"/packages/* "$REPO_ROOT"/packages/modules/*/frontend; do
       if [ -d "$p" ]; then
         mkdir -p "$p/node_modules"
-        ln -sfn "$VITEST_SRC" "$p/node_modules/vitest" 2>/dev/null || true
+        [ -e "$p/node_modules/vitest" ] || ln -sfn "$VITEST_SRC" "$p/node_modules/vitest" 2>/dev/null || true
         if [ "${#VITEST_MOD_NAMES[@]}" -gt 0 ]; then
           mkdir -p "$p/node_modules/@vitest"
           for i in "${!VITEST_MOD_NAMES[@]}"; do
-            ln -sfn "${VITEST_MOD_SRCS[$i]}" "$p/node_modules/@vitest/${VITEST_MOD_NAMES[$i]}" 2>/dev/null || true
+            [ -e "$p/node_modules/@vitest/${VITEST_MOD_NAMES[$i]}" ] || ln -sfn "${VITEST_MOD_SRCS[$i]}" "$p/node_modules/@vitest/${VITEST_MOD_NAMES[$i]}" 2>/dev/null || true
           done
         fi
       fi

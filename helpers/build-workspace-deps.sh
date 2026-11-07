@@ -3,8 +3,9 @@
 # build-workspace-deps.sh [--checked] <turbo filter...> - Builds workspace packages when their sources changed
 # ==============================================================================
 # Standalone callers targeting declared `#Job.outputs` producers (`n8n...`, `n8n-playwright^...`,
-# `@n8n/db`) materialize them through `enact helper ensure-outputs`. Dynamic per-package filters
-# and `--checked` builds serialize `pnpm turbo run` under `enact helper lock workspace-build`.
+# `@n8n/db`) materialize them through `enact helper ensure-outputs` (a cone without the producer's
+# root takes restored outputs or builds with turbo). Dynamic per-package filters and `--checked`
+# builds serialize `pnpm turbo run` under `enact helper lock workspace-build`.
 # N8N_WORKSPACE_DEPS_BUILT=1 skips it when a caller already built up front.
 # ==============================================================================
 set -euo pipefail
@@ -29,7 +30,10 @@ if [ "$task" = "build:unchecked" ] && [ $# -eq 1 ] && [ -d .enact ]; then
   case "$1" in
     n8n-playwright^... | n8n...)
       if [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "playwright:build" ]; then
-        exec "$enact" helper ensure-outputs playwright:build
+        [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
+        # A cone without playwright's root (cli's) can't run its producer: restored outputs
+        # serve, else turbo builds `n8n...` below.
+        "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
       fi
       ;;
     @n8n/db)

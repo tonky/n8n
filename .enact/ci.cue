@@ -36,7 +36,7 @@ pipeline: schema.#Pipeline & {
 		budget: {enforce: true, untraced_tests: 20, wall_minutes: 30}
 		workers: {
 			standard: {
-				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
+				labels: ["self-hosted", "Linux", "X64", "tonky-ci", "ibp8"], tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
 				pool: {
 					cpus: 14, memory_mb: 28672
 					sizes: {
@@ -47,9 +47,12 @@ pipeline: schema.#Pipeline & {
 				}
 			}
 			arm64: {
-				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci"], tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
+				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci", "mac1"], tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
 				pool: {
 					cpus: 16, memory_mb: 36864
+					// mac1's dispatcher runs 4c/8G while a Mac lane or gate holds the host
+					// (KNOWLEDGE `tonky-ci` load clamp): an l job would wait it out.
+					floor: {cpus: 4, memory_mb: 8192}
 					sizes: {
 						"tonky-ci-s": {cpus: 2, memory_mb: 4096}
 						"tonky-ci-m": {cpus: 4, memory_mb: 8192}
@@ -61,7 +64,7 @@ pipeline: schema.#Pipeline & {
 				// A second X64 host (8c/14G): s and m only; a gate lane holding l7 drains it to zero.
 				// A size costs the rate times its share of the largest size: 0.006 prices its m as
 				// the 13 GB pools price theirs.
-				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], tier: "dedicated", available: 1, cost_per_min: 0.006, timeout_minutes: 90
+				labels: ["self-hosted", "Linux", "X64", "tonky-ci", "l7"], tier: "dedicated", available: 1, cost_per_min: 0.006, timeout_minutes: 90
 				pool: {
 					cpus: 8, memory_mb: 12288
 					sizes: {
@@ -97,15 +100,6 @@ pipeline: schema.#Pipeline & {
 		local: {
 			services: "on_demand"
 			stages:   [{name: "dev", select: [J.test, J.migrate, J.integration, J.dev_server_smoke]}]
-		}
-		nightly: {
-			layout: "staged", scope: "all", services: "on_demand"
-			triggers: {workflow_dispatch: true}
-			// Judge failures by what the last push runs of `ci` selected (escape audit).
-			audit_escapes: {workflow: "ci", runs: 5}
-			stages: [
-				{name: "test", matrix: true, select: [J.test, J.migrate, J.integration, J.dev_server_smoke], fail_fast: false, services: "on_demand"},
-			]
 		}
 	}
 }

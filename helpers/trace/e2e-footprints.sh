@@ -27,10 +27,16 @@ wanted() { # <repository-relative spec>
   awk -v t="$1" '$0 == t || index($0, t "::") == 1 { found = 1; exit } END { exit !found }' "$LISTED"
 }
 
-# run-local-isolated.mjs, waiting for n8n until it is ready (../n8n-ready.mjs).
-# Its Playwright workers: the shard's CPUs (N8N_PW_WORKERS, ../playwright-runner.sh).
-ISOLATED=(node --import "$TRACE_DIR/../n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs"
-  ${N8N_PW_WORKERS:+--workers "$N8N_PW_WORKERS"})
+# isolated <workers> <args...>: run-local-isolated.mjs, waiting for n8n until it is ready
+# (../n8n-ready.mjs). Its Playwright workers: <workers>, pw-spec-env.mjs's (`1` for specs
+# resetting the database), else (`-`) the shard's CPUs (N8N_PW_WORKERS, ../playwright-runner.sh).
+isolated() {
+  local workers=$1
+  shift
+  [ "$workers" != - ] || workers=${N8N_PW_WORKERS:-}
+  node --import "$TRACE_DIR/../n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" \
+    ${workers:+--workers "$workers"} "$@"
+}
 
 RECORDED=()
 UNRECORDED=()
@@ -38,15 +44,15 @@ for spec in "$@"; do
   if wanted "$PACKAGE/${spec#./}"; then RECORDED+=("${spec#./}"); else UNRECORDED+=("$spec"); fi
 done
 
-# Each spec's n8n starts with the env the spec declares (../pw-spec-env.mjs).
-spec_env() { # <spec>
-  node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "$1" | cut -f1
+# Each spec's n8n starts with the env the spec declares, and its workers (../pw-spec-env.mjs).
+spec_group() { # <spec>: `<env>\t<workers>`
+  node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "$1" | cut -f1,2
 }
 
 status=0
 if [ ${#UNRECORDED[@]} -gt 0 ]; then
   while IFS=$'\t' read -r -a group; do
-    N8N_TEST_ENV="${group[0]}" "${ISOLATED[@]}" "${group[@]:1}" || status=$?
+    N8N_TEST_ENV="${group[0]}" isolated "${group[1]}" "${group[@]:2}" || status=$?
   done < <(node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${UNRECORDED[@]}")
 fi
 [ ${#RECORDED[@]} -gt 0 ] || exit "$status"
@@ -56,7 +62,7 @@ CHUNKS="$REPO_ROOT/node_modules/.enact-editor-chunks.json"
 if ! ENACT_FOOTPRINT_ROOT="$REPO_ROOT" node "$TRACE_DIR/editor-chunks.mjs" "$CHUNKS"; then
   echo "❌ [e2e-footprints] the editor's build couldn't be mapped to its sources: the specs run unrecorded" >&2
   while IFS=$'\t' read -r -a group; do
-    N8N_TEST_ENV="${group[0]}" "${ISOLATED[@]}" "${group[@]:1}" || status=$?
+    N8N_TEST_ENV="${group[0]}" isolated "${group[1]}" "${group[@]:2}" || status=$?
   done < <(node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${RECORDED[@]}")
   exit "$status"
 fi
@@ -74,10 +80,11 @@ for spec in "${RECORDED[@]}"; do
   # html report, metrics): list, and playwright-attribution.mjs writing the tests it skipped
   # (skips/<n>.jsonl), so the footprint lands marked as skipped here.
   mkdir -p "$WORK/skips"
-  N8N_TEST_ENV="$(spec_env "$spec")" ENACT_NODE_READS="$WORK/node/$n" ENACT_FOOTPRINT_ROOT="$REPO_ROOT" \
+  IFS=$'\t' read -r spec_env spec_workers < <(spec_group "$spec")
+  N8N_TEST_ENV="$spec_env" ENACT_NODE_READS="$WORK/node/$n" ENACT_FOOTPRINT_ROOT="$REPO_ROOT" \
     NODE_OPTIONS="--import $TRACE_DIR/node-reads.mjs${NODE_OPTIONS:+ $NODE_OPTIONS}" \
     ENACT_SKIPS_FILE="$WORK/skips/$n.jsonl" \
-    "${ISOLATED[@]}" "$spec" --output="$WORK/results/$n" \
+    isolated "$spec_workers" "$spec" --output="$WORK/results/$n" \
     "--reporter=list,$TRACE_DIR/playwright-attribution.mjs" || spec_status=$?
   [ "$spec_status" -eq 0 ] || status=$spec_status
   RESULTS+=("$PACKAGE/$spec=$spec_status")

@@ -403,6 +403,16 @@ pipeline: schema.#Pipeline & {
 				}, {
 					tests:  [P.dir + "/tests/framework/harness-contract.test.ts"]
 					reason: "drives Playwright in a subprocess under its own Vitest config (test:harness), which the runner's vitest.config.ts leaves out"
+				}, {
+					tests: [for s in [
+						"auth/token-exchange", "settings/log-streaming/log-streaming", "workflow-reviews/review-round-trip",
+						"type-availability-policies/credential-type-policy", "type-availability-policies/credential-type-policy-worker",
+						"type-availability-policies/node-type-policy",
+					] {P.dir + "/tests/e2e/" + s + ".spec.ts"}]
+					reason: "@licensed specs whose module starts only with an enterprise license (upstream's N8N_LICENSE_CERT/N8N_LICENSE_ACTIVATION_KEY secrets; its fork PRs run --grep-invert=@licensed): enableFeature can't start it later"
+				}, {
+					tests:  [P.dir + "/tests/e2e/api/workflow-publication-service.spec.ts"]
+					reason: "its `services` fixture reads n8nContainer.services, null outside container mode: a TypeError before the test's own sqlite skip (upstream, on x86 and ARM)"
 				}]
 			}
 			resources: {cpus: 4.0, memory_mb: 10240}

@@ -110,9 +110,12 @@ done
 # VITEST_RUNNER_ARGS: what a job adds to every vitest run and listing of its own targets
 # (nodes-base's `integration`: `--config vitest.integration.config.ts --dir credentials`), so
 # a suite under another config is listed, run and recorded as the unit suite is.
-# Turbo's task logs aren't tests. Exclude the directory itself and its descendants:
-# Vitest's CLI patterns add to each config's excludes, for both listing and execution.
-DISCOVERY_ARGS=(--exclude '**/.turbo' --exclude '**/.turbo/**')
+# Turbo's task logs and builds aren't tests. Exclude the directories and their descendants:
+# Vitest's CLI patterns add to each config's excludes, for both listing and execution. A
+# config's `**/*.test.ts` walk otherwise reads the package's own `dist` whenever a build is
+# there, and that read is reached by every source built into it (nodes-base's integration
+# tests: a credential's change selected all five).
+DISCOVERY_ARGS=(--exclude '**/.turbo' --exclude '**/.turbo/**' --exclude '**/dist' --exclude '**/dist/**')
 RUNNER_ARGS=()
 [ -z "${VITEST_RUNNER_ARGS:-}" ] || read -ra RUNNER_ARGS <<<"$VITEST_RUNNER_ARGS"
 
