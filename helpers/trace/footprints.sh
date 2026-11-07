@@ -47,9 +47,8 @@ wanted() {
   awk -v t="$1" '$0 == t || index($0, t "::") == 1 { found = 1; exit } END { exit !found }' "$LISTED"
 }
 
-# The tests vitest-runner.sh sends to its integration and migration modes.
+# The tests vitest-runner.sh sends to its integration mode.
 INTEGRATION='^packages/cli/(test/integration/.*|src/.*\.integration)\.test\.ts$|\.postgres\.test\.ts$'
-MIGRATION='^packages/cli/test/migration/.*\.test\.ts$'
 # Task metadata is derived from the component's declared services. Port discovery
 # variables describe every enve service, including ones this job never starts.
 # The standalone recorder supplies SERVICE_DEPS for the services it traces itself.
@@ -129,29 +128,23 @@ fi
 # The targets by kind, each run traced once if it holds a wanted test, else as usual.
 UNIT=()
 INTEGRATIONS=()
-MIGRATIONS=()
 UNIT_WANTED=0
 INTEGRATION_WANTED=0
-MIGRATION_WANTED=0
 for target in "$@"; do
   spec=$(realpath -m --relative-to="$ROOT" "$PWD/${target%%::*}")
   if [[ $spec =~ $INTEGRATION ]]; then
     INTEGRATIONS+=("$target")
     wanted "$spec" && INTEGRATION_WANTED=1
-  elif [[ $spec =~ $MIGRATION ]]; then
-    MIGRATIONS+=("$target")
-    wanted "$spec" && MIGRATION_WANTED=1
   else
     UNIT+=("$target")
     wanted "$spec" && UNIT_WANTED=1
   fi
 done
-if [ "$UNIT_WANTED$INTEGRATION_WANTED$MIGRATION_WANTED" = 000 ]; then
+if [ "$UNIT_WANTED$INTEGRATION_WANTED" = 00 ]; then
   exec "$RUNNER" "$@"
 fi
 
 status=0
 [ ${#UNIT[@]} -eq 0 ] || run_kind unit "$UNIT_WANTED" "$DECLARED_SERVICES" "${UNIT[@]}" || status=$?
 [ ${#INTEGRATIONS[@]} -eq 0 ] || run_kind integration "$INTEGRATION_WANTED" "$DECLARED_SERVICES" "${INTEGRATIONS[@]}" || status=$?
-[ ${#MIGRATIONS[@]} -eq 0 ] || run_kind migration "$MIGRATION_WANTED" "$DECLARED_SERVICES" "${MIGRATIONS[@]}" || status=$?
 exit "$status"

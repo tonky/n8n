@@ -15,7 +15,6 @@ if [ "${1:-}" = --checked ]; then task=build; shift; fi
 [ $# -gt 0 ] || { echo "usage: build-workspace-deps.sh [--checked] <turbo filter...>" >&2; exit 64; }
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-. helpers/pnpm-store.sh
 if [ -d node_modules ] && [ -d packages/@n8n ]; then
   mkdir -p node_modules/@n8n
   for pkg in packages/@n8n/*; do

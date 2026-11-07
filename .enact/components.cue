@@ -32,17 +32,17 @@ _typecheck: {
 _browserCheck: {direct: true, services: false, resources: {cpus: 4.0, memory_mb: 10240}}
 _vitest:       "helpers/vitest-runner.sh {relative_targets}"
 
+_chromiumBrowsers: schema.#Browsers & {
+	engine:   "chromium"
+	path:     "/tmp/.cache/ms-playwright"
+	env:      "PLAYWRIGHT_BROWSERS_PATH"
+	key:      ["packages/quality/testing/playwright/package.json", "pnpm-lock.yaml"]
+	artifact: "tools/playwright-browsers-linux-amd64.tar.zst"
+}
+
 // A whole traced suite on a fresh map (the nightly) runs past the 600 s default step limit,
 // which judges a shard with no recorded durations: frontend's 6 shards take ~1,200 s traced.
 _wholeSuiteTimeout: "45m"
-
-// Test tasks that differ from `_vitest`. expression-runtime's tests load its own build
-// (`dist/bundle/runtime.iife.js`): vitest-runner.sh builds the package itself too (so does
-// cli's, below).
-_testTask: {
-	"frontend": {command: _vitest, timeout: _wholeSuiteTimeout}
-	"@n8n/expression-runtime": {command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}
-}
 
 _unsetPgEnv: [
 	"PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGPASSWORD",
@@ -143,39 +143,56 @@ pipeline: schema.#Pipeline & {
 			workspace_scope: include_dependencies: true
 		}
 
-		for n, p in _packages if !p.custom {
+		for n, p in _packages {
 			(n): {
 				name:        n
 				root:        p.dir
-				watch_paths: [p.dir + "/**", for f in p.reads {f}]
-				depends_on:  ["root", for d in p.deps {d}]
+				watch_paths: *[p.dir + "/**", for f in p.reads {f}] | [...string]
+				depends_on:  *["root", for d in p.deps {d}] | [...string]
 				workspace_scope: {
 					include_dependencies: true
 					if len(p.reads) > 0 {include: [p.dir, for f in p.reads {f}]}
 				}
-				if p.shards > 0 {shards: p.shards}
+				if p.shards > 0 {shards: *p.shards | int}
 				if len(p.tests) > 0 {
 					target_scope: _target_scope & {#dir: p.dir, #tests: p.tests, #ignore: p.exclude}
-					if n != "nodes-base" && n != "frontend" && n != "@n8n/expression-runtime" {test: _vitest}
-					if n == "frontend" {test: _testTask.frontend}
-					if n == "@n8n/expression-runtime" {test: _testTask["@n8n/expression-runtime"]}
-					recorder:     "own_linux"
-					recorded_by:  ["enact-node"]
+					recorder:     *"own_linux" | string
+					recorded_by:  *["enact-node"] | [...string]
+					jobs: test: {
+						name:  *"Test" | string
+						tasks: *[{name: "Run Tests", command: _vitest}] | [...schema.#Task]
+					}
 				}
 				if len(p.exclude) > 0 {target_scope: exclude: p.exclude}
 				if len(p.handoff) > 0 {target_scope: handoff: p.handoff}
-				if p.lint && name != "@n8n/efficiency" {
-					lint: _lint & {#pkg: p.pkg, #styles: p.lint_styles, #format: p.format_check}
-				}
-				if p.typecheck && name != "@n8n/efficiency" {
-					typecheck: _typecheck & {#pkg: p.pkg, #declarations: n == "@n8n/design-system" || n == "@n8n/chat"}
-				}
-				if name == "@n8n/efficiency" {
-					jobs: {
-						lint:      _browserCheck & {name: "Lint", tasks: [_lint & {#pkg: p.pkg, #styles: p.lint_styles, #format: p.format_check, name: "Run Linter"}]}
-						typecheck: _browserCheck & {name: "Typecheck", tasks: [_typecheck & {#pkg: p.pkg, name: "Typecheck"}]}
+				if p.lint {
+					jobs: lint: {
+						name:     "Lint"
+						direct:   true
+						services: false
+						tasks:    [_lint & {#pkg: p.pkg, #styles: p.lint_styles, #format: p.format_check, name: "Run Linter"}]
 					}
 				}
+				if p.typecheck {
+					jobs: typecheck: {
+						name:     "Typecheck"
+						direct:   true
+						services: false
+						tasks:    [_typecheck & {#pkg: p.pkg, #declarations: p.declarations, name: "Typecheck"}]
+					}
+				}
+			}
+		}
+
+		frontend: jobs: test: tasks: [{name: "Run Tests", command: _vitest, timeout: _wholeSuiteTimeout}]
+
+		"@n8n/expression-runtime": jobs: test: tasks: [{name: "Run Tests", command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}]
+
+		"@n8n/efficiency": {
+			browsers: _chromiumBrowsers
+			jobs: {
+				lint:      _browserCheck
+				typecheck: _browserCheck
 			}
 		}
 
@@ -184,19 +201,21 @@ pipeline: schema.#Pipeline & {
 			let Services = {kafka: n8n.services.kafka, mysql: n8n.services.mysql}
 			// Its services are the integration job's: the unit suite starts none.
 			services: Services
-			jobs: test: {name: "Test", services: false, tasks: [{name: "Run Tests", command: _vitest}]}
-			// Every `*.integration.test.ts`, under upstream's integration config (upstream runs
-			// them by hand, test:integration:skip). Kafka's and MySQL's reach enve's broker and
-			// server (N8N_TEST_KAFKA_BROKER, N8N_TEST_MYSQL_*: patches/0001), not testcontainers.
-			jobs: integration: {
-				recorder:     "own_linux"
-				recorded_by:  ["enact-node"]
-				target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/{credentials,nodes}/**/*.integration.test.ts"]}
-				tasks: [{
-					name:    "integration"
-					command: "VITEST_RUNNER_ARGS='--config vitest.integration.config.ts --coverage.enabled=false' helpers/vitest-runner.sh {relative_targets}"
-					env: ENACT_FOOTPRINT_SERVICES: strings.Join([for name, _ in Services {name}], " ")
-				}]
+			jobs: {
+				test: services: false
+				// Every `*.integration.test.ts`, under upstream's integration config (upstream runs
+				// them by hand, test:integration:skip). Kafka's and MySQL's reach enve's broker and
+				// server (N8N_TEST_KAFKA_BROKER, N8N_TEST_MYSQL_*: patches/0001), not testcontainers.
+				integration: {
+					recorder:     "own_linux"
+					recorded_by:  ["enact-node"]
+					target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/{credentials,nodes}/**/*.integration.test.ts"]}
+					tasks: [{
+						name:    "integration"
+						command: "VITEST_RUNNER_ARGS='--config vitest.integration.config.ts --coverage.enabled=false' helpers/vitest-runner.sh {relative_targets}"
+						env: ENACT_FOOTPRINT_SERVICES: strings.Join([for name, _ in Services {name}], " ")
+					}]
+				}
 			}
 		}
 
@@ -238,23 +257,14 @@ pipeline: schema.#Pipeline & {
 		"@n8n/db": {
 			let P = _packages["@n8n/db"]
 			let Services = [n8n.services.postgres]
-			name:        "@n8n/db"
-			title:       "n8n Database & Entities"
-			kind:        "library"
-			domain:      "backend"
-			uses:        [{protocol: schema.#Protocol.Sql, target: "postgres", title: "Workflow & execution persistence"}]
-			root:        P.dir
-			watch_paths: [P.dir + "/**", "docs/generated/**", ".tbls.*.yml", "helpers/schema-docs-postgres.mjs"]
-			depends_on:  ["root", for d in P.deps {d}]
-			workspace_scope: {
-				include_dependencies: true
-				include:              [P.dir, "docs/generated", ".tbls.postgres.yml", ".tbls.sqlite.yml", "packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json"]
-			}
-			services:     Services
-			shards:       P.shards
-			target_scope: _target_scope & {#dir: P.dir, #tests: P.tests}
-			lint:         _lint & {#pkg: P.pkg, #styles: P.lint_styles, #format: P.format_check}
-			typecheck:    _typecheck & {#pkg: P.pkg}
+			title:           "n8n Database & Entities"
+			kind:            "library"
+			domain:          "backend"
+			uses:            [{protocol: schema.#Protocol.Sql, target: "postgres", title: "Workflow & execution persistence"}]
+			watch_paths:     [P.dir + "/**", "docs/generated/**", ".tbls.*.yml"]
+			workspace_scope: include: [P.dir, "docs/generated", ".tbls.postgres.yml", ".tbls.sqlite.yml", "packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json"]
+			services:        Services
+			recorded_by:     ["enact-node", "n8n-services"]
 			jobs: {
 				build: {
 					name: "Build @n8n/db", services: false
@@ -286,60 +296,57 @@ pipeline: schema.#Pipeline & {
 						},
 						{
 							name:      "Verify Postgres Schema Docs"
-							command:   "node --import helpers/schema-docs-postgres.mjs scripts/schema-docs.mjs diff --db=postgres"
+							command:   "node --import $ENACT_RECORDERS_DIR/js/testcontainers-enve-shim.mjs scripts/schema-docs.mjs diff --db=postgres"
 							unset_env: ["CI"]
-							filter:    {include: [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "helpers/schema-docs-postgres.mjs", "docs/generated/postgres-schema/**", ".tbls.postgres.yml"], on_empty: "skip"}
+							filter:    {include: [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "docs/generated/postgres-schema/**", ".tbls.postgres.yml"], on_empty: "skip"}
 						},
 					]
 				}
+				test: tasks: [{
+					name:    "Run Tests"
+					command: "node scripts/generate-migration-index.mjs && " + _vitest
+					env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
+				}]
 			}
-			test: {
-				command: "node scripts/generate-migration-index.mjs && " + _vitest
-				env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
-			}
-			recorder:    "own_linux"
-			recorded_by: ["enact-node", "n8n-services"]
 		}
 
 		cli: {
 			let P = _packages.cli
 			let Services = [n8n.services.postgres, n8n.services.redis]
-			name:            "cli"
-			title:           "n8n CLI & Backend Service"
-			kind:            "service"
-			domain:          "backend"
+			title:  "n8n CLI & Backend Service"
+			kind:   "service"
+			domain: "backend"
 			uses: [
 				{protocol: schema.#Protocol.Sql, target: "postgres", title: "Stores workflows, credentials & executions"},
 				{protocol: schema.#Protocol.Redis, target: "redis", title: "Queue mode job coordination & cache"},
 				{protocol: schema.#Protocol.Tcp, target: "@n8n/task-runner-python", title: "Dispatches Python code node tasks"},
 			]
-			root:        P.dir
 			watch_paths: [P.dir + "/**", "helpers/n8n-template-db.cjs"]
-			depends_on:  ["root", for d in P.deps {d}]
-			workspace_scope: {
-				include_dependencies: true
-				include:              [P.dir]
-			}
-			services:        Services
-			service:         n8n.services.cli
-			resources:       {cpus: 2.0, memory_mb: 3072}
-			shards:          P.shards
-			target_scope:    _target_scope & {#dir: P.dir, #tests: P.tests}
-			test: {
-				command: _vitest
-				timeout: _wholeSuiteTimeout
-				env: {
-					ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
-					// The event bus's log writer runs cli's own build in a worker thread
-					// (`dist/eventbus/.../message-event-bus-log-writer-worker.js` under NODE_ENV=test).
-					N8N_TESTS_READ_OWN_BUILD: "1"
-				}
-			}
-			recorder:    "own_linux"
+			services:    Services
+			service:     n8n.services.cli
+			resources:   {cpus: 2.0, memory_mb: 3072}
 			recorded_by: ["enact-node", "n8n-services"]
 			jobs: {
-				lint:      _browserCheck & {name: "Lint", tasks: [_lint & {#pkg: P.pkg, #styles: P.lint_styles, #format: P.format_check, name: "Run Linter"}]}
-				typecheck: _browserCheck & {name: "Typecheck", tasks: [_typecheck & {#pkg: P.pkg, name: "Typecheck"}]}
+				lint:      _browserCheck
+				typecheck: _browserCheck
+				test: {
+					fixture: {
+						scope:   "shard"
+						setup:   "helpers/vitest-runner.sh --setup-fixture {relative_targets}"
+						release: "helpers/vitest-runner.sh --release-fixture"
+					}
+					tasks: [{
+						name:    "Run Tests"
+						command: _vitest
+						timeout: _wholeSuiteTimeout
+						env: {
+							ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
+							// The event bus's log writer runs cli's own build in a worker thread
+							// (`dist/eventbus/.../message-event-bus-log-writer-worker.js` under NODE_ENV=test).
+							N8N_TESTS_READ_OWN_BUILD: "1"
+						}
+					}]
+				}
 				migrate: {
 					recorder:     "own_linux"
 					recorded_by:  ["enact-node", "n8n-services"]
@@ -369,23 +376,13 @@ pipeline: schema.#Pipeline & {
 
 		playwright: {
 			let P = _packages.playwright
-			name:            "playwright"
-			title:           "n8n End-to-End Playwright Suite"
-			kind:            "verification"
-			domain:          "verification"
-			root:            P.dir
-			watch_paths:     [P.dir + "/**", "helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs"]
-			depends_on:      ["root", "frontend", for d in P.deps {d}]
-			workspace_scope: include_dependencies: true
-			browsers: {
-				engine:   "chromium"
-				path:     "/tmp/.cache/ms-playwright"
-				env:      "PLAYWRIGHT_BROWSERS_PATH"
-				key:      [P.dir + "/package.json", "pnpm-lock.yaml"]
-				artifact: "tools/playwright-browsers-linux-amd64.tar.zst"
-			}
-			shards:   4
-			recorder: "own"
+			title:       "n8n End-to-End Playwright Suite"
+			kind:        "verification"
+			domain:      "verification"
+			watch_paths: [P.dir + "/**", "helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs"]
+			browsers:    _chromiumBrowsers
+			shards:      4
+			recorder:    "own"
 			target_scope: _target_scope & {
 				#dir:    P.dir
 				#tests:  [P.dir + "/tests/**/*.spec.ts", P.dir + "/**/*.test.{ts,mjs}"]
@@ -436,8 +433,8 @@ pipeline: schema.#Pipeline & {
 					}
 					tasks: [{command: "helpers/build-workspace-deps.sh 'n8n-playwright^...'"}]
 				}
-				lint:      _browserCheck & {name: "Lint", tasks: [_lint & {#pkg: P.pkg, #styles: P.lint_styles, #format: P.format_check, name: "Run Linter"}]}
-				typecheck: _browserCheck & {name: "Typecheck", tasks: [_typecheck & {#pkg: P.pkg, name: "Typecheck"}]}
+				lint:      _browserCheck
+				typecheck: _browserCheck
 				dev_server_smoke: {
 					name:     "Dev-Server Boot Smoke"
 					needs:    ["build", "@n8n/db:build"]

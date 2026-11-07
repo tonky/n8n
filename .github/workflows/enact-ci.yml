@@ -239,7 +239,6 @@ jobs:
           packages/@n8n/codemirror-lang
           packages/@n8n/codemirror-lang-sql
           packages/@n8n/crdt
-          helpers/schema-docs-postgres.mjs
           packages/quality/efficiency
           docker/images/runners/n8n-task-runners.json
           packages/@n8n/codemirror-lang-html
@@ -375,7 +374,6 @@ jobs:
           packages/@n8n/codemirror-lang
           packages/@n8n/codemirror-lang-sql
           packages/@n8n/crdt
-          helpers/schema-docs-postgres.mjs
           packages/quality/efficiency
           docker/images/runners/n8n-task-runners.json
           packages/@n8n/codemirror-lang-html

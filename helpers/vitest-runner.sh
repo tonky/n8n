@@ -2,6 +2,36 @@
 set -euo pipefail
 
 # vitest-runner.sh: Dispatches targeted tests to unit (SQLite) or integration (Postgres) runner
+drop_template() {
+  [ -n "${N8N_TEST_TEMPLATE_DB:-}" ] || return 0
+  local psql=(psql -h "${DB_POSTGRESDB_HOST:-127.0.0.1}" -p "${DB_POSTGRESDB_PORT:?the postgres port (enve.cue)}" -U postgres -d n8n -q)
+  "${psql[@]}" -c "UPDATE pg_database SET datistemplate = false WHERE datname = '$N8N_TEST_TEMPLATE_DB'" \
+    -c "DROP DATABASE IF EXISTS $N8N_TEST_TEMPLATE_DB" >/dev/null 2>&1 || true
+}
+if [ "${1:-}" = --release-fixture ]; then
+  drop_template
+  exit 0
+fi
+SETUP_FIXTURE=0
+if [ "${1:-}" = --setup-fixture ]; then
+  SETUP_FIXTURE=1
+  shift
+  if [ -n "${ENACT_FOOTPRINT_DIR:-}" ] || [ "${N8N_TEST_DISABLE_TEMPLATE_DB:-}" = 1 ] ||
+    [ -n "${N8N_TEST_TEMPLATE_DB:-}" ] || [ ! -f vitest.config.integration.ts ]; then
+    exit 0
+  fi
+  if [ $# -gt 0 ]; then
+    has_integration=0
+    for target in "$@"; do
+      clean_target="${target%%::*}"
+      if [[ "$clean_target" == *".integration.test.ts" ]] || [[ "/$clean_target" == *"/test/integration/"* ]]; then
+        has_integration=1
+        break
+      fi
+    done
+    [ "$has_integration" = 1 ] || exit 0
+  fi
+fi
 TARGETS=("$@")
 
 export TZ=UTC
@@ -13,7 +43,6 @@ NPROCS=$(nproc 2>/dev/null || echo 2)
 MAX_WORKERS="${MAX_WORKERS:-${ENACT_SHARD_WORKERS:-$NPROCS}}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$SCRIPT_DIR/pnpm-store.sh"
 REPO_ROOT="$PWD"
 while [ "$REPO_ROOT" != "/" ] && [ ! -f "$REPO_ROOT/pnpm-workspace.yaml" ] && [ ! -f "$REPO_ROOT/pnpm-lock.yaml" ]; do
   REPO_ROOT="$(dirname "$REPO_ROOT")"
@@ -81,10 +110,26 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
     for target in "${TARGETS[@]}"; do
       case "$target" in ../*) filter="${CURRENT_PKG}..." ;; esac
     done
-    "$SCRIPT_DIR/build-workspace-deps.sh" "$filter" ||
-      { echo "❌ [vitest-runner] building the workspace packages $CURRENT_PKG imports failed" >&2; exit 1; }
+    if [ "$SETUP_FIXTURE" = 1 ]; then
+      "$SCRIPT_DIR/build-workspace-deps.sh" "$filter" >&2 ||
+        { echo "❌ [vitest-runner] building the workspace packages $CURRENT_PKG imports failed" >&2; exit 1; }
+    else
+      "$SCRIPT_DIR/build-workspace-deps.sh" "$filter" ||
+        { echo "❌ [vitest-runner] building the workspace packages $CURRENT_PKG imports failed" >&2; exit 1; }
+    fi
     export N8N_WORKSPACE_DEPS_BUILT=1
   fi
+fi
+
+if [ "$SETUP_FIXTURE" = 1 ]; then
+  if [ -e node_modules/@n8n/backend-test-utils ]; then
+    export N8N_LOG_LEVEL=silent DB_TYPE=postgresdb DB_POSTGRESDB_USER=postgres PGUSER=postgres \
+      DB_POSTGRESDB_DATABASE=n8n DB_POSTGRESDB_SCHEMA=alt_schema DB_TABLE_PREFIX=test_
+    db="n8n_template_$$_$RANDOM"
+    node "$SCRIPT_DIR/n8n-template-db.cjs" "$db" >&2 || exit
+    printf 'N8N_TEST_TEMPLATE_DB=%s\nN8N_WORKSPACE_DEPS_BUILT=1\n' "$db"
+  fi
+  exit 0
 fi
 
 # Targets of another package (`../core/src/...`): tests handed to this package's suite
@@ -130,7 +175,7 @@ for target in "${OWN[@]}"; do
   # under its one config, nodes-base's own config leaves them out (its integration job's).
   if [ -f vitest.config.integration.ts ] && { [[ "$clean_target" == *".integration.test.ts" ]] || [[ "/$clean_target" == *"/test/integration/"* ]]; }; then
     INTEGRATIONS+=("$clean_target")
-  elif [ -f vitest.config.migration.ts ] && [[ "/$clean_target" == *"/test/migration/"* ]]; then
+  elif [ -f vitest.config.migration.ts ] && { [ "${VITEST_MIGRATION:-}" = 1 ] || [[ "/$clean_target" == *"/test/migration/"* ]]; }; then
     MIGRATIONS+=("$clean_target")
   else
     UNITS+=("$clean_target")
@@ -210,10 +255,18 @@ CACHE_OPTS=()
 # `*.api.test.ts`, which a recording otherwise records as failed while plain runs pass.
 ATTRIBUTION_ARGS=()
 if [ -n "${ENACT_ATTRIBUTION_FILE:-}" ]; then
+  VITEST_ATTR="${ENACT_RECORDERS_DIR:+$ENACT_RECORDERS_DIR/js/vitest-attribution.mjs}"
+  if [ -z "$VITEST_ATTR" ] || [ ! -f "$VITEST_ATTR" ]; then
+    if [ -f "$SCRIPT_DIR/trace/vitest-attribution.mjs" ]; then
+      VITEST_ATTR="$SCRIPT_DIR/trace/vitest-attribution.mjs"
+    else
+      VITEST_ATTR="$REPO_ROOT/../../crates/enact-runner/recorders/js/vitest-attribution.mjs"
+    fi
+  fi
   # Scheduling results are read then rewritten; retain transform caching without
   # making the trace depend on its own results.json update.
   ATTRIBUTION_ARGS=(--no-cache --pool=forks --isolate --hookTimeout=120000 --testTimeout=120000 --reporter=default
-    "--reporter=$SCRIPT_DIR/trace/vitest-attribution.mjs")
+    "--reporter=$VITEST_ATTR")
 fi
 run_vitest() {
   pnpm exec vitest "$@" ${RUNNER_ARGS[@]+"${RUNNER_ARGS[@]}"} ${ATTRIBUTION_ARGS[@]+"${ATTRIBUTION_ARGS[@]}"} "${DISCOVERY_ARGS[@]}"
@@ -255,12 +308,6 @@ run_migration() (
   fi
   run_vitest run "${CACHE_OPTS[@]}" --config vitest.config.migration.ts --coverage.enabled=false "$@"
 )
-
-drop_template() {
-  local psql=(psql -h "${DB_POSTGRESDB_HOST:-127.0.0.1}" -p "${DB_POSTGRESDB_PORT:?the postgres port (enve.cue)}" -U postgres -d n8n -q)
-  "${psql[@]}" -c "UPDATE pg_database SET datistemplate = false WHERE datname = '$N8N_TEST_TEMPLATE_DB'" \
-    -c "DROP DATABASE IF EXISTS $N8N_TEST_TEMPLATE_DB" >/dev/null 2>&1 || true
-}
 
 SHARD_OPTS=()
 if [ -n "${ENACT_SHARD_INDEX:-}" ] && [ -n "${ENACT_SHARD_TOTAL:-}" ]; then

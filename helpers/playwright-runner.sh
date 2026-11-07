@@ -14,7 +14,6 @@ unset DB_POSTGRESDB_HOST DB_POSTGRESDB_PORT DB_POSTGRESDB_DATABASE DB_POSTGRESDB
 
 # Find repo root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$SCRIPT_DIR/pnpm-store.sh"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VITEST_BIN="$REPO_ROOT/packages/cli/node_modules/.bin/vitest"
 

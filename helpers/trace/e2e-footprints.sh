@@ -18,6 +18,16 @@ set -uo pipefail
 
 TRACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$TRACE_DIR/../.." && pwd)"
+RECORDERS_JS="${ENACT_RECORDERS_DIR:+$ENACT_RECORDERS_DIR/js}"
+if [ -z "$RECORDERS_JS" ] || [ ! -d "$RECORDERS_JS" ]; then
+  if [ -d "$TRACE_DIR/../../../../../crates/enact-runner/recorders/js" ]; then
+    RECORDERS_JS="$(cd "$TRACE_DIR/../../../../../crates/enact-runner/recorders/js" && pwd)"
+  elif [ -d "$REPO_ROOT/../../crates/enact-runner/recorders/js" ]; then
+    RECORDERS_JS="$(cd "$REPO_ROOT/../../crates/enact-runner/recorders/js" && pwd)"
+  else
+    RECORDERS_JS="$TRACE_DIR"
+  fi
+fi
 PLAYWRIGHT_DIR="$REPO_ROOT/packages/quality/testing/playwright"
 PACKAGE="${PLAYWRIGHT_DIR#"$REPO_ROOT"/}"
 LISTED=${ENACT_FOOTPRINT_TARGETS:-}
@@ -59,7 +69,7 @@ fi
 
 # The editor's chunk map, kept beside the install (no footprint holds node_modules).
 CHUNKS="$REPO_ROOT/node_modules/.enact-editor-chunks.json"
-if ! ENACT_FOOTPRINT_ROOT="$REPO_ROOT" node "$TRACE_DIR/editor-chunks.mjs" "$CHUNKS"; then
+if ! ENACT_FOOTPRINT_ROOT="$REPO_ROOT" node "$RECORDERS_JS/vite-chunks.mjs" --root packages/frontend/editor-ui --public-path '/{{BASE_PATH}}/' "$CHUNKS"; then
   echo "❌ [e2e-footprints] the editor's build couldn't be mapped to its sources: the specs run unrecorded" >&2
   while IFS=$'\t' read -r -a group; do
     N8N_TEST_ENV="${group[0]}" isolated "${group[1]}" "${group[@]:2}" || status=$?
@@ -82,13 +92,13 @@ for spec in "${RECORDED[@]}"; do
   mkdir -p "$WORK/skips"
   IFS=$'\t' read -r spec_env spec_workers < <(spec_group "$spec")
   N8N_TEST_ENV="$spec_env" ENACT_NODE_READS="$WORK/node/$n" ENACT_FOOTPRINT_ROOT="$REPO_ROOT" \
-    NODE_OPTIONS="--import $TRACE_DIR/node-reads.mjs${NODE_OPTIONS:+ $NODE_OPTIONS}" \
+    NODE_OPTIONS="--import $RECORDERS_JS/node-reads.mjs${NODE_OPTIONS:+ $NODE_OPTIONS}" \
     ENACT_SKIPS_FILE="$WORK/skips/$n.jsonl" \
     isolated "$spec_workers" "$spec" --output="$WORK/results/$n" \
-    "--reporter=list,$TRACE_DIR/playwright-attribution.mjs" || spec_status=$?
+    "--reporter=list,$RECORDERS_JS/playwright-attribution.mjs" || spec_status=$?
   [ "$spec_status" -eq 0 ] || status=$spec_status
   RESULTS+=("$PACKAGE/$spec=$spec_status")
 done
 
-ENACT_FOOTPRINT_ROOT="$REPO_ROOT" node "$TRACE_DIR/e2e-footprint.mjs" write "$WORK" "$CHUNKS" "${RESULTS[@]}" || status=1
+ENACT_FOOTPRINT_ROOT="$REPO_ROOT" node "$RECORDERS_JS/e2e-footprint.mjs" write "$WORK" "$CHUNKS" "${RESULTS[@]}" || status=1
 exit "$status"
