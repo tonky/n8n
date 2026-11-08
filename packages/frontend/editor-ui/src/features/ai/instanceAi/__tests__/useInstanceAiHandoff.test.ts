@@ -393,7 +393,7 @@ describe('useInstanceAiHandoff', () => {
 				return true;
 			});
 
-			await expect(start()).resolves.toBe('started');
+			await start();
 
 			expect(mocks.routerPush).toHaveBeenCalledWith({
 				name: 'InstanceAiThread',
@@ -407,7 +407,7 @@ describe('useInstanceAiHandoff', () => {
 			const failure = new Error('Navigation aborted');
 			mocks.routerPush.mockResolvedValueOnce(failure);
 
-			await expect(start()).resolves.toBe('failed');
+			await start();
 
 			expect(mocks.sendMessage).not.toHaveBeenCalled();
 			expect(mocks.deleteThread).toHaveBeenCalledWith('thread-1', { silent: true });
@@ -425,32 +425,6 @@ describe('useInstanceAiHandoff', () => {
 			expect(mocks.deleteThread).toHaveBeenCalledWith('thread-1', { silent: true });
 			expect(mocks.showError).toHaveBeenCalledOnce();
 			expect(mocks.captureException).toHaveBeenCalledWith(error, expect.anything());
-		});
-
-		it('reports a failed start when the thread cannot be created', async () => {
-			mocks.syncThread.mockRejectedValueOnce(new Error('Offline'));
-
-			await expect(start()).resolves.toBe('failed');
-
-			expect(mocks.routerPush).not.toHaveBeenCalled();
-			expect(mocks.sendMessage).not.toHaveBeenCalled();
-			expect(mocks.showError).toHaveBeenCalledOnce();
-		});
-
-		it('reports a busy start without a thread while another hand-off is in flight', async () => {
-			let landNavigation: () => void = () => {};
-			mocks.routerPush.mockImplementationOnce(
-				async () => await new Promise<void>((resolve) => (landNavigation = resolve)),
-			);
-			const first = start();
-			await vi.waitFor(() => expect(mocks.routerPush).toHaveBeenCalledOnce());
-
-			await expect(start()).resolves.toBe('busy');
-			expect(mocks.syncThread).toHaveBeenCalledOnce();
-
-			landNavigation();
-			await expect(first).resolves.toBe('started');
-			expect(mocks.sendMessage).toHaveBeenCalledOnce();
 		});
 
 		it('accepts a new hand-off after a failed navigation', async () => {
@@ -678,14 +652,13 @@ describe('useInstanceAiHandoff', () => {
 		it('routes startThread to the assistant instead of sending the opening turn', async () => {
 			const { startThread } = useInstanceAiHandoff();
 
-			const outcome = await startThread(
+			await startThread(
 				'project-1',
 				'Fix my workflow',
 				{ kind: 'prefill', prefillType: 'handoff_execution_error' },
 				{ source: 'canvas_action_button', origin: 'internal' },
 			);
 
-			expect(outcome).toBe('setup');
 			expect(mocks.syncThread).not.toHaveBeenCalled();
 			expect(mocks.sendMessage).not.toHaveBeenCalled();
 			expect(mocks.routerPush).toHaveBeenCalledWith({ name: 'InstanceAi' });

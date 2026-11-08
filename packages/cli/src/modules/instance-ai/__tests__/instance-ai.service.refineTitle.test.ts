@@ -40,8 +40,6 @@ import type { ModelConfig } from '@n8n/instance-ai';
 import { withCurrentDateTime, AUTO_FOLLOW_UP_MESSAGE } from '../internal-messages';
 import { InstanceAiService } from '../instance-ai.service';
 
-const modelFetch = vi.fn();
-
 /**
  * Regression: stored user messages carry service-injected blocks (the
  * <current-date-time> suffix, task-context prefixes). Title refinement must
@@ -59,7 +57,6 @@ describe('InstanceAiService — refineTitleIfNeeded input cleaning', () => {
 		tracing: { getTraceContextForContinuation: ReturnType<typeof vi.fn> };
 		eventBus: { publish: ReturnType<typeof vi.fn> };
 		logger: { warn: ReturnType<typeof vi.fn> };
-		modelService: { getModelFetch: ReturnType<typeof vi.fn> };
 		refineTitleIfNeeded: (threadId: string, userId: string, modelId: ModelConfig) => Promise<void>;
 	};
 
@@ -74,7 +71,6 @@ describe('InstanceAiService — refineTitleIfNeeded input cleaning', () => {
 		service.tracing = { getTraceContextForContinuation: vi.fn(() => undefined) };
 		service.eventBus = { publish: vi.fn() };
 		service.logger = { warn: vi.fn() };
-		service.modelService = { getModelFetch: vi.fn(() => modelFetch) };
 		return service;
 	}
 
@@ -100,7 +96,7 @@ describe('InstanceAiService — refineTitleIfNeeded input cleaning', () => {
 		await service.refineTitleIfNeeded('thread-1', 'user-1', modelId);
 
 		expect(generateTitleForRun).toHaveBeenCalledTimes(1);
-		expect(generateTitleForRun).toHaveBeenCalledWith(modelId, 'hey', { modelFetch });
+		expect(generateTitleForRun).toHaveBeenCalledWith(modelId, 'hey');
 		// Deferred title generation must not mark the thread as refined.
 		expect(patchThread).not.toHaveBeenCalled();
 	});
@@ -118,7 +114,6 @@ describe('InstanceAiService — refineTitleIfNeeded input cleaning', () => {
 		expect(generateTitleForRun).toHaveBeenCalledWith(
 			modelId,
 			'build me a slack notification workflow',
-			{ modelFetch },
 		);
 		expect(patchThread).toHaveBeenCalledTimes(1);
 	});
@@ -158,7 +153,6 @@ describe('InstanceAiService — refineTitleIfNeeded input cleaning', () => {
 		expect(generateTitleForRun).toHaveBeenCalledWith(
 			modelId,
 			'hey\nlets build a workflow that greets me on telegram every morning',
-			{ modelFetch },
 		);
 		expect(patchThread).toHaveBeenCalledTimes(1);
 	});

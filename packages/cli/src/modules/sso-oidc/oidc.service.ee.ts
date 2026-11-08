@@ -5,10 +5,8 @@ import { GlobalConfig } from '@n8n/config';
 import {
 	AuthIdentity,
 	AuthIdentityRepository,
-	isPerson,
 	isValidEmail,
 	GLOBAL_MEMBER_ROLE,
-	PersonRepository,
 	SettingsRepository,
 	type User,
 	UserRepository,
@@ -27,7 +25,6 @@ import { ProvisioningService } from '@/modules/provisioning.ee/provisioning.serv
 import { JwtService, UrlService } from '@n8n/backend-services';
 import {
 	assertAuthenticationMethodCanBeEnabled,
-	emitSsoLoginDisabled,
 	getCurrentAuthenticationMethod,
 	isOidcCurrentAuthenticationMethod,
 	reloadAuthenticationMethod,
@@ -103,7 +100,6 @@ export class OidcService {
 		private readonly instanceSettings: InstanceSettings,
 		private readonly provisioningService: ProvisioningService,
 		private readonly outboundHttp: OutboundHttp,
-		private readonly personRepository: PersonRepository,
 	) {}
 
 	async init() {
@@ -352,18 +348,17 @@ export class OidcService {
 		});
 
 		if (openidUser) {
-			if (!isPerson(openidUser.user)) {
-				throw new ForbiddenError('A service account cannot log in with OIDC');
-			}
-
 			await this.applySsoProvisioning(openidUser.user, claims, userInfo);
 
 			return { user: openidUser.user, idToken: tokens.id_token };
 		}
 
-		const foundPerson = await this.personRepository.findByEmailWithAuthIdentities(email);
+		const foundUser = await this.userRepository.findOne({
+			where: { email },
+			relations: ['authIdentities', 'role'],
+		});
 
-		if (foundPerson) {
+		if (foundUser) {
 			// Linking to an existing account uses the email as the key, so only do it
 			// when the IdP says the email is verified.
 			this.assertEmailVerified(userInfo.email_verified);
@@ -375,13 +370,13 @@ export class OidcService {
 			const id = this.authIdentityRepository.create({
 				providerId: claims.sub,
 				providerType: 'oidc',
-				userId: foundPerson.id,
+				userId: foundUser.id,
 			});
 
 			await this.authIdentityRepository.save(id);
-			await this.applySsoProvisioning(foundPerson, claims, userInfo);
+			await this.applySsoProvisioning(foundUser, claims, userInfo);
 
-			return { user: foundPerson, idToken: tokens.id_token };
+			return { user: foundUser, idToken: tokens.id_token };
 		}
 
 		const user = await this.userRepository.manager.transaction(async (trx) => {
@@ -784,8 +779,6 @@ export class OidcService {
 
 		Container.get(GlobalConfig).sso.oidc.loginEnabled = enabled;
 		await setCurrentAuthenticationMethod(enabled ? 'oidc' : targetAuthenticationMethod);
-
-		if (!enabled && currentAuthenticationMethod === 'oidc') await emitSsoLoginDisabled('oidc');
 	}
 
 	private cachedOidcConfiguration:

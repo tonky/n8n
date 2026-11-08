@@ -16,16 +16,10 @@ vi.mock('@n8n/utils/sleep', () => ({
 	sleep: vi.fn().mockResolvedValue(undefined),
 }));
 
-// The endpoint lookup that resolves REST_BASE; it runs for real so the OAuth guard inside it is covered
-const endpointsResponse = {
-	body: {
-		endpoints: [
-			{ status: { endpoint_type: 'ENDPOINT_TYPE_READ_WRITE', hosts: { host: 'host.example' } } },
-		],
-	},
-	headers: { 'x-databricks-org-id': '7' },
-	statusCode: 200,
-};
+vi.mock('../transport', async (importOriginal) => ({
+	...(await importOriginal<typeof import('../transport')>()),
+	resolveLakebaseRestBase: vi.fn(async () => REST_BASE),
+}));
 
 const node: INode = {
 	id: '1',
@@ -86,9 +80,7 @@ describe('Lakebase -> function picker', () => {
 			(name: string) => values[name] as unknown as NodeParameterValueType,
 		);
 		context.getCredentials.mockResolvedValue({ host: 'https://host.example' });
-		context.helpers.httpRequestWithAuthentication
-			.mockResolvedValueOnce(endpointsResponse)
-			.mockResolvedValue(response);
+		context.helpers.httpRequestWithAuthentication.mockResolvedValue(response);
 		return context;
 	};
 	const apiMock = (context: ReturnType<typeof setup>) =>
@@ -162,8 +154,7 @@ describe('Lakebase -> function picker', () => {
 
 		await expect(getLakebaseFunctions.call(context)).rejects.toBe(error);
 
-		// The endpoint lookup, then the openapi request and its one retry
-		expect(apiMock(context)).toHaveBeenCalledTimes(3);
+		expect(apiMock(context)).toHaveBeenCalledTimes(2);
 		expect(error.message).toBe(
 			'Turn on the "OpenAPI specification" setting of the Data API to list functions, or enter the function name By ID',
 		);

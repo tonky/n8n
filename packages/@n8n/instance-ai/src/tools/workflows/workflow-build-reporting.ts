@@ -8,7 +8,7 @@ import type {
 export async function reportWorkflowBuildOutcome(
 	context: InstanceAiContext,
 	outcome: WorkflowBuildOutcome,
-	options: { storeOnRunContext?: boolean } = {},
+	options: { storeOnRunContext?: boolean; markPlannedTaskSucceeded?: boolean } = {},
 ): Promise<void> {
 	const buildContext = context.workflowBuildContext;
 	if (!buildContext) return;
@@ -28,6 +28,24 @@ export async function reportWorkflowBuildOutcome(
 	} catch (error) {
 		context.logger.warn('Failed to report workflow build outcome to workflow loop', {
 			workItemId: outcome.workItemId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
+	if (options.markPlannedTaskSucceeded === false) return;
+
+	try {
+		await buildContext.plannedTaskService?.markSucceeded(
+			buildContext.threadId,
+			buildContext.taskId,
+			{
+				result: outcome.summary,
+				outcome,
+			},
+		);
+	} catch (error) {
+		context.logger.warn('Failed to mark planned workflow build task succeeded', {
+			taskId: buildContext.taskId,
 			error: error instanceof Error ? error.message : String(error),
 		});
 	}
@@ -55,6 +73,8 @@ export async function reportFailedWorkflowBuildOutcome(
 		sourceFilePath?: string;
 		workItemId: string;
 		taskId: string;
+		plannedTaskId?: string;
+		owner: WorkflowBuildOutcome['owner'];
 		remediation: RemediationMetadata;
 		errors: string[];
 		summary: string;
@@ -69,6 +89,8 @@ export async function reportFailedWorkflowBuildOutcome(
 			? { runId: buildContext?.runId ?? context.runId }
 			: {}),
 		taskId: input.taskId,
+		owner: input.owner,
+		plannedTaskId: input.plannedTaskId,
 		workflowId: input.targetWorkflowId,
 		...(input.sourceFilePath ? { sourceFilePath: input.sourceFilePath } : {}),
 		submitted: false,
@@ -83,5 +105,6 @@ export async function reportFailedWorkflowBuildOutcome(
 
 	await reportWorkflowBuildOutcome(context, outcome, {
 		storeOnRunContext: input.storeOnRunContext,
+		markPlannedTaskSucceeded: false,
 	});
 }

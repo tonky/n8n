@@ -4,7 +4,7 @@ import { Logger } from '@n8n/backend-common';
 import { EventService } from '@n8n/backend-services';
 import { mockInstance } from '@n8n/backend-test-utils';
 import type { AuthenticatedRequest, User } from '@n8n/db';
-import { PersonRepository, UserRepository } from '@n8n/db';
+import { UserRepository } from '@n8n/db';
 import { Container } from '@n8n/di';
 import type { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
@@ -33,7 +33,6 @@ describe('AuthController', () => {
 	mockInstance(MfaService);
 	mockInstance(UserService);
 	mockInstance(UserRepository);
-	mockInstance(PersonRepository);
 	mockInstance(PostHogClient);
 	mockInstance(License);
 	const ldapService = mockInstance(LdapService);
@@ -233,7 +232,6 @@ describe('AuthController', () => {
 		const userService: UserService = mockInstance(UserService);
 		const license: License = mockInstance(License);
 		const userRepository: UserRepository = mockInstance(UserRepository);
-		const personRepository: PersonRepository = mockInstance(PersonRepository);
 		const postHog: PostHogClient = mockInstance(PostHogClient);
 		const eventService: EventService = mockInstance(EventService);
 
@@ -248,7 +246,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -270,41 +267,6 @@ describe('AuthController', () => {
 			);
 		});
 
-		it('throws a BadRequestError if the inviter and the invitee are the same', async () => {
-			vi.mocked(personRepository.findByIdWithRole).mockClear();
-			vi.spyOn(ssoHelpers, 'isSsoCurrentAuthenticationMethod').mockReturnValue(false);
-			vi.mocked(license.isWithinUsersLimit).mockReturnValue(true);
-			const id = uuidv4();
-			vi.mocked(userService.getInvitationIdsFromPayload).mockResolvedValue({
-				inviterId: id,
-				inviteeId: id,
-			});
-
-			const authController = new AuthController(
-				logger,
-				authService,
-				mfaService,
-				userService,
-				license,
-				userRepository,
-				personRepository,
-				eventService,
-				authHandlerRegistry,
-				postHog,
-			);
-			const payload = new ResolveSignupTokenQueryDto({ token: 'valid-jwt-token' });
-
-			const promise = authController.resolveSignupToken(
-				mock<AuthlessRequest>({ body: payload }),
-				mock<Response>(),
-				payload,
-			);
-
-			await expect(promise).rejects.toThrow(BadRequestError);
-			await expect(promise).rejects.toThrow('Invalid invite URL');
-			expect(personRepository.findByIdWithRole).not.toHaveBeenCalled();
-		});
-
 		it('throws a ForbiddenError if the users quota is reached', async () => {
 			vi.spyOn(ssoHelpers, 'isSsoCurrentAuthenticationMethod').mockReturnValue(false);
 			const id = uuidv4();
@@ -317,7 +279,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -333,7 +294,7 @@ describe('AuthController', () => {
 			const res = mock<Response>();
 
 			vi.mocked(userService.getInvitationIdsFromPayload).mockResolvedValue({
-				inviterId: uuidv4(),
+				inviterId: id,
 				inviteeId: id,
 			});
 			vi.mocked(license.isWithinUsersLimit).mockReturnValue(false);
@@ -355,7 +316,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -371,12 +331,11 @@ describe('AuthController', () => {
 			const res = mock<Response>();
 
 			vi.mocked(userService.getInvitationIdsFromPayload).mockResolvedValue({
-				inviterId: uuidv4(),
+				inviterId: id,
 				inviteeId: id,
 			});
 			vi.mocked(license.isWithinUsersLimit).mockReturnValue(true);
-			vi.mocked(userRepository.findByIdWithRole).mockResolvedValue(null);
-			vi.mocked(personRepository.findByIdWithRole).mockResolvedValue(null);
+			vi.mocked(userRepository.findManyByIds).mockResolvedValue([]);
 
 			const promise = authController.resolveSignupToken(req, res, payload);
 			await expect(promise).rejects.toThrow(BadRequestError);
@@ -395,7 +354,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -411,22 +369,20 @@ describe('AuthController', () => {
 			const res = mock<Response>();
 
 			vi.mocked(userService.getInvitationIdsFromPayload).mockResolvedValue({
-				inviterId: uuidv4(),
+				inviterId: id,
 				inviteeId: id,
 			});
 			vi.mocked(license.isWithinUsersLimit).mockReturnValue(true);
-			vi.mocked(userRepository.findByIdWithRole).mockResolvedValue(
+			vi.mocked(userRepository.findManyByIds).mockResolvedValue([
 				mock<User>({
 					id,
 					password: 'Password123!',
 				}),
-			);
-			vi.mocked(personRepository.findByIdWithRole).mockResolvedValue(
 				mock<User>({
 					id,
-					password: 'Password123!',
+					password: null,
 				}),
-			);
+			]);
 
 			const promise = authController.resolveSignupToken(req, res, payload);
 			await expect(promise).rejects.toThrow(BadRequestError);
@@ -447,7 +403,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -463,24 +418,22 @@ describe('AuthController', () => {
 			const res = mock<Response>();
 
 			vi.mocked(userService.getInvitationIdsFromPayload).mockResolvedValue({
-				inviterId: uuidv4(),
+				inviterId: id,
 				inviteeId: id,
 			});
 			vi.mocked(license.isWithinUsersLimit).mockReturnValue(true);
-			vi.mocked(userRepository.findByIdWithRole).mockResolvedValue(
+			vi.mocked(userRepository.findManyByIds).mockResolvedValue([
 				mock<User>({
 					id,
 					email: undefined,
 					password: null,
 				}),
-			);
-			vi.mocked(personRepository.findByIdWithRole).mockResolvedValue(
 				mock<User>({
 					id,
 					email: undefined,
 					password: null,
 				}),
-			);
+			]);
 
 			const promise = authController.resolveSignupToken(req, res, payload);
 			await expect(promise).rejects.toThrow(BadRequestError);
@@ -499,7 +452,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -515,11 +467,11 @@ describe('AuthController', () => {
 			const res = mock<Response>();
 
 			vi.mocked(userService.getInvitationIdsFromPayload).mockResolvedValue({
-				inviterId: uuidv4(),
+				inviterId: id,
 				inviteeId: id,
 			});
 			vi.mocked(license.isWithinUsersLimit).mockReturnValue(true);
-			vi.mocked(userRepository.findByIdWithRole).mockResolvedValue(
+			vi.mocked(userRepository.findManyByIds).mockResolvedValue([
 				mock<User>({
 					id,
 					email: 'inviter@example.com',
@@ -527,16 +479,14 @@ describe('AuthController', () => {
 					lastName: 'Inviter last name',
 					password: null,
 				}),
-			);
-			vi.mocked(personRepository.findByIdWithRole).mockResolvedValue(
 				mock<User>({
 					id,
-					email: 'inviter@example.com',
-					firstName: 'Inviter first name',
-					lastName: 'Inviter last name',
+					email: 'invitee@example.com',
+					firstName: 'Invitee first name',
+					lastName: 'Invitee last name',
 					password: null,
 				}),
-			);
+			]);
 
 			await expect(authController.resolveSignupToken(req, res, payload)).resolves.toEqual({
 				inviter: {
@@ -559,7 +509,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -579,7 +528,7 @@ describe('AuthController', () => {
 				inviteeId,
 			});
 			vi.mocked(license.isWithinUsersLimit).mockReturnValue(true);
-			vi.mocked(userRepository.findByIdWithRole).mockResolvedValue(
+			vi.mocked(userRepository.findManyByIds).mockResolvedValue([
 				mock<User>({
 					id: inviterId,
 					email: 'inviter@example.com',
@@ -587,8 +536,6 @@ describe('AuthController', () => {
 					lastName: 'Inviter last name',
 					password: null,
 				}),
-			);
-			vi.mocked(personRepository.findByIdWithRole).mockResolvedValue(
 				mock<User>({
 					id: inviteeId,
 					email: 'invitee@example.com',
@@ -596,7 +543,7 @@ describe('AuthController', () => {
 					lastName: 'Invitee last name',
 					password: null,
 				}),
-			);
+			]);
 
 			await expect(authController.resolveSignupToken(req, res, payload)).resolves.toEqual({
 				inviter: {
@@ -619,7 +566,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -654,7 +600,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,
@@ -688,7 +633,6 @@ describe('AuthController', () => {
 				userService,
 				license,
 				userRepository,
-				personRepository,
 				eventService,
 				authHandlerRegistry,
 				postHog,

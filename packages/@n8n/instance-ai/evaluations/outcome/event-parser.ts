@@ -13,6 +13,7 @@ import {
 	DATA_TABLES_TOOL_ID,
 	DOMAIN_TOOL_IDS,
 	EVAL_CONFIG_TOOL_ID,
+	ORCHESTRATION_TOOL_IDS,
 } from '../../src/tools/tool-ids';
 import type {
 	AgentActivity,
@@ -393,6 +394,8 @@ export function buildMetrics(events: CapturedEvent[], startTime: number): Instan
 // Per-turn conversation metrics
 // ---------------------------------------------------------------------------
 
+const PLAN_RECOVERY_TOOL_NAMES = new Set<string>([ORCHESTRATION_TOOL_IDS.CREATE_TASKS]);
+
 export function buildConversationMetrics(events: CapturedEvent[]): ConversationMetrics {
 	const turns = splitEventsIntoTurns(events);
 	const perTurn: TurnCounter[] = [];
@@ -422,6 +425,10 @@ export function buildConversationMetrics(events: CapturedEvent[]): ConversationM
 			switch (event.type) {
 				case 'tool-call': {
 					counter.toolCallCount++;
+					const toolName = getString(payload, 'toolName');
+					if (toolName && PLAN_RECOVERY_TOOL_NAMES.has(resolveBuilderToolName(toolName))) {
+						planRecoveryPositions.push(j);
+					}
 					break;
 				}
 				case 'tool-error': {

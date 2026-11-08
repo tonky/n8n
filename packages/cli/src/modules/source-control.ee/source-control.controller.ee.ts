@@ -47,7 +47,6 @@ export class SourceControlController {
 
 		const publicSubset = {
 			branchReadOnly: preferences.branchReadOnly,
-			environmentsVersion: preferences.environmentsVersion,
 		};
 
 		const ctx = await this.sourceControlContextFactory.createContext(req.user);
@@ -80,7 +79,6 @@ export class SourceControlController {
 				initRepo: req.body.initRepo ?? true, // default to true if not specified
 				connected: undefined,
 				publicKey: undefined,
-				environmentsVersion: undefined,
 			};
 			await this.sourceControlPreferencesService.validateSourceControlPreferences(
 				sanitizedPreferences,
@@ -150,36 +148,17 @@ export class SourceControlController {
 			) {
 				await this.sourceControlService.setBranch(sanitizedPreferences.branchName);
 			}
-			if (
-				(sanitizedPreferences.branchColor ??
-					sanitizedPreferences.branchReadOnly ??
-					sanitizedPreferences.environmentsVersion) !== undefined
-			) {
+			if (sanitizedPreferences.branchColor ?? sanitizedPreferences.branchReadOnly !== undefined) {
 				await this.sourceControlPreferencesService.setPreferences(
 					{
 						branchColor: sanitizedPreferences.branchColor,
 						branchReadOnly: sanitizedPreferences.branchReadOnly,
-						environmentsVersion: sanitizedPreferences.environmentsVersion,
 					},
 					true,
 				);
 			}
-			// A version switch changes no git state, so Classic Git keeps running as it is.
-			const versionOnly =
-				sanitizedPreferences.branchName === undefined &&
-				sanitizedPreferences.branchColor === undefined &&
-				sanitizedPreferences.branchReadOnly === undefined;
-			if (!versionOnly) await this.sourceControlService.start();
+			await this.sourceControlService.start();
 			const resultingPreferences = this.sourceControlPreferencesService.getPreferences();
-			if (
-				sanitizedPreferences.environmentsVersion &&
-				sanitizedPreferences.environmentsVersion !== currentPreferences.environmentsVersion
-			) {
-				this.eventService.emit('source-control-environments-version-switched', {
-					userId: req.user.id,
-					version: sanitizedPreferences.environmentsVersion,
-				});
-			}
 			this.eventService.emit('source-control-settings-updated', {
 				branchName: resultingPreferences.branchName,
 				connected: resultingPreferences.connected,

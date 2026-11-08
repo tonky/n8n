@@ -425,7 +425,16 @@ export class SourceControlExportService {
 			const fileName = path.join(this.gitFolder, SOURCE_CONTROL_TAGS_EXPORT_FILE);
 			sourceControlFoldersExistCheck([this.gitFolder]);
 			const tags = await this.tagRepository.find();
-			const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
+
+			if (tags.length === 0) {
+				await fsWriteFile(fileName, JSON.stringify({ tags: [], mappings: [] }, null, 2));
+
+				return {
+					count: 0,
+					folder: this.gitFolder,
+					files: [{ id: '', name: fileName }],
+				};
+			}
 
 			const mappingsOfAllowedWorkflows = await this.workflowTagMappingRepository.find({
 				where:
@@ -442,24 +451,18 @@ export class SourceControlExportService {
 			const allowedWorkflowIds = new Set(allowedWorkflows.map((workflow) => workflow.id));
 
 			const existingTagsAndMapping = await readTagAndMappingsFromSourceControlFile(fileName);
-			const remoteTagsById = new Map(existingTagsAndMapping.tags.map((tag) => [tag.id, tag]));
 
-			// Keep tags with remote mappings outside the user's scope.
-			const mappingsToKeep = existingTagsAndMapping.mappings.filter((mapping) => {
-				if (allowedWorkflowIds.has(mapping.workflowId)) return false;
-				if (!tagsById.has(mapping.tagId)) {
-					const remoteTag = remoteTagsById.get(mapping.tagId);
-					if (!remoteTag) return false;
-					tagsById.set(remoteTag.id, remoteTag);
-				}
-				return true;
-			});
+			// keep all mappings that are not accessible by the current user
+			const mappingsToKeep = existingTagsAndMapping.mappings.filter(
+				(mapping) => !allowedWorkflowIds.has(mapping.workflowId),
+			);
 
 			await fsWriteFile(
 				fileName,
 				JSON.stringify(
 					{
-						tags: Array.from(tagsById.values(), (tag) => ({ id: tag.id, name: tag.name })),
+						// overwrite all tags
+						tags: tags.map((tag) => ({ id: tag.id, name: tag.name })),
 						mappings: mappingsToKeep.concat(mappingsOfAllowedWorkflows),
 					},
 					null,
@@ -467,7 +470,7 @@ export class SourceControlExportService {
 				),
 			);
 			return {
-				count: tagsById.size,
+				count: tags.length,
 				folder: this.gitFolder,
 				files: [{ id: '', name: fileName }],
 			};

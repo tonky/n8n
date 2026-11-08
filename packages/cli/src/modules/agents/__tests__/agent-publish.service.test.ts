@@ -1,5 +1,5 @@
 // Experiment cleanup (123_surface_mcp_to_claude_trial_users): restore a type-only EventService import; keep the import.
-import type { EventService } from '@n8n/backend-services';
+import { EventService } from '@n8n/backend-services';
 import type { ToolDescriptor } from '@n8n/agents';
 import type { AgentJsonConfig } from '@n8n/api-types';
 import { mockLogger } from '@n8n/backend-test-utils';
@@ -15,11 +15,11 @@ import type { CredentialsService } from '@/credentials/credentials.service';
 import { ConflictError } from '@n8n/errors';
 import type { Telemetry } from '@/telemetry';
 
-import { runInBuilderTelemetrySession } from '../builder/builder-telemetry-session';
 import type { AgentCustomToolsService } from '../agent-custom-tools.service';
 import { AgentSaveCompletionService } from '../agent-save-completion.service';
 import { AgentDefinitionService } from '../agent-definition.service';
 import { AgentPublishService } from '../agent-publish.service';
+import { withoutLegacySkillRefs } from '../json-config/agent-document';
 import { AgentRuntimeCacheService } from '../agent-runtime-cache.service';
 import { AgentModificationTelemetryService } from '../agent-modification-telemetry.service';
 import { AgentSetupCompletionService } from '../agent-setup-completion.service';
@@ -567,11 +567,14 @@ describe('AgentPublishService', () => {
 			{
 				versionId,
 				agentId,
+				// The legacy columns keep the refs and bodies, so a rollback can run this version.
 				schema: {
-					...agent.schema!,
+					...withoutLegacySkillRefs(agent.schema!),
+					skills: storedSkillRefs(agent),
 					integrations: [{ type: 'n8n_chat', credentialId: '' }],
 				},
 				tools: configuredTools,
+				skills: {},
 				publishedBy: user,
 			},
 			ctx,
@@ -603,26 +606,6 @@ describe('AgentPublishService', () => {
 				trigger: 'explicit',
 				version_id: versionId,
 			}),
-		);
-	});
-
-	it('reports the Assistant thread and run on a builder publish inside a session', async () => {
-		const { service, agentRepository, telemetry } = makeService();
-		const agent = makeAgent({ integrations: [{ type: 'slack', credentialId: 'slack-cred' }] });
-		agentRepository.findByIdAndProjectId.mockResolvedValue(agent);
-
-		await runInBuilderTelemetrySession(
-			{ threadId: 'thread-1', runId: 'run-1' },
-			async () =>
-				await service.publishAgent(agentId, projectId, user, {
-					by: 'builder',
-					trigger: 'explicit',
-				}),
-		);
-
-		expect(telemetry.track).toHaveBeenCalledWith(
-			TELEMETRY_EVENT.AGENTS.BUILDER_PUBLISHED_AGENT,
-			expect.objectContaining({ thread_id: 'thread-1', run_id: 'run-1' }),
 		);
 	});
 
@@ -1082,6 +1065,44 @@ describe('AgentPublishService', () => {
 		expect(telemetry.track).toHaveBeenCalledTimes(1);
 	});
 
+	it('reports a skills change when a revert with the hub off keeps the ids and restores other bodies', async () => {
+		const {
+			service,
+			agentRepository,
+			taskSnapshotRepository,
+			agentTaskRepository,
+			telemetry,
+			skillRefs,
+		} = makeService();
+		Object.assign(skillRefs, { usesSkillsHub: false });
+		const refs: AgentJsonConfig['skills'] = [{ type: 'skill', id: 'skill-1' }];
+		const activeVersion = makeHistory({
+			versionId: 'published-v1',
+			schema: { ...schema, skills: refs },
+			skills: { 'skill-1': { name: 'Notes', description: 'Notes', instructions: 'Published.' } },
+		});
+		const agent = makeAgent({
+			activeVersionId: 'published-v1',
+			activeVersion,
+			schema: { ...schema, skills: refs },
+			skills: { 'skill-1': { name: 'Notes', description: 'Notes', instructions: 'Draft.' } },
+		});
+		// As the legacy writer: the refs stay, and the bodies of the version come back.
+		skillRefs.restoreDraftRefs.mockImplementation(async (draft, version) => {
+			draft.skills = structuredClone(version.skills ?? {});
+		});
+		agentRepository.findByIdAndProjectId.mockResolvedValue(agent);
+		taskSnapshotRepository.findByVersionId.mockResolvedValue([]);
+		agentTaskRepository.replaceForAgent.mockResolvedValue(false);
+
+		await service.revertToPublishedAgent(agentId, projectId, user, 'user');
+
+		expect(telemetry.track).toHaveBeenCalledWith(
+			TELEMETRY_EVENT.AGENTS.USER_MODIFIED_AGENT,
+			expect.objectContaining({ changed_parts: expect.arrayContaining(['skills']) }),
+		);
+	});
+
 	it('reads the selected version without using draft or active-version bodies', async () => {
 		const {
 			service,
@@ -1177,10 +1198,14 @@ describe('AgentPublishService', () => {
 			await service.publishAgent(agentId, projectId, user, byBuilder);
 
 			const [[saved, saveCtx]] = agentHistoryRepository.saveVersion.mock.calls;
-			// The pins hold the skills, so publish writes no `agent_history.skills`.
-			expect(saved).not.toHaveProperty('skills');
+			// The legacy columns keep the refs, so a rollback still finds the published skills.
+			expect(saved.schema?.skills).toEqual(skillRefs);
 			expect(refsService.versionSnapshot).toHaveBeenCalledWith(agent, ctx);
-			expect(refsService.pinVersion).toHaveBeenCalledWith(saved.versionId, expect.any(Map), ctx);
+			expect(refsService.pinVersion).toHaveBeenCalledWith(
+				saved.versionId,
+				expect.objectContaining({ pins: expect.any(Map) }),
+				ctx,
+			);
 			expect(saveCtx).toBe(ctx);
 			// The pins need the history row.
 			expect(agentHistoryRepository.saveVersion.mock.invocationCallOrder[0]).toBeLessThan(
@@ -1406,25 +1431,6 @@ describe('AgentPublishService', () => {
 		expect(agentUpdateBroadcaster.notify).not.toHaveBeenCalled();
 		expect(agent.activeVersionId).toBe('v1');
 	});
-
-	it.each([undefined, versionId])(
-		'rejects a stale caller revision before an idempotent publish of %s',
-		async (targetVersionId) => {
-			const { service, agentRepository, agentValidationService, transactionRunner, eventService } =
-				makeService();
-			agentRepository.findByIdAndProjectId.mockResolvedValue(
-				makeAgent({ revision: 1, activeVersionId: versionId }),
-			);
-
-			await expect(
-				service.publishAgent(agentId, projectId, user, byUser, targetVersionId, undefined, 0),
-			).rejects.toBeInstanceOf(ConflictError);
-			expect(agentValidationService.validateAgentEntityConfiguration).not.toHaveBeenCalled();
-			expect(agentValidationService.validateAgentHistoryConfiguration).not.toHaveBeenCalled();
-			expect(transactionRunner.run).not.toHaveBeenCalled();
-			expect(eventService.emit).not.toHaveBeenCalled();
-		},
-	);
 
 	it('passes the loaded revision as the fence expectation on publish', async () => {
 		const { service, agentRepository, ctx } = makeService();

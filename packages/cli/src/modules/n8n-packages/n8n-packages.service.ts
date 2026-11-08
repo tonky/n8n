@@ -1,4 +1,3 @@
-import { ModuleRegistry } from '@n8n/backend-common';
 import { EventService } from '@n8n/backend-services';
 import { GlobalConfig } from '@n8n/config';
 import { Service } from '@n8n/di';
@@ -8,7 +7,6 @@ import { N8N_VERSION } from '@/constants';
 import { BadRequestError, ForbiddenError } from '@n8n/errors';
 
 import { buildImportResult, toPackageSummary } from './engine/import-result';
-import { assertPackageImportApiKeyScopes, packageImportScopes } from './engine/import-gates';
 import { emitPackageImportedEvent, type ImportOutcome } from './engine/import-telemetry';
 import { N8nPackageParser } from './engine/n8n-package-parser';
 import { ProjectPackageImporter } from './engine/project-package-importer';
@@ -47,15 +45,13 @@ import { TarPackageReader } from './io/tar/tar-package-reader';
 import { TarPackageWriter } from './io/tar/tar-package-writer';
 import { PackageImportConfig } from './n8n-packages.config';
 import {
-	CredentialConflictPolicy,
 	CredentialExportPolicy,
 	DataTableSchemaConflictPolicy,
 	ExportDependencyPolicy,
 	ExportVersionPolicy,
 	OverwriteDeletionPolicy,
-	LayoutConflictPolicy,
 	TagConflictPolicy,
-	ImportConflictPolicy,
+	WorkflowConflictPolicy,
 	WorkflowIdPolicy,
 	type ExportPackageEventCounts,
 	type ExportPackageRequest,
@@ -69,7 +65,6 @@ import {
 	type ImportSelection,
 	type ImportSelectionRequest,
 	type PackageImportSource,
-	type PromotionLayoutProperties,
 	type ResolvedImportPackageRequest,
 	type ResolvedImportRequest,
 	createBindings,
@@ -101,17 +96,17 @@ type DirectoryProjectPackage =
  * A cherry-pick import acts only on its selection, so most policies are fixed here. Deletion mode is
  * left to the caller (`overwriteDeletionPolicy`): promotion passes `hard-delete` for diff convergence,
  * while the public selection import defaults to the safe `archive`. The caller also sets
- * `dataTableSchemaConflictPolicy`, which defaults to `fail`, `tagConflictPolicy`, which defaults to
- * `skip`, `credentialConflictPolicy`, which defaults to `keep-existing`, and `layoutConflictPolicy`,
- * which defaults to `fail`.
+ * `dataTableSchemaConflictPolicy`, which defaults to `fail`, and `tagConflictPolicy`, which defaults
+ * to `skip`.
  */
 const CHERRY_PICK_IMPORT_POLICY = {
 	projectConflictPolicy: 'merge',
 	folderConflictPolicy: 'merge',
-	publishingPolicy: 'match-source',
+	workflowPublishingPolicy: 'match-source',
 	missingNodeTypeMode: 'fail',
 	credentialMatchingMode: 'id-only',
 	credentialMissingMode: 'must-preexist',
+	credentialConflictPolicy: 'keep-existing',
 	dataTableMatchingMode: 'by-id',
 	dataTableMissingMode: 'create',
 	variableMissingMode: 'must-preexist',
@@ -126,12 +121,10 @@ const CHERRY_PICK_IMPORT_POLICY = {
 	| 'bindings'
 	| 'selection'
 	| 'overwriteDeletionPolicy'
-	| 'conflictPolicy'
-	| 'idPolicy'
+	| 'workflowConflictPolicy'
+	| 'workflowIdPolicy'
 	| 'dataTableSchemaConflictPolicy'
 	| 'tagConflictPolicy'
-	| 'credentialConflictPolicy'
-	| 'layoutConflictPolicy'
 >;
 
 @Service()
@@ -156,7 +149,6 @@ export class N8nPackagesService {
 		private readonly autoIncludedWorkflowResolver: AutoIncludedWorkflowResolver,
 		private readonly autoIncludedWorkflowExporter: AutoIncludedWorkflowExporter,
 		private readonly agentSelectionExporter: AgentSelectionExporter,
-		private readonly moduleRegistry: ModuleRegistry,
 	) {}
 
 	async exportPackage(request: ExportPackageRequest): Promise<ExportPackageResult> {
@@ -510,8 +502,7 @@ export class N8nPackagesService {
 
 	async importPackage(request: ImportPackageRequest): Promise<ImportResult> {
 		const reader = new TarPackageReader(request.packageBuffer, this.packageImportConfig);
-		const manifest = await this.readImportManifest(reader, { allowAgents: true });
-		assertPackageImportApiKeyScopes(request.apiKeyScopes, packageImportScopes(manifest));
+		const manifest = await this.readImportManifest(reader);
 		const { result, scopes } = await this.dispatchImport(
 			request,
 			reader,
@@ -532,7 +523,7 @@ export class N8nPackagesService {
 	}
 
 	async importPackageFromDirectory(
-		request: ImportRequest & PromotionLayoutProperties,
+		request: ImportRequest,
 		source: { sourceDir: string },
 	): Promise<ImportResult> {
 		const opened = await this.readDirectoryProjectPackage(source);
@@ -590,18 +581,10 @@ export class N8nPackagesService {
 		return result;
 	}
 
-	private async readImportManifest(
-		reader: PackageReader,
-		{ allowAgents = false } = {},
-	): Promise<PackageManifest> {
+	private async readImportManifest(reader: PackageReader): Promise<PackageManifest> {
 		const manifest = await this.packageParser.getManifest(reader);
 		if (manifest.agents?.length) {
-			if (!allowAgents) {
-				throw new BadRequestError('Agent packages require the ordinary archive import endpoint.');
-			}
-			if (!this.moduleRegistry.isActive('agents')) {
-				throw new BadRequestError('The Agents module is not enabled.');
-			}
+			throw new BadRequestError('Importing packages that contain Agents is not supported yet.');
 		}
 		return manifest;
 	}
@@ -643,14 +626,11 @@ export class N8nPackagesService {
 			...(request.bindings !== undefined ? { bindings: request.bindings } : {}),
 			...CHERRY_PICK_IMPORT_POLICY,
 			overwriteDeletionPolicy: request.overwriteDeletionPolicy ?? OverwriteDeletionPolicy.Archive,
-			conflictPolicy: request.conflictPolicy ?? ImportConflictPolicy.NewVersion,
-			idPolicy: request.idPolicy ?? WorkflowIdPolicy.Source,
+			workflowConflictPolicy: request.workflowConflictPolicy ?? WorkflowConflictPolicy.NewVersion,
+			workflowIdPolicy: request.workflowIdPolicy ?? WorkflowIdPolicy.Source,
 			dataTableSchemaConflictPolicy:
 				request.dataTableSchemaConflictPolicy ?? DataTableSchemaConflictPolicy.Fail,
 			tagConflictPolicy: request.tagConflictPolicy ?? TagConflictPolicy.Skip,
-			credentialConflictPolicy:
-				request.credentialConflictPolicy ?? CredentialConflictPolicy.KeepExisting,
-			layoutConflictPolicy: request.layoutConflictPolicy ?? LayoutConflictPolicy.Fail,
 			selection,
 		};
 
@@ -664,7 +644,7 @@ export class N8nPackagesService {
 	}
 
 	private async dispatchImport(
-		request: ImportRequest & PromotionLayoutProperties,
+		request: ImportRequest,
 		reader: PackageReader,
 		manifest: PackageManifest,
 		importSource: PackageImportSource,
@@ -753,7 +733,6 @@ function hasContentWithoutProjects(manifest: PackageManifest): boolean {
 function emptyImportResult(manifest: PackageManifest): ImportResult {
 	return buildImportResult({
 		package: toPackageSummary(manifest),
-		agentOutcomes: [],
 		workflows: [],
 		removedWorkflows: [],
 		removedFolders: [],

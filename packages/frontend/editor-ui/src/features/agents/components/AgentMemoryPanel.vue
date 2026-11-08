@@ -35,10 +35,6 @@ const settingsStore = useSettingsStore();
 const projectId = useAgentProjectId();
 const episodicMemory = computed(() => props.config?.memory?.episodicMemory ?? null);
 const episodicMemoryEnabled = computed(() => episodicMemory.value?.enabled === true);
-const episodicMemoryCredentialId = computed(() => {
-	const memory = episodicMemory.value;
-	return memory?.enabled === true ? memory.credential : null;
-});
 const isAiAssistantProxyEnabled = computed(
 	() => settingsStore.moduleSettings.agents?.proxyEnabled === true,
 );
@@ -172,17 +168,16 @@ function onEpisodicMemoryToggle(enabled: boolean) {
 							</N8nText>
 						</div>
 						<div :class="$style.credentialPicker">
-							<!-- Keep the dropdown outside the scrollable dialog body. -->
 							<CredentialPicker
 								app-name="OpenAI"
 								size="medium"
 								button-size="large"
 								:credential-type="AGENT_EPISODIC_MEMORY_CREDENTIAL_TYPE"
-								:selected-credential-id="episodicMemoryCredentialId"
+								:selected-credential-id="null"
 								:project-id="projectId"
 								:show-delete="false"
 								:hide-create-new="false"
-								teleported
+								:teleported="false"
 								credential-modal-append-to-body
 								:class="$style.credentialPicker"
 								data-testid="agent-episodic-memory-credential-picker"

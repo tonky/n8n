@@ -77,7 +77,7 @@ describe('SecuritySettings', () => {
 			expect(getSecuritySettings).toHaveBeenCalled();
 		});
 
-		expect(getByText('Policies')).toBeInTheDocument();
+		expect(getByText('Security & policies')).toBeInTheDocument();
 		expect(getByText('Personal space')).toBeInTheDocument();
 	});
 

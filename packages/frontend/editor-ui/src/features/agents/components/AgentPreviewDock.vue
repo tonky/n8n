@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { N8nIconButton, N8nTooltip, TOOLTIP_DELAY_MS } from '@n8n/design-system';
 import { useI18n } from '@n8n/i18n';
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+import { computed, nextTick, useTemplateRef, watch } from 'vue';
 import { useStorage } from '@vueuse/core';
 
 import KeyboardShortcutTooltip from '@/app/components/KeyboardShortcutTooltip.vue';
@@ -16,7 +16,6 @@ import {
 
 import type {
 	AgentContinueLoadedEvent,
-	AgentUsageUpdate,
 	AgentSendToAssistantEvent,
 	AgentJsonConfig,
 	AgentResource,
@@ -80,7 +79,6 @@ const emit = defineEmits<{
 	'session-select': [sessionId: string];
 	close: [];
 	'continue-loaded': [event: AgentContinueLoadedEvent];
-	'usage-updated': [event: AgentUsageUpdate];
 	'session-created': [sessionId: string];
 	'open-build': [];
 	'send-to-assistant': [event?: AgentSendToAssistantEvent];
@@ -88,18 +86,6 @@ const emit = defineEmits<{
 }>();
 
 const i18n = useI18n();
-const usageUpdates = ref<Record<string, AgentUsageUpdate>>({});
-
-function onUsageUpdated(update: AgentUsageUpdate) {
-	if (update.sessionId !== props.effectiveSessionId) return;
-	const previous = usageUpdates.value[update.executionId];
-	usageUpdates.value[update.executionId] = {
-		...update,
-		usage: update.usage ?? previous?.usage,
-	};
-	emit('usage-updated', usageUpdates.value[update.executionId]);
-}
-
 const agentTelemetry = useAgentTelemetry();
 const dock = useTemplateRef<HTMLElement>('dock');
 const {
@@ -284,7 +270,6 @@ defineExpose({ clearBudgetStops });
 						:is-lang-smith-export-enabled="isLangSmithExportEnabled"
 						:is-exporting="isExporting"
 						:get-conversation-markdown="getConversationMarkdown"
-						:usage-updates="usageUpdates"
 						@toggle-full-width="toggleFullWidth"
 						@export-session="exportSession"
 						@delete-session="requestActiveSessionDeletion"
@@ -325,7 +310,6 @@ defineExpose({ clearBudgetStops });
 				:budget-cards="props.budgetCards"
 				:increase-budget="props.increaseBudget"
 				@continue-loaded="emit('continue-loaded', $event)"
-				@usage-updated="onUsageUpdated"
 				@session-created="emit('session-created', $event)"
 				@open-build="emit('open-build')"
 				@send-to-assistant="emit('send-to-assistant', $event)"

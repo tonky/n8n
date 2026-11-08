@@ -6,15 +6,12 @@ import {
 	type AppListResponse,
 	type ListAppsQueryDto,
 } from '@n8n/api-types';
-import { Logger } from '@n8n/backend-common';
 import { ProjectScopeService } from '@n8n/backend-services';
 import { DbLock, DbLockService, type User } from '@n8n/db';
 import { Service } from '@n8n/di';
-import { BadRequestError, ConflictError, NotFoundError } from '@n8n/errors';
+import { BadRequestError, NotFoundError } from '@n8n/errors';
 
-import { appStorageLockSubKey } from './storage/app-storage-lock';
-import { AppVersionRepository } from './versions/app-version.repository';
-import { AppWorkspaceService } from './build/app-workspace.service';
+import { appStorageLockSubKey } from './app-storage-lock';
 import type { App } from './app.entity';
 import { AppRepository } from './app.repository';
 
@@ -36,18 +33,13 @@ function toResponse(app: App): AppResponse {
 export class AppsService {
 	constructor(
 		private readonly appRepository: AppRepository,
-		private readonly appVersions: AppVersionRepository,
 		private readonly projectScopeService: ProjectScopeService,
 		private readonly locks: DbLockService,
-		private readonly workspaces: AppWorkspaceService,
-		private readonly logger: Logger,
 	) {}
 
 	async createApp(projectId: string, dto: CreateAppDto): Promise<AppResponse> {
 		await this.assertProjectExists(projectId);
-		const app = await this.appRepository.createApp(projectId, dto);
-		this.logger.debug('Created app.', { projectId, appId: app.id });
-		return toResponse(app);
+		return toResponse(await this.appRepository.createApp(projectId, dto));
 	}
 
 	async getApp(projectId: string, appId: string): Promise<AppResponse> {
@@ -76,7 +68,6 @@ export class AppsService {
 		this.assertValidAppId(appId);
 		const app = await this.appRepository.updateApp(projectId, appId, dto);
 		if (!app) throw new NotFoundError('App not found');
-		this.logger.debug('Updated app.', { projectId, appId });
 		return toResponse(app);
 	}
 
@@ -84,25 +75,11 @@ export class AppsService {
 		this.assertValidAppId(appId);
 		const deleted = await this.locks.withLockContext(
 			DbLock.APPS_STORAGE,
-			async (ctx) => {
-				if (!(await this.appRepository.findInProject(projectId, appId, ctx))) return false;
-				if (await this.appVersions.hasRunningBuild(appId, ctx)) {
-					throw new ConflictError(
-						'The app has a running build. Wait for the build to finish before deleting it.',
-					);
-				}
-				return await this.appRepository.deleteInProject(projectId, appId, ctx);
-			},
+			async (ctx) => await this.appRepository.deleteInProject(projectId, appId, ctx),
 			{ subKey: appStorageLockSubKey(appId) },
 		);
 		if (!deleted) {
 			throw new NotFoundError('App not found');
-		}
-		this.logger.debug('Deleted app.', { projectId, appId });
-		try {
-			await this.workspaces.delete(projectId, appId);
-		} catch (error) {
-			this.logger.warn('Could not delete app sandbox.', { appId, error });
 		}
 	}
 

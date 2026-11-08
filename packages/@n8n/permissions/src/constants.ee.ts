@@ -1,15 +1,7 @@
 export const DEFAULT_OPERATIONS = ['create', 'read', 'update', 'delete', 'list'] as const;
 
 export const RESOURCES = {
-	agent: [
-		...DEFAULT_OPERATIONS,
-		'execute',
-		'publish',
-		'unpublish',
-		'manage',
-		'export',
-		'import',
-	] as const,
+	agent: [...DEFAULT_OPERATIONS, 'execute', 'publish', 'unpublish', 'manage', 'export'] as const,
 	aiAssistant: ['manage'] as const,
 	// AI prompt preferences. `aiPreference`: instance-wide rows and other users' rows.
 	// `projectAiPreference`: rows of a project. A user's own rows need no scope.
@@ -58,13 +50,13 @@ export const RESOURCES = {
 	securityAudit: ['generate'] as const,
 	securitySettings: ['manage'] as const,
 	sourceControl: ['pull', 'push', 'manage', 'read'] as const,
-	promotions: [
+	gitConnection: [
 		...DEFAULT_OPERATIONS,
 		'discover',
-		'connect',
-		'promote',
+		'clone',
+		'push',
 		'manageProjects',
-		'apply',
+		'pull',
 		'readReviews',
 		'approveReviews',
 	] as const,
@@ -127,7 +119,7 @@ export const RESOURCES = {
 } as const;
 
 export const API_KEY_RESOURCES = {
-	agent: ['export', 'import', 'read', 'create', 'update', 'publish', 'unpublish'] as const,
+	agent: ['export'] as const,
 	tag: [...DEFAULT_OPERATIONS] as const,
 	workflow: [...DEFAULT_OPERATIONS, 'move', 'activate', 'deactivate', 'export', 'import'] as const,
 	variable: ['create', 'update', 'delete', 'list'] as const,
@@ -144,13 +136,13 @@ export const API_KEY_RESOURCES = {
 	credential: ['create', 'read', 'update', 'move', 'delete', 'list'] as const,
 	eventBusDestination: ['test', 'create', 'read', 'update', 'delete', 'list'] as const,
 	sourceControl: ['pull', 'push', 'read'] as const,
-	promotions: [
+	gitConnection: [
 		...DEFAULT_OPERATIONS,
 		'discover',
-		'connect',
-		'promote',
+		'clone',
+		'push',
 		'manageProjects',
-		'apply',
+		'pull',
 	] as const,
 	workflowTags: ['update', 'list'] as const,
 	executionTags: ['update', 'list'] as const,

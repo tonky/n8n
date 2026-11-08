@@ -3,6 +3,7 @@ import { useI18n } from '@n8n/i18n';
 import { useRootStore } from '@n8n/stores/useRootStore';
 import { useToast } from '@n8n/composables/useToast';
 import { useRBACStore } from '@n8n/stores/rbac.store';
+import { useSettingsStore } from '@n8n/stores/settings.store';
 import {
 	skillNameKey,
 	type AgentConfigValidationIssue,
@@ -42,7 +43,6 @@ export interface AgentCapabilitiesTelemetry {
 	trackOpenedSkillFromList?: (skillId: string) => void;
 	trackOpenedAddSkillModal?: () => void;
 	trackTriggerAdded?: (payload: { triggerType: string; triggers: string[] }) => void;
-	trackTriggerRemoved?: (payload: { triggerType: string; triggers: string[] }) => void;
 }
 
 export interface UseAgentCapabilitiesActionsDeps {
@@ -146,11 +146,13 @@ export function useAgentCapabilitiesActions(deps: UseAgentCapabilitiesActionsDep
 	const uiStore = useUIStore();
 	const nodeTypesStore = useNodeTypesStore();
 	const rbacStore = useRBACStore();
+	const settingsStore = useSettingsStore();
 	const { showError, showMessage } = useToast();
 	const { projectName } = useAgentProjectBreadcrumb(computed(() => projectId.value));
 
-	// Agents keep their skills in the skills hub. Inline agents keep them in the node.
-	const hubSkillsEnabled = computed(() => !localSkills);
+	const hubSkillsEnabled = computed(
+		() => !localSkills && settingsStore.moduleSettings.agents?.skillsHubEnabled === true,
+	);
 
 	function onOpenAddToolModal(mode: ToolPickerMode = 'tools') {
 		// Capture the target at open time: a confirm landing after an agent/node
@@ -212,10 +214,9 @@ export function useAgentCapabilitiesActions(deps: UseAgentCapabilitiesActionsDep
 					projectId: projectId.value,
 					agentId: agentId.value,
 					supportsToolApproval,
-					validationIssues: () =>
-						validationIssues?.value.filter(
-							(issue) => issue.capability.kind === 'tool' && issue.capability.index === toolIndex,
-						) ?? [],
+					validationIssues: validationIssues?.value.filter(
+						(issue) => issue.capability.kind === 'tool' && issue.capability.index === toolIndex,
+					),
 					existingToolNames: tools
 						.map((toolRef, i) =>
 							i === toolIndex || toolRef.type === 'custom' ? null : toolRef.name,
@@ -396,7 +397,7 @@ export function useAgentCapabilitiesActions(deps: UseAgentCapabilitiesActionsDep
 					scheduleSkillSave({
 						skillId,
 						skill: sanitizedSkill,
-						...(availableTo ? { availableTo } : {}),
+						...(availableTo && hubSkillsEnabled.value ? { availableTo } : {}),
 					});
 				},
 			},
@@ -560,7 +561,7 @@ export function useAgentCapabilitiesActions(deps: UseAgentCapabilitiesActionsDep
 							targetProjectId,
 							targetAgentId,
 							sanitizedSkill,
-							availableTo,
+							hubSkillsEnabled.value ? availableTo : undefined,
 							method,
 						);
 					} catch (error) {
@@ -703,11 +704,6 @@ export function useAgentCapabilitiesActions(deps: UseAgentCapabilitiesActionsDep
 		telemetry?.trackTriggerAdded?.(payload);
 	}
 
-	function onTriggerRemoved(payload: { triggerType: string; triggers: string[] }) {
-		connectedTriggers.value = payload.triggers;
-		telemetry?.trackTriggerRemoved?.(payload);
-	}
-
 	return {
 		appliedSkills,
 		onOpenAddToolModal,
@@ -719,6 +715,5 @@ export function useAgentCapabilitiesActions(deps: UseAgentCapabilitiesActionsDep
 		onToggleTask,
 		onConnectedTriggersUpdate,
 		onTriggerAdded,
-		onTriggerRemoved,
 	};
 }

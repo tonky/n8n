@@ -3,9 +3,7 @@ import {
 	DeleteFolderDto,
 	ListFolderQueryDto,
 	TransferFolderBodyDto,
-	TransferPreviewQueryDto,
 	UpdateFolderDto,
-	type FolderTransferPreview,
 } from '@n8n/api-types';
 import { AuthenticatedRequest } from '@n8n/db';
 import {
@@ -198,29 +196,6 @@ export class ProjectController {
 				throw new NotFoundError(e.message);
 			}
 			throw new InternalServerError(undefined, e);
-		}
-	}
-
-	@Get('/:folderId/transfer-preview')
-	@ProjectScope('folder:move')
-	@Licensed('feat:folders')
-	async transferFolderPreview(
-		req: AuthenticatedRequest,
-		_res: unknown,
-		@Param('folderId') sourceFolderId: string,
-		@Param('projectId') sourceProjectId: string,
-		@Query query: TransferPreviewQueryDto,
-	): Promise<FolderTransferPreview> {
-		try {
-			return await this.enterpriseWorkflowService.previewFolderTransfer(
-				req.user,
-				sourceProjectId,
-				sourceFolderId,
-				query.destinationProjectId,
-			);
-		} catch (e) {
-			if (e instanceof FolderNotFoundError) throw new NotFoundError(e.message);
-			throw e;
 		}
 	}
 

@@ -63,10 +63,8 @@ export async function executeContextToolOperation(params: {
 	descriptor: IntegrationToolConnectionDescriptor;
 	queryExecutor: IntegrationContextQueryExecutor;
 	persistence: ToolContext['persistence'];
-	abortSignal?: AbortSignal;
 }): Promise<unknown> {
-	const { operation, descriptor, queryExecutor, persistence, abortSignal } = params;
-	abortSignal?.throwIfAborted();
+	const { operation, descriptor, queryExecutor, persistence } = params;
 
 	if (isCurrentContextQuery(operation.query)) {
 		if (!persistence) {
@@ -115,7 +113,6 @@ export async function executeContextToolOperation(params: {
 				query: 'get_user',
 				input: { userId: context.interactingUserId },
 				persistence,
-				abortSignal,
 			});
 		}
 
@@ -134,7 +131,6 @@ export async function executeContextToolOperation(params: {
 			query: 'get_channel_info',
 			input: { channelId },
 			persistence,
-			abortSignal,
 		});
 	}
 
@@ -143,7 +139,6 @@ export async function executeContextToolOperation(params: {
 		query: operation.query,
 		input: operation.input,
 		persistence,
-		abortSignal,
 	});
 }
 

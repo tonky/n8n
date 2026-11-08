@@ -791,20 +791,6 @@ describe('ActiveExecutions', () => {
 		});
 	});
 
-	const raceShutdownAgainstTimeout = async (shutdown: Promise<void>) => {
-		return await Promise.race([
-			shutdown.then(() => 'shutdown'),
-			new Promise((resolve) => setTimeout(() => resolve('timeout'), 50)),
-		]);
-	};
-
-	/** Park an execution the way a Wait node does: set the status, then let the run settle. */
-	const parkExecution = async (instance: ActiveExecutions, executionId: string) => {
-		instance.setStatus(executionId, 'waiting');
-		instance.finalizeExecution(executionId, fullRunData);
-		await new Promise(setImmediate);
-	};
-
 	describe('shutdown', () => {
 		let newExecutionId1: string, newExecutionId2: string;
 		let waitingExecutionId1: string, waitingExecutionId2: string;
@@ -813,7 +799,10 @@ describe('ActiveExecutions', () => {
 			let i = 1000;
 			executionPersistence.create.mockImplementation(async () => `${i++}`);
 
-			(sleep as Mock).mockImplementation(async () => await new Promise(setImmediate));
+			(sleep as Mock).mockImplementation(() => {
+				// @ts-expect-error private property
+				activeExecutions.activeExecutions = {};
+			});
 
 			newExecutionId1 = await activeExecutions.add(executionData);
 			activeExecutions.setStatus(newExecutionId1, 'new');
@@ -823,15 +812,11 @@ describe('ActiveExecutions', () => {
 			activeExecutions.setStatus(newExecutionId2, 'new');
 
 			waitingExecutionId1 = await activeExecutions.add(executionData);
+			activeExecutions.setStatus(waitingExecutionId1, 'waiting');
 			activeExecutions.attachResponsePromise(waitingExecutionId1, responsePromise);
-			await parkExecution(activeExecutions, waitingExecutionId1);
 
 			waitingExecutionId2 = await activeExecutions.add(executionData);
-			await parkExecution(activeExecutions, waitingExecutionId2);
-		});
-
-		afterEach(() => {
-			(sleep as Mock).mockReset();
+			activeExecutions.setStatus(waitingExecutionId2, 'waiting');
 		});
 
 		test('Should wait for all running executions including those with response promises', async () => {
@@ -847,6 +832,7 @@ describe('ActiveExecutions', () => {
 
 			expect(concurrencyControl.removeAll).toHaveBeenCalledWith([]);
 
+			await new Promise(setImmediate);
 			expect(activeExecutions.getActiveExecutions()).toHaveLength(0);
 		});
 
@@ -882,60 +868,6 @@ describe('ActiveExecutions', () => {
 				waitingExecutionId2,
 				expect.any(SystemShutdownExecutionCancelledError),
 			);
-			expect(activeExecutions.getActiveExecutions()).toHaveLength(0);
-		});
-
-		test('keeps waiting while a running execution has not finished', async () => {
-			const runningExecutionId = await activeExecutions.add(executionData);
-			activeExecutions.attachWorkflowExecution(runningExecutionId, workflowExecution);
-
-			const shutdown = activeExecutions.shutdown();
-
-			expect(await raceShutdownAgainstTimeout(shutdown)).toBe('timeout');
-			expect(activeExecutions.getActiveExecutions()).toHaveLength(1);
-
-			// Let the drain end so it does not keep polling after the test
-			activeExecutions.finalizeExecution(runningExecutionId, fullRunData);
-			await shutdown;
-		});
-
-		test('resolves once a running execution finishes', async () => {
-			const runningExecutionId = await activeExecutions.add(executionData);
-			activeExecutions.attachWorkflowExecution(runningExecutionId, workflowExecution);
-
-			const shutdown = activeExecutions.shutdown();
-			activeExecutions.finalizeExecution(runningExecutionId, fullRunData);
-
-			expect(await raceShutdownAgainstTimeout(shutdown)).toBe('shutdown');
-			expect(activeExecutions.getActiveExecutions()).toHaveLength(0);
-		});
-
-		test('resolves when a running execution parks while shutdown waits', async () => {
-			const runningExecutionId = await activeExecutions.add(executionData);
-			activeExecutions.attachWorkflowExecution(runningExecutionId, workflowExecution);
-			activeExecutions.attachResponsePromise(runningExecutionId, responsePromise);
-
-			const shutdown = activeExecutions.shutdown();
-			await parkExecution(activeExecutions, runningExecutionId);
-
-			expect(await raceShutdownAgainstTimeout(shutdown)).toBe('shutdown');
-			expect(activeExecutions.getActiveExecutions()).toHaveLength(0);
-		});
-
-		test('keeps waiting for an execution whose status is waiting but whose run has not settled', async () => {
-			const parkingExecutionId = await activeExecutions.add(executionData);
-			activeExecutions.attachWorkflowExecution(parkingExecutionId, workflowExecution);
-			activeExecutions.setStatus(parkingExecutionId, 'waiting');
-
-			const shutdown = activeExecutions.shutdown();
-
-			expect(await raceShutdownAgainstTimeout(shutdown)).toBe('timeout');
-			expect(activeExecutions.has(parkingExecutionId)).toBe(true);
-
-			activeExecutions.finalizeExecution(parkingExecutionId, fullRunData);
-
-			expect(await raceShutdownAgainstTimeout(shutdown)).toBe('shutdown');
-			expect(activeExecutions.getActiveExecutions()).toHaveLength(0);
 		});
 	});
 
@@ -954,6 +886,13 @@ describe('ActiveExecutions', () => {
 			);
 		};
 
+		const raceShutdownAgainstTimeout = async (instance: ActiveExecutions) => {
+			return await Promise.race([
+				instance.shutdown().then(() => 'shutdown'),
+				new Promise((resolve) => setTimeout(() => resolve('timeout'), 50)),
+			]);
+		};
+
 		beforeEach(() => {
 			(sleep as Mock).mockImplementation(async () => await new Promise(() => {}));
 		});
@@ -970,7 +909,7 @@ describe('ActiveExecutions', () => {
 			});
 			const cancel = vi.spyOn(workflowExecution, 'cancel');
 
-			const outcome = await raceShutdownAgainstTimeout(workerActiveExecutions.shutdown());
+			const outcome = await raceShutdownAgainstTimeout(workerActiveExecutions);
 
 			expect(outcome).toBe('shutdown');
 			expect(workerActiveExecutions.getActiveExecutions()).toHaveLength(0);
@@ -984,7 +923,7 @@ describe('ActiveExecutions', () => {
 				isQueueJob: true,
 			});
 
-			const outcome = await raceShutdownAgainstTimeout(mainActiveExecutions.shutdown());
+			const outcome = await raceShutdownAgainstTimeout(mainActiveExecutions);
 
 			expect(outcome).toBe('timeout');
 		});
@@ -997,7 +936,7 @@ describe('ActiveExecutions', () => {
 			const inProcessExecutionId = await workerActiveExecutions.add(executionData);
 			workerActiveExecutions.attachWorkflowExecution(inProcessExecutionId, workflowExecution);
 
-			const shutdown = workerActiveExecutions.shutdown();
+			const shutdown = workerActiveExecutions.shutdown().then(() => 'shutdown');
 
 			executionPersistence.create.mockResolvedValueOnce(FAKE_SECOND_EXECUTION_ID);
 			const enqueuedExecutionId = await workerActiveExecutions.add(executionData);
@@ -1007,7 +946,10 @@ describe('ActiveExecutions', () => {
 			const cancel = vi.spyOn(workflowExecution, 'cancel');
 			workerActiveExecutions.finalizeExecution(inProcessExecutionId, fullRunData);
 
-			const outcome = await raceShutdownAgainstTimeout(shutdown);
+			const outcome = await Promise.race([
+				shutdown,
+				new Promise((resolve) => setTimeout(() => resolve('timeout'), 50)),
+			]);
 
 			expect(outcome).toBe('shutdown');
 			expect(workerActiveExecutions.getActiveExecutions()).toHaveLength(0);

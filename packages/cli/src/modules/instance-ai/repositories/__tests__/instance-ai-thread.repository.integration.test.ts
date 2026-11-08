@@ -61,6 +61,7 @@ describe('Instance AI thread verification transitions', () => {
 			runId: 'build-run',
 			taskId: 'build-task',
 			workflowId: 'wf-1',
+			owner: { type: 'planned', taskId: 'planned-task' },
 			submitted: true,
 			triggerType: 'manual_or_testable',
 			needsUserInput: true,

@@ -1,15 +1,10 @@
 import type { CredentialResolution, CredentialResolutionFailure } from './credential.types';
 import type { CredentialMissingMode } from '../../n8n-packages.types';
-import { getRequirementConsumerIds } from '../../spec/requirement-consumers';
-import type {
-	PackageCredentialRequirement,
-	PackageRequirementConsumer,
-} from '../../spec/requirements.schema';
+import { getWorkflowConsumerIds } from '../../spec/requirement-consumers';
+import type { PackageCredentialRequirement } from '../../spec/requirements.schema';
 
 export function canStubNotFoundFailure(failure: CredentialResolutionFailure): boolean {
-	return (
-		failure.kind === 'not_found' && failure.targetId === undefined && failure.type !== undefined
-	);
+	return failure.kind === 'not_found' && failure.targetId === undefined;
 }
 
 /**
@@ -62,19 +57,18 @@ export function credentialMissingModeUsesPackageData(mode: CredentialMissingMode
 	return mode === 'create-with-values';
 }
 
-/** Package consumer IDs that depend on one of the given credentials. */
-export function consumersBlockedByCredentials(
+/** Package workflow ids that should not be published because they use one of the given credentials. */
+export function workflowsBlockedFromPublish(
 	requirements: PackageCredentialRequirement[] | undefined,
 	sourceIds: ReadonlySet<string>,
-	kind: PackageRequirementConsumer['kind'],
 ): Set<string> {
 	const blocked = new Set<string>();
 
 	for (const requirement of requirements ?? []) {
 		if (!sourceIds.has(requirement.id)) continue;
 
-		for (const sourceId of getRequirementConsumerIds(requirement, kind)) {
-			blocked.add(sourceId);
+		for (const sourceWorkflowId of getWorkflowConsumerIds(requirement)) {
+			blocked.add(sourceWorkflowId);
 		}
 	}
 

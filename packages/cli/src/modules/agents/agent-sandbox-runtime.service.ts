@@ -16,9 +16,12 @@ import { Service } from '@n8n/di';
 import { redactText } from '@n8n/utils/redaction/redact-text';
 import { InstanceSettings } from 'n8n-core';
 import { OperationalError } from 'n8n-workflow';
+import { nanoid } from 'nanoid';
 import { v5 as uuidv5 } from 'uuid';
 
+import { AiService } from '@/services/ai.service';
 import { SandboxSettingsService } from '@/services/sandbox-settings.service';
+import { callAiServiceWithRetry } from '@/utils/ai-service-retry';
 
 import { assertKnowledgePathSegment } from './agent-knowledge-storage';
 import type { AgentSandboxPrincipalHash } from './agent-sandbox-principal';
@@ -127,6 +130,7 @@ export class AgentSandboxRuntimeService {
 	constructor(
 		private readonly agentsConfig: AgentsConfig,
 		private readonly logger: Logger,
+		private readonly aiService: AiService,
 		private readonly instanceSettings: InstanceSettings,
 		private readonly agentRepository: AgentRepository,
 		private readonly sandboxSettingsService: SandboxSettingsService,
@@ -400,12 +404,9 @@ export class AgentSandboxRuntimeService {
 		labels: Record<string, string>,
 		lifecycle: SandboxLifecycle = {},
 	): Promise<DaytonaSandboxConfig> {
-		const connection = await this.sandboxSettingsService.resolveDaytonaSandboxConfig(projectId, {
-			image: this.agentsConfig.sandboxImage || DEFAULT_SANDBOX_IMAGE,
-			snapshot: this.agentsConfig.sandboxSnapshot,
-		});
-		return {
-			...connection,
+		const directImage = this.agentsConfig.sandboxImage || DEFAULT_SANDBOX_IMAGE;
+		const snapshot = this.agentsConfig.sandboxSnapshot.trim() || undefined;
+		const baseConfig: DaytonaSandboxConfig = {
 			enabled: true,
 			provider: 'daytona',
 			id: sandboxId,
@@ -414,6 +415,39 @@ export class AgentSandboxRuntimeService {
 			timeout: this.agentsConfig.sandboxTimeout,
 			createTimeoutSeconds: Math.ceil(this.agentsConfig.sandboxTimeout / 1000),
 			...lifecycle,
+		};
+
+		if (!this.aiService.isProxyEnabled()) {
+			const daytona = await this.sandboxSettingsService.resolveDaytonaConfig();
+			return {
+				...baseConfig,
+				daytonaApiUrl: daytona.apiUrl,
+				daytonaApiKey: daytona.apiKey,
+				image: directImage,
+				snapshot,
+			};
+		}
+
+		const client = await this.aiService.getClient();
+		if (!snapshot) {
+			throw new OperationalError(
+				'Agent knowledge sandbox requires a snapshot when Daytona is reached through the AI service proxy. Set N8N_AGENTS_AI_SANDBOX_SNAPSHOT to a snapshot available to the instance.',
+			);
+		}
+
+		return {
+			...baseConfig,
+			daytonaApiUrl: client.getSandboxProxyBaseUrl(),
+			snapshot,
+			getAuthToken: async () => {
+				const token = await callAiServiceWithRetry(
+					'Agent knowledge sandbox proxy token mint',
+					async () =>
+						await client.getBuilderApiProxyToken({ id: projectId }, { userMessageId: nanoid() }),
+					this.logger,
+				);
+				return token.accessToken;
+			},
 		};
 	}
 

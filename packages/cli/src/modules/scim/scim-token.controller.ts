@@ -5,16 +5,11 @@ import { Body, Delete, Get, GlobalScope, Patch, Post, RestController } from '@n8
 import type { Response } from 'express';
 
 import { ScimSettingsService } from './scim-settings.service';
-import { ScimSsoService } from './scim-sso.service';
 import { ScimTokenService } from './scim-token.service';
-import { ScimSsoRequiredError, ScimTokenConflictError } from './scim.errors';
 
 /**
  * REST Controller for SCIM configuration and token management.
  * These endpoints require authentication and the `scim:manage` scope.
- *
- * The instance has one SCIM token. Every user with `scim:manage` sees,
- * rotates and revokes that token, whoever created it.
  *
  * The token value is returned exactly once, by the POST endpoint that
  * creates it. The config endpoint only ever exposes whether a token
@@ -27,7 +22,6 @@ export class ScimTokenController {
 		private readonly scimTokenService: ScimTokenService,
 		private readonly scimSettingsService: ScimSettingsService,
 		private readonly moduleRegistry: ModuleRegistry,
-		private readonly scimSsoService: ScimSsoService,
 	) {}
 
 	/**
@@ -36,11 +30,11 @@ export class ScimTokenController {
 	 */
 	@Get('/config')
 	@GlobalScope('scim:manage')
-	async getConfig(_req: AuthenticatedRequest, res: Response) {
+	async getConfig(req: AuthenticatedRequest, res: Response) {
 		try {
 			const [enabled, tokenInfo] = await Promise.all([
 				this.scimSettingsService.isEnabled(),
-				this.scimTokenService.getTokenInfo(),
+				this.scimTokenService.getTokenInfoForUser(req.user),
 			]);
 
 			return res.status(200).json({
@@ -60,41 +54,19 @@ export class ScimTokenController {
 	/**
 	 * PATCH /rest/scim/config
 	 * Enable or disable SCIM provisioning. The stored token is kept when
-	 * provisioning is turned off. Enabling needs SAML or OIDC single sign-on,
-	 * because SCIM users can sign in only through the identity provider.
-	 * Disabling is always allowed.
+	 * provisioning is turned off.
 	 */
 	@Patch('/config')
 	@GlobalScope('scim:manage')
 	async updateConfig(_req: AuthenticatedRequest, res: Response, @Body body: ScimConfigPatchDto) {
-		const { enabled } = body;
-
 		try {
-			if (enabled) this.assertSsoEnabled();
-
-			const saved = await this.scimSettingsService.update({
-				enabled,
-				// Single sign-on can turn off after the check above, also on another
-				// main. The SSO-off cascade takes the lock that this check runs
-				// under, and this check reads the saved method. Thus this check
-				// sees single sign-on off, or the cascade sees this enable.
-				assertCanEnable: async (ctx) => {
-					if (!(await this.scimSsoService.isSsoEnabledInTransaction(ctx))) {
-						throw new ScimSsoRequiredError();
-					}
-				},
-			});
-
+			await this.scimSettingsService.setEnabled(body.enabled);
 			// `/rest/module-settings` serves a cached snapshot, so refresh it or
 			// clients keep reading the previous value.
 			await this.moduleRegistry.refreshModuleSettings('scim');
 
-			return res.status(200).json({ data: { enabled: saved.enabled } });
+			return res.status(200).json({ data: { enabled: body.enabled } });
 		} catch (error) {
-			if (error instanceof ScimSsoRequiredError) {
-				return res.status(400).json({ message: error.message });
-			}
-
 			this.logger.error('Error updating SCIM config', { error });
 			return res.status(500).json({ message: 'Internal server error' });
 		}
@@ -102,24 +74,18 @@ export class ScimTokenController {
 
 	/**
 	 * POST /rest/scim/token
-	 * Generate the instance SCIM token, or rotate it. This is the only place
-	 * the full token value is ever returned. Returns 409 when another request
-	 * changed the token at the same time.
+	 * Generate or rotate the SCIM token. This is the only place the full
+	 * token value is ever returned.
 	 */
 	@Post('/token')
 	@GlobalScope('scim:manage')
 	async generateToken(req: AuthenticatedRequest, res: Response) {
 		try {
-			const token = await this.scimTokenService.rotateToken(req.user);
+			const apiKey = await this.scimTokenService.rotateScimApiKey(req.user);
 			const baseUrl = this.scimTokenService.getScimBaseUrl();
-			await this.refreshModuleSettings();
 
-			return res.status(201).json({ data: { token, baseUrl } });
+			return res.status(201).json({ data: { token: apiKey.apiKey, baseUrl } });
 		} catch (error) {
-			if (error instanceof ScimTokenConflictError) {
-				return res.status(409).json({ message: error.message });
-			}
-
 			this.logger.error('Error generating SCIM token', { error });
 			return res.status(500).json({ message: 'Internal server error' });
 		}
@@ -127,38 +93,18 @@ export class ScimTokenController {
 
 	/**
 	 * DELETE /rest/scim/token
-	 * Revoke the instance SCIM token, whoever created it.
+	 * Delete SCIM token for the authenticated user
 	 */
 	@Delete('/token')
 	@GlobalScope('scim:manage')
-	async deleteToken(_req: AuthenticatedRequest, res: Response) {
+	async deleteToken(req: AuthenticatedRequest, res: Response) {
 		try {
-			await this.scimTokenService.revokeToken();
-			await this.refreshModuleSettings();
+			await this.scimTokenService.deleteAllScimApiKeysForUser(req.user);
 
 			return res.status(200).json({ data: { success: true } });
 		} catch (error) {
 			this.logger.error('Error deleting SCIM token', { error });
 			return res.status(500).json({ message: 'Internal server error' });
-		}
-	}
-
-	/** SCIM users can sign in only through the identity provider. */
-	private assertSsoEnabled() {
-		if (!this.scimSsoService.isSsoEnabled()) throw new ScimSsoRequiredError();
-	}
-
-	/**
-	 * `/rest/module-settings` serves a cached snapshot, so refresh it after a
-	 * token change. A failure only delays the new value. It must not fail the
-	 * request: the token change is already saved, and the response of a
-	 * rotation is the only copy of the new token.
-	 */
-	private async refreshModuleSettings() {
-		try {
-			await this.moduleRegistry.refreshModuleSettings('scim');
-		} catch (error) {
-			this.logger.warn('SCIM: Failed to refresh the module settings', { error });
 		}
 	}
 }

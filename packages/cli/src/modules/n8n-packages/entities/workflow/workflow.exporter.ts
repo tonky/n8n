@@ -74,7 +74,6 @@ export class WorkflowExporter {
 			request.workflowIds,
 			applyWorkflowVersionPolicy(workflows, request.versionPolicy),
 		);
-
 		const entries: ManifestEntry[] = [];
 		const credentials: WorkflowCredentialRequirement[] = [];
 		const dataTables: WorkflowDataTableRequirement[] = [];

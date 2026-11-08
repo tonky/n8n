@@ -6,14 +6,7 @@ import type { PackageRequirementConsumer } from './requirements.schema';
 export function getWorkflowConsumerIds(requirement: {
 	usedBy: PackageRequirementConsumer[];
 }): string[] {
-	return getRequirementConsumerIds(requirement, 'workflow');
-}
-
-export function getRequirementConsumerIds(
-	requirement: { usedBy: PackageRequirementConsumer[] },
-	kind: PackageRequirementConsumer['kind'],
-): string[] {
-	return requirement.usedBy.filter((consumer) => consumer.kind === kind).map(({ id }) => id);
+	return requirement.usedBy.filter(({ kind }) => kind === 'workflow').map(({ id }) => id);
 }
 
 export function mergeRequirementConsumers(

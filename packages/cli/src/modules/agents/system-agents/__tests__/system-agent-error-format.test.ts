@@ -18,6 +18,7 @@ import type { AgentExecutionThread } from '../../entities/agent-execution-thread
 import type { N8NCheckpointStorage } from '../../integrations/n8n-checkpoint-storage';
 import type { AgentExecutionRepository } from '../../repositories/agent-execution.repository';
 import type { AgentExecutionThreadRepository } from '../../repositories/agent-execution-thread.repository';
+import type { AgentRepository } from '../../repositories/agent.repository';
 import { SystemAgentExecutionService } from '../system-agent-execution.service';
 import { SystemAgentRegistry } from '../system-agent-registry';
 import type { SystemAgentProvider, SystemAgentTurnHandle } from '../system-agent.types';
@@ -129,6 +130,7 @@ function setup(
 	const service = new SystemAgentExecutionService(
 		mock<Logger>(),
 		registry,
+		mock<AgentRepository>(),
 		mock<AgentExecutionThreadRepository>(),
 		executionRepository,
 		executionService,
@@ -137,8 +139,6 @@ function setup(
 		chatExecutionService,
 		mock<N8NCheckpointStorage>(),
 		mock<TransactionRunner>(),
-		mock(),
-		mock(),
 		mock(),
 		mock(),
 	);

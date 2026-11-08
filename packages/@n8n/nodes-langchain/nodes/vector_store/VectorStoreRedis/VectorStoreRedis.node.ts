@@ -1,17 +1,5 @@
 import type { EmbeddingsInterface } from '@langchain/core/embeddings';
-import {
-	// Legacy (v1.3 and below)
-	RedisVectorStore,
-	type RedisVectorStoreConfig,
-	// New (v1.4+)
-	FluentRedisVectorStore,
-	type FluentRedisVectorStoreConfig,
-	type FilterExpression,
-	type MetadataFieldSchema,
-	Custom,
-	inferMetadataSchema,
-} from '@langchain/redis';
-import { createVectorStoreNode } from '@n8n/ai-utilities';
+import { RedisVectorStore, type RedisVectorStoreConfig } from '@langchain/redis';
 import {
 	type IExecuteFunctions,
 	type ILoadOptionsFunctions,
@@ -22,6 +10,8 @@ import {
 import type { RedisClientOptions } from 'redis';
 import { createClient } from 'redis';
 
+import { createVectorStoreNode } from '@n8n/ai-utilities';
+
 /**
  * Constants for the name of the credentials and Node parameters.
  */
@@ -31,8 +21,6 @@ const REDIS_KEY_PREFIX = 'keyPrefix';
 const REDIS_OVERWRITE_DOCUMENTS = 'overwriteDocuments';
 const REDIS_METADATA_KEY = 'metadataKey';
 const REDIS_METADATA_FILTER = 'metadataFilter';
-const REDIS_ADVANCED_FILTER = 'advancedFilter';
-const REDIS_METADATA_SCHEMA = 'metadataSchema';
 const REDIS_CONTENT_KEY = 'contentKey';
 const REDIS_EMBEDDING_KEY = 'vectorKey';
 const REDIS_TTL = 'ttl';
@@ -68,49 +56,6 @@ const metadataFilterField: INodeProperties = {
 		'The comma-separated list of words by which to apply additional full-text metadata filtering',
 	placeholder: 'Item1,Item2,Item3',
 	default: '',
-	displayOptions: {
-		show: {
-			'@version': [{ _cnd: { lte: 1.3 } }],
-		},
-	},
-};
-
-const advancedFilterField: INodeProperties = {
-	displayName: 'Metadata Filter',
-	name: REDIS_ADVANCED_FILTER,
-	type: 'string',
-	description:
-		'Redis query filter expression. Supports Tag, Numeric, Text, Geo filters with AND/OR logic. Example: <code>@category:{electronics} @price:[0 100]</code>',
-	hint: 'Learn more about Redis vector search filtering <a target="_blank" href="https://docs.langchain.com/oss/javascript/integrations/vectorstores/redis#advanced-features">here</a>',
-	placeholder: '@category:{electronics} @price:[0 100]',
-	default: '',
-	typeOptions: {
-		rows: 3,
-	},
-	displayOptions: {
-		show: {
-			'@version': [{ _cnd: { gte: 1.4 } }],
-		},
-	},
-};
-
-const metadataSchemaField: INodeProperties = {
-	displayName: 'Metadata Schema',
-	name: REDIS_METADATA_SCHEMA,
-	type: 'string',
-	description:
-		'JSON array defining metadata field types for indexing. If not provided, schema will be inferred from documents. Example: <code>[{"name": "category", "type": "tag"}, {"name": "price", "type": "numeric", "options": {"sortable": true}}]</code>',
-	hint: 'Learn more about metadata schema configuration <a target="_blank" href="https://docs.langchain.com/oss/javascript/integrations/vectorstores/redis#advanced-features">here</a>',
-	placeholder: '[{"name": "category", "type": "tag"}, {"name": "price", "type": "numeric"}]',
-	default: '',
-	typeOptions: {
-		rows: 4,
-	},
-	displayOptions: {
-		show: {
-			'@version': [{ _cnd: { gte: 1.4 } }],
-		},
-	},
 };
 
 const metadataKeyField: INodeProperties = {
@@ -166,20 +111,7 @@ const ttlField: INodeProperties = {
 	default: '',
 };
 
-const upgradeNotice: INodeProperties = {
-	displayName:
-		"A newer version of this node supports advanced filtering and a custom metadata schema. To use it, add a new Redis Vector Store node with a new index, then reimport your documents. Don't point the new node at an index created by this version: metadata will be missing and filters will return wrong results. This node and its index keep working as they are.",
-	name: 'upgradeNotice',
-	type: 'notice',
-	default: '',
-	displayOptions: {
-		show: {
-			'@version': [{ _cnd: { lte: 1.3 } }],
-		},
-	},
-};
-
-const sharedFields: INodeProperties[] = [redisIndexRLC, upgradeNotice];
+const sharedFields: INodeProperties[] = [redisIndexRLC];
 
 const insertFields: INodeProperties[] = [
 	{
@@ -192,7 +124,6 @@ const insertFields: INodeProperties[] = [
 			keyPrefixField,
 			overwriteDocuments,
 			metadataKeyField,
-			metadataSchemaField,
 			contentKeyField,
 			embeddingKeyField,
 			ttlField,
@@ -209,8 +140,6 @@ const retrieveFields: INodeProperties[] = [
 		default: {},
 		options: [
 			metadataFilterField,
-			advancedFilterField,
-			metadataSchemaField,
 			keyPrefixField,
 			metadataKeyField,
 			contentKeyField,
@@ -345,34 +274,15 @@ export function getParameterAsNumber(
 }
 
 /**
- * Legacy ExtendedRedisVectorSearch class for v1.3 and below.
- * Uses the original RedisVectorStore with string[] filter format.
+ * Extended RedisVectorStore class to handle custom filtering.
+ *
+ * This wrapper is necessary because when used as a retriever, the similaritySearchVectorWithScore should
+ * use a processed filter
  */
-class LegacyRedisVectorSearch extends RedisVectorStore {
+class ExtendedRedisVectorSearch extends RedisVectorStore {
 	defaultFilter?: string[];
 
 	constructor(embeddings: EmbeddingsInterface, options: RedisVectorStoreConfig, filter?: string[]) {
-		super(embeddings, options);
-		this.defaultFilter = filter;
-	}
-
-	async similaritySearchVectorWithScore(query: number[], k: number) {
-		return await super.similaritySearchVectorWithScore(query, k, this.defaultFilter);
-	}
-}
-
-/**
- * Extended FluentRedisVectorStore class for v1.4+.
- * Uses FluentRedisVectorStore with FilterExpression for advanced filtering.
- */
-class ExtendedRedisVectorSearch extends FluentRedisVectorStore {
-	defaultFilter?: FilterExpression;
-
-	constructor(
-		embeddings: EmbeddingsInterface,
-		options: FluentRedisVectorStoreConfig,
-		filter?: FilterExpression,
-	) {
 		super(embeddings, options);
 		this.defaultFilter = filter;
 	}
@@ -387,88 +297,9 @@ const getKeyPrefix = getParameter.bind(null, `options.${REDIS_KEY_PREFIX}`);
 const getOverwrite = getParameter.bind(null, `options.${REDIS_OVERWRITE_DOCUMENTS}`);
 const getContentKey = getParameter.bind(null, `options.${REDIS_CONTENT_KEY}`);
 const getMetadataFilter = getParameter.bind(null, `options.${REDIS_METADATA_FILTER}`);
-const getAdvancedFilter = getParameter.bind(null, `options.${REDIS_ADVANCED_FILTER}`);
-const getMetadataSchema = getParameter.bind(null, `options.${REDIS_METADATA_SCHEMA}`);
 const getMetadataKey = getParameter.bind(null, `options.${REDIS_METADATA_KEY}`);
 const getEmbeddingKey = getParameter.bind(null, `options.${REDIS_EMBEDDING_KEY}`);
 const getTtl = getParameterAsNumber.bind(null, `options.${REDIS_TTL}`);
-
-const SCHEMA_ERROR_DESCRIPTION =
-	'Expected format: [{"name": "fieldName", "type": "tag|text|numeric|geo"}]';
-
-/**
- * Parse and validate metadata schema JSON
- */
-function parseMetadataSchema(
-	context: IExecuteFunctions | ISupplyDataFunctions,
-	schemaJson: string,
-	itemIndex: number,
-): MetadataFieldSchema[] | undefined {
-	if (!schemaJson?.trim()) {
-		return undefined;
-	}
-
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(schemaJson);
-	} catch (error) {
-		throw new NodeOperationError(
-			context.getNode(),
-			`Invalid metadata schema JSON: ${error.message}`,
-			{ itemIndex, description: SCHEMA_ERROR_DESCRIPTION },
-		);
-	}
-
-	if (!Array.isArray(parsed)) {
-		throw new NodeOperationError(
-			context.getNode(),
-			'Invalid metadata schema: must be a JSON array',
-			{ itemIndex, description: SCHEMA_ERROR_DESCRIPTION },
-		);
-	}
-
-	for (const field of parsed) {
-		if (typeof field !== 'object' || field === null) {
-			throw new NodeOperationError(
-				context.getNode(),
-				'Invalid metadata schema: each entry must be an object',
-				{ itemIndex, description: SCHEMA_ERROR_DESCRIPTION },
-			);
-		}
-		if (!field.name || typeof field.name !== 'string') {
-			throw new NodeOperationError(
-				context.getNode(),
-				'Invalid metadata schema: each field must have a "name" property',
-				{ itemIndex, description: SCHEMA_ERROR_DESCRIPTION },
-			);
-		}
-		if (!field.type || !['tag', 'text', 'numeric', 'geo'].includes(field.type)) {
-			throw new NodeOperationError(
-				context.getNode(),
-				`Invalid metadata schema: field type "${field.type}" is not valid. Must be one of: tag, text, numeric, geo`,
-				{ itemIndex, description: SCHEMA_ERROR_DESCRIPTION },
-			);
-		}
-	}
-
-	return parsed as MetadataFieldSchema[];
-}
-
-async function getInitializedRedisClient(
-	context: IExecuteFunctions | ISupplyDataFunctions,
-	itemIndex: number,
-) {
-	const client = await getRedisClient(context);
-
-	if (client === null) {
-		throw new NodeOperationError(context.getNode(), 'Redis client not initialized', {
-			itemIndex,
-			description: 'Please check your Redis connection details',
-		});
-	}
-
-	return client;
-}
 
 export class VectorStoreRedis extends createVectorStoreNode({
 	meta: {
@@ -498,6 +329,7 @@ export class VectorStoreRedis extends createVectorStoreNode({
 		const metadataField = getMetadataKey(context, itemIndex).trim();
 		const contentField = getContentKey(context, itemIndex).trim();
 		const embeddingField = getEmbeddingKey(context, itemIndex).trim();
+		const filter = getMetadataFilter(context, itemIndex).trim();
 
 		if (client === null) {
 			throw new NodeOperationError(context.getNode(), 'Redis client not initialized', {
@@ -516,41 +348,16 @@ export class VectorStoreRedis extends createVectorStoreNode({
 			});
 		}
 
-		const nodeVersion = context.getNode().typeVersion;
-
-		// Version 1.4+: Use FluentRedisVectorStore with advanced filter and custom metadata schema
-		if (nodeVersion >= 1.4) {
-			const filter = getAdvancedFilter(context, itemIndex).trim();
-			const metadataSchemaJson = getMetadataSchema(context, itemIndex).trim();
-			const customSchema = parseMetadataSchema(context, metadataSchemaJson, itemIndex);
-
-			const filterExpression = filter ? Custom(filter) : undefined;
-
-			return new ExtendedRedisVectorSearch(
-				embeddings,
-				{
-					redisClient: client,
-					indexName: indexField,
-					...(keyPrefixField ? { keyPrefix: keyPrefixField } : {}),
-					...(metadataField ? { metadataKey: metadataField } : {}),
-					...(contentField ? { contentKey: contentField } : {}),
-					...(embeddingField ? { vectorKey: embeddingField } : {}),
-					...(customSchema ? { customSchema } : {}),
-				},
-				filterExpression,
-			);
-		}
-
-		// Version 1.3 and below: Use legacy RedisVectorStore with string[] filter
-		const simpleFilter = getMetadataFilter(context, itemIndex).trim();
-		const filterTerms = simpleFilter
-			? simpleFilter
+		// Process filter: split by comma, trim, and remove empty strings
+		// If no valid filter terms exist, pass undefined instead of empty array
+		const filterTerms = filter
+			? filter
 					.split(',')
 					.map((s) => s.trim())
 					.filter((s) => s)
 			: [];
 
-		return new LegacyRedisVectorSearch(
+		return new ExtendedRedisVectorSearch(
 			embeddings,
 			{
 				redisClient: client,
@@ -563,32 +370,15 @@ export class VectorStoreRedis extends createVectorStoreNode({
 			filterTerms.length > 0 ? filterTerms : undefined,
 		);
 	},
-	// Version 1.4+: runs once before the batches, so that later batches do not drop the documents of earlier ones
-	async beforeInsert(context, _embeddings, itemIndex) {
-		if (context.getNode().typeVersion < 1.4) {
-			return;
-		}
+	async populateVectorStore(context, embeddings, documents, itemIndex) {
+		const client = await getRedisClient(context);
 
-		// Validate the schema first, so that an invalid schema leaves the index intact
-		parseMetadataSchema(context, getMetadataSchema(context, itemIndex).trim(), itemIndex);
-
-		if (!getOverwrite(context, itemIndex)) {
-			return;
-		}
-
-		const client = await getInitializedRedisClient(context, itemIndex);
-		try {
-			await client.ft.dropIndex(getIndexName(context, itemIndex).trim(), { DD: true });
-		} catch (error) {
-			context.logger.info(`Error while populating the store: ${error.message}`);
-			throw new NodeOperationError(context.getNode(), `Error: ${error.message}`, {
+		if (client === null) {
+			throw new NodeOperationError(context.getNode(), 'Redis client not initialized', {
 				itemIndex,
-				description: 'Please check your index/schema and parameters',
+				description: 'Please check your Redis connection details',
 			});
 		}
-	},
-	async populateVectorStore(context, embeddings, documents, itemIndex, allDocuments = documents) {
-		const client = await getInitializedRedisClient(context, itemIndex);
 
 		try {
 			const indexField = getIndexName(context, itemIndex).trim();
@@ -598,43 +388,20 @@ export class VectorStoreRedis extends createVectorStoreNode({
 			const contentField = getContentKey(context, itemIndex).trim();
 			const embeddingField = getEmbeddingKey(context, itemIndex).trim();
 			const ttl = getTtl(context, itemIndex);
-			const nodeVersion = context.getNode().typeVersion;
 
-			// From version 1.4, beforeInsert drops the index once before the batches
-			if (overwrite && nodeVersion < 1.4) {
+			if (overwrite) {
 				await client.ft.dropIndex(indexField, { DD: true });
 			}
 
-			// Version 1.4+: Use FluentRedisVectorStore with custom schema support
-			if (nodeVersion >= 1.4) {
-				const metadataSchemaJson = getMetadataSchema(context, itemIndex).trim();
-				// Infer from all batches: the first batch creates the index and fixes its schema
-				const customSchema =
-					parseMetadataSchema(context, metadataSchemaJson, itemIndex) ??
-					inferMetadataSchema(allDocuments);
-
-				await ExtendedRedisVectorSearch.fromDocuments(documents, embeddings, {
-					redisClient: client,
-					indexName: indexField,
-					...(keyPrefixField ? { keyPrefix: keyPrefixField } : {}),
-					...(metadataField ? { metadataKey: metadataField } : {}),
-					...(contentField ? { contentKey: contentField } : {}),
-					...(embeddingField ? { vectorKey: embeddingField } : {}),
-					...(ttl ? { ttl } : {}),
-					customSchema,
-				});
-			} else {
-				// Version 1.3 and below: Use legacy RedisVectorStore
-				await LegacyRedisVectorSearch.fromDocuments(documents, embeddings, {
-					redisClient: client,
-					indexName: indexField,
-					...(keyPrefixField ? { keyPrefix: keyPrefixField } : {}),
-					...(metadataField ? { metadataKey: metadataField } : {}),
-					...(contentField ? { contentKey: contentField } : {}),
-					...(embeddingField ? { vectorKey: embeddingField } : {}),
-					...(ttl ? { ttl } : {}),
-				});
-			}
+			await ExtendedRedisVectorSearch.fromDocuments(documents, embeddings, {
+				redisClient: client,
+				indexName: indexField,
+				...(keyPrefixField ? { keyPrefix: keyPrefixField } : {}),
+				...(metadataField ? { metadataKey: metadataField } : {}),
+				...(contentField ? { contentKey: contentField } : {}),
+				...(embeddingField ? { vectorKey: embeddingField } : {}),
+				...(ttl ? { ttl } : {}),
+			});
 		} catch (error) {
 			context.logger.info(`Error while populating the store: ${error.message}`);
 			throw new NodeOperationError(context.getNode(), `Error: ${error.message}`, {

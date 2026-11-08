@@ -148,9 +148,13 @@ export class AgentTaskService {
 			throw new BadRequestError('At least one task is required');
 		}
 
-		this.validateTasks(dtos);
+		for (const dto of dtos) {
+			this.assertValidCron(dto.cronExpression);
+			this.assertValidTimezone(dto.timezone);
+		}
+
 		const agent = await getAgentOrThrow(this.agentRepository, agentId, projectId);
-		this.assertAgentHasConfig(agent.schema !== null);
+		if (!agent.schema) throw new BadRequestError('Agent has no config yet');
 
 		const skillRefs = await this.agentSkillRefs.refsForDraft(agent, {});
 
@@ -659,19 +663,6 @@ export class AgentTaskService {
 		return task;
 	}
 
-	validateTasks(tasks: Array<{ cronExpression: string; timezone?: string | null }>): void {
-		for (const task of tasks) this.validateTask(task);
-	}
-
-	assertAgentHasConfig(hasConfig: boolean): void {
-		if (!hasConfig) throw new BadRequestError('Agent has no config yet');
-	}
-
-	private validateTask(task: { cronExpression?: string; timezone?: string | null }): void {
-		if (task.cronExpression !== undefined) this.assertValidCron(task.cronExpression);
-		this.assertValidTimezone(task.timezone);
-	}
-
 	private assertValidCron(cronExpression: string): void {
 		if (!isValidCronExpression(cronExpression)) {
 			throw new BadRequestError('Invalid cron expression');
@@ -704,9 +695,9 @@ export class AgentTaskService {
 	}
 
 	private applyTaskUpdates(task: AgentTask, dto: UpdateAgentTaskDto): boolean {
-		this.validateTask(dto);
 		let changed = false;
 		if (dto.cronExpression !== undefined) {
+			this.assertValidCron(dto.cronExpression);
 			if (dto.cronExpression !== task.cronExpression) {
 				task.cronExpression = dto.cronExpression;
 				changed = true;
@@ -715,6 +706,7 @@ export class AgentTaskService {
 		// `null` resets to the instance timezone; omitting the field keeps the
 		// current one, so an older client can still update name/objective/cron.
 		if (dto.timezone !== undefined) {
+			this.assertValidTimezone(dto.timezone);
 			const timezone = dto.timezone ?? null;
 			if (timezone !== task.timezone) {
 				task.timezone = timezone;

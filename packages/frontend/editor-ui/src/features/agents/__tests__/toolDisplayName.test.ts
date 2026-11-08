@@ -39,9 +39,11 @@ describe('formatToolNameForDisplay', () => {
 		expect(getToolNameTranslationKey('resolve_integration')).toBe(
 			'instanceAi.tools.resolve_integration',
 		);
-		expect(getToolNameTranslationKey('get_node_types')).toBe('instanceAi.tools.get_node_types');
+		expect(getToolNameTranslationKey('agent_builder_get_node_types')).toBe(
+			'instanceAi.tools.agent_builder_get_node_types',
+		);
 		expect(getToolNameTranslationKey('agent_builder_list_credentials')).toBe(
-			'instanceAi.tools.list_credentials',
+			'instanceAi.tools.agent_builder_list_credentials',
 		);
 		expect(getToolNameTranslationKey('list_workflows')).toBe('instanceAi.tools.list_workflows');
 		expect(getToolNameTranslationKey('list_skills')).toBe('instanceAi.tools.list_skills');
@@ -52,8 +54,8 @@ describe('formatToolNameForDisplay', () => {
 	});
 
 	it('resolves legacy builder tool names to the current translation key', () => {
-		expect(getToolNameTranslationKey('agent_builder_get_node_types')).toBe(
-			'instanceAi.tools.get_node_types',
+		expect(getToolNameTranslationKey('get_node_types')).toBe(
+			'instanceAi.tools.agent_builder_get_node_types',
 		);
 		expect(getToolNameTranslationKey('write_config')).toBe(
 			'instanceAi.tools.agent_builder_write_config',

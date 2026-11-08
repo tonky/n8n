@@ -33,8 +33,6 @@ const agentSkillReferenceSchema = z
 	})
 	.strict();
 
-export const agentSkillReferencePathSchema = agentSkillReferenceSchema.shape.path;
-
 const agentSkillReferencesSchema = z
 	.array(agentSkillReferenceSchema)
 	.max(AGENT_SKILL_REFERENCE_MAX_COUNT)

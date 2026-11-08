@@ -4,6 +4,7 @@ export {
 	workflowLoopSourceSchema,
 	remediationCategorySchema,
 	remediationMetadataSchema,
+	workflowBuildOwnerSchema,
 	workflowLoopStateSchema,
 	attemptActionSchema,
 	attemptResultSchema,
@@ -14,10 +15,14 @@ export {
 	workflowSetupRequirementSchema,
 	workflowVerificationObligationStatusSchema,
 	workflowVerificationObligationPolicySchema,
+	workflowVerificationObligationSourceSchema,
 	workflowVerificationObligationSchema,
 	workflowBuildOutcomeSchema,
 	verificationVerdictSchema,
 	verificationResultSchema,
+	resolveWorkflowBuildOwner,
+	plannedTaskIdFromWorkflowBuildOwner,
+	isPlannedWorkflowBuildOwner,
 } from './workflow-loop-state';
 
 export type {
@@ -26,6 +31,7 @@ export type {
 	WorkflowLoopSource,
 	RemediationCategory,
 	RemediationMetadata,
+	WorkflowBuildOwner,
 	WorkflowLoopState,
 	AttemptAction,
 	AttemptResult,
@@ -36,6 +42,7 @@ export type {
 	WorkflowSetupRequirement,
 	WorkflowVerificationObligationStatus,
 	WorkflowVerificationObligationPolicy,
+	WorkflowVerificationObligationSource,
 	WorkflowVerificationObligation,
 	WorkflowBuildOutcome,
 	VerificationVerdict,

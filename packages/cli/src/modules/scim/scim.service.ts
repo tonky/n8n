@@ -1,15 +1,15 @@
 import type {
 	ScimUser,
-	ScimUserCreateDto,
+	ScimUserCreate,
 	ScimListResponse,
 	ScimPatchRequestDto,
+	ScimRole,
 } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
 import { GlobalConfig } from '@n8n/config';
-import type { AuthProviderType, Person } from '@n8n/db';
-import { PersonRepository, UserRepository } from '@n8n/db';
+import type { AuthProviderType, Role } from '@n8n/db';
+import { RoleRepository, User, UserRepository } from '@n8n/db';
 import { Service } from '@n8n/di';
-import { GLOBAL_MEMBER_ROLE_SLUG, GLOBAL_OWNER_ROLE_SLUG } from '@n8n/permissions';
 import { randomString } from 'n8n-workflow';
 
 import { EventService, UrlService } from '@n8n/backend-services';
@@ -18,7 +18,6 @@ import { PasswordUtility } from '@/services/password.utility';
 import { ScimUserRepository } from './database/scim-user.repository';
 import {
 	ScimConflictError,
-	ScimForbiddenError,
 	ScimInvalidFilterError,
 	ScimInvalidValueError,
 	ScimResourceNotFoundError,
@@ -27,10 +26,10 @@ import {
 /** Provider types whose auth identity carries the IdP's externalId. */
 const SSO_PROVIDER_TYPES: AuthProviderType[] = ['saml', 'oidc'];
 
-type ParsedFilter = { attribute: 'userName' | 'externalId'; value: string };
+const DEFAULT_ROLE_SLUG = 'global:member';
+const OWNER_ROLE_SLUG = 'global:owner';
 
-/** The user fields the owner guard compares before and after a write. */
-type OwnerGuardSnapshot = Pick<Person, 'email' | 'disabled'>;
+type ParsedFilter = { attribute: 'userName' | 'externalId'; value: string };
 
 @Service()
 export class ScimService {
@@ -38,11 +37,11 @@ export class ScimService {
 		private readonly logger: Logger,
 		private readonly userRepository: UserRepository,
 		private readonly scimUserRepository: ScimUserRepository,
+		private readonly roleRepository: RoleRepository,
 		private readonly urlService: UrlService,
 		private readonly globalConfig: GlobalConfig,
 		private readonly passwordUtility: PasswordUtility,
 		private readonly eventService: EventService,
-		private readonly personRepository: PersonRepository,
 	) {}
 
 	/**
@@ -50,36 +49,37 @@ export class ScimService {
 	 * Expects the `authIdentities` relation to be loaded when the caller
 	 * wants `externalId` to be populated.
 	 */
-	private toScimUser(person: Person): ScimUser {
+	private toScimUser(user: User): ScimUser {
 		const baseUrl = this.urlService.getInstanceBaseUrl();
-		const externalId = person.authIdentities?.find((identity) =>
+		const externalId = user.authIdentities?.find((identity) =>
 			SSO_PROVIDER_TYPES.includes(identity.providerType),
 		)?.providerId;
 
 		const scimUser: ScimUser = {
 			schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
-			id: person.id,
-			userName: person.email,
+			id: user.id,
+			userName: user.email,
 			externalId,
 			name: {
-				givenName: person.firstName || undefined,
-				familyName: person.lastName || undefined,
+				givenName: user.firstName || undefined,
+				familyName: user.lastName || undefined,
 			},
-			displayName: [person.firstName, person.lastName].filter(Boolean).join(' ') || person.email,
-			emails: person.email
+			displayName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
+			emails: user.email
 				? [
 						{
-							value: person.email,
+							value: user.email,
 							primary: true,
 						},
 					]
 				: undefined,
-			active: !person.disabled,
+			roles: user.role ? [{ value: user.role.slug, primary: true }] : undefined,
+			active: !user.disabled,
 			meta: {
 				resourceType: 'User',
-				created: person.createdAt.toISOString(),
-				lastModified: person.updatedAt.toISOString(),
-				location: `${baseUrl}/scim/v2/Users/${person.id}`,
+				created: user.createdAt.toISOString(),
+				lastModified: user.updatedAt.toISOString(),
+				location: `${baseUrl}/scim/v2/Users/${user.id}`,
 			},
 		};
 
@@ -114,7 +114,7 @@ export class ScimService {
 		const take = Math.min(Math.max(count, 0), 1000);
 
 		const parsed = filter ? this.parseFilter(filter) : undefined;
-		const [people, totalResults] = await this.scimUserRepository.findPage(
+		const [users, totalResults] = await this.scimUserRepository.findPage(
 			{
 				skip,
 				take,
@@ -132,7 +132,7 @@ export class ScimService {
 			{},
 		);
 
-		const scimUsers = people.map((person) => this.toScimUser(person));
+		const scimUsers = users.map((user) => this.toScimUser(user));
 
 		return {
 			schemas: ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
@@ -147,11 +147,44 @@ export class ScimService {
 	 * Get a single user by ID
 	 */
 	async getUserById(id: string): Promise<ScimUser | null> {
-		const person = await this.personRepository.findByIdWithAuthIdentities(id);
+		const user = await this.userRepository.findOne({
+			where: { id },
+			relations: ['authIdentities', 'role'],
+		});
 
-		if (!person) return null;
+		if (!user) return null;
 
-		return this.toScimUser(person);
+		return this.toScimUser(user);
+	}
+
+	/**
+	 * Resolve the SCIM `roles` attribute to an n8n global role.
+	 * Returns null when no role was sent, in which case the caller keeps
+	 * the current/default role. n8n users have exactly one global role, so
+	 * multiple entries are rejected rather than silently picking one. The
+	 * owner role can never be assigned.
+	 */
+	private async resolveRequestedRole(roles: ScimRole[] | undefined): Promise<Role | null> {
+		if (!roles?.length) return null;
+
+		if (roles.length > 1) {
+			throw new ScimInvalidValueError(
+				'n8n users have a single global role; the roles attribute must contain exactly one entry',
+			);
+		}
+
+		const slug = roles[0].value;
+
+		if (slug === OWNER_ROLE_SLUG) {
+			throw new ScimInvalidValueError('The owner role cannot be assigned via SCIM');
+		}
+
+		const role = await this.roleRepository.findOne({ where: { slug, roleType: 'global' } });
+		if (!role) {
+			throw new ScimInvalidValueError(`Unknown role: ${slug}`);
+		}
+
+		return role;
 	}
 
 	/**
@@ -163,7 +196,7 @@ export class ScimService {
 	 * primary entry and fall back to `userName` for providers that do put an
 	 * address there.
 	 */
-	private resolveEmail(scimUser: ScimUserCreateDto): string {
+	private resolveEmail(scimUser: ScimUserCreate): string {
 		const emails = scimUser.emails ?? [];
 		const candidate =
 			emails.find((entry) => entry.primary)?.value ?? emails[0]?.value ?? scimUser.userName;
@@ -179,12 +212,11 @@ export class ScimService {
 
 	/**
 	 * Create a new user from SCIM data. The user gets the `global:member`
-	 * role and a personal project, mirroring the SSO signup flows. SCIM does
-	 * not set roles: SSO role mapping or an admin does. A random unusable
-	 * password is set so the user is not treated as "pending" — they are
-	 * expected to sign in via SSO.
+	 * role and a personal project, mirroring the SSO signup flows. A random
+	 * unusable password is set so the user is not treated as "pending" —
+	 * they are expected to sign in via SSO.
 	 */
-	async createUser(scimUser: ScimUserCreateDto): Promise<ScimUser> {
+	async createUser(scimUser: ScimUserCreate): Promise<ScimUser> {
 		const email = this.resolveEmail(scimUser);
 		const firstName = scimUser.name?.givenName ?? '';
 		const lastName = scimUser.name?.familyName ?? '';
@@ -197,13 +229,14 @@ export class ScimService {
 		}
 
 		const providerType = this.getSsoProviderType();
+		const requestedRole = await this.resolveRequestedRole(scimUser.roles);
 
 		const createdUser = await this.scimUserRepository.createProvisioned(
 			{
 				email,
 				firstName,
 				lastName,
-				role: { slug: GLOBAL_MEMBER_ROLE_SLUG },
+				role: { slug: requestedRole?.slug ?? DEFAULT_ROLE_SLUG },
 				// generates a password that is not used or known to the user
 				password: await this.passwordUtility.hash(randomString(18)),
 				disabled: !active,
@@ -233,10 +266,10 @@ export class ScimService {
 	 * explicit paths and with path-less object values (as sent by Entra ID).
 	 */
 	async patchUser(id: string, patchRequest: ScimPatchRequestDto): Promise<ScimUser> {
-		const person = await this.getUserEntity(id);
-		const before = this.snapshot(person);
+		const user = await this.getUserEntity(id);
 
 		const changes = new Set<string>();
+		const pending: { roles?: unknown } = {};
 
 		for (const operation of patchRequest.Operations) {
 			const { op, path, value } = operation;
@@ -244,23 +277,23 @@ export class ScimService {
 			if (op !== 'add' && op !== 'replace') continue;
 
 			if (path) {
-				this.applyPathOperation(person, path, value, changes);
+				this.applyPathOperation(user, path, value, changes, pending);
 			} else if (typeof value === 'object' && value !== null) {
 				for (const [attribute, attributeValue] of Object.entries(value)) {
-					this.applyPathOperation(person, attribute, attributeValue, changes);
+					this.applyPathOperation(user, attribute, attributeValue, changes, pending);
 				}
 			}
 		}
 
-		this.assertOwnerUnchanged(person, before);
+		await this.applyRoleChange(user, this.toScimRoles(pending.roles), changes);
 
 		if (changes.size > 0) {
-			await this.saveUser(person);
-			this.eventService.emit('user-updated', { user: person, fieldsChanged: [...changes] });
+			await this.saveUser(user);
+			this.eventService.emit('user-updated', { user, fieldsChanged: [...changes] });
 		}
 
-		const patched = await this.getUserById(person.id);
-		if (!patched) throw new ScimResourceNotFoundError(person.id);
+		const patched = await this.getUserById(user.id);
+		if (!patched) throw new ScimResourceNotFoundError(user.id);
 		return patched;
 	}
 
@@ -269,31 +302,52 @@ export class ScimService {
 	 * Unknown attributes are ignored, per RFC 7644 the server only applies
 	 * the attributes it understands.
 	 */
-	private applyPathOperation(person: Person, path: string, value: unknown, changes: Set<string>) {
+	private applyPathOperation(
+		user: User,
+		path: string,
+		value: unknown,
+		changes: Set<string>,
+		pending: { roles?: unknown },
+	) {
 		switch (path) {
 			case 'roles':
-				// SSO role mapping owns the instance role, so SCIM roles are ignored.
+				// Role resolution is async, so it is applied after the ops loop
+				pending.roles = value;
 				return;
 			case 'active':
-				if (typeof value === 'boolean') this.setField(person, 'disabled', !value, changes);
+				if (typeof value === 'boolean') {
+					user.disabled = !value;
+					changes.add('disabled');
+				}
 				return;
 			case 'userName':
-				if (typeof value === 'string') this.setField(person, 'email', value.toLowerCase(), changes);
+				if (typeof value === 'string') {
+					user.email = value.toLowerCase();
+					changes.add('email');
+				}
 				return;
 			case 'name.givenName':
-				if (typeof value === 'string') this.setField(person, 'firstName', value, changes);
+				if (typeof value === 'string') {
+					user.firstName = value;
+					changes.add('firstName');
+				}
 				return;
 			case 'name.familyName':
-				if (typeof value === 'string') this.setField(person, 'lastName', value, changes);
+				if (typeof value === 'string') {
+					user.lastName = value;
+					changes.add('lastName');
+				}
 				return;
 			case 'name':
 				if (typeof value === 'object' && value !== null) {
 					const name = value as { givenName?: unknown; familyName?: unknown };
 					if (typeof name.givenName === 'string') {
-						this.setField(person, 'firstName', name.givenName, changes);
+						user.firstName = name.givenName;
+						changes.add('firstName');
 					}
 					if (typeof name.familyName === 'string') {
-						this.setField(person, 'lastName', name.familyName, changes);
+						user.lastName = name.familyName;
+						changes.add('lastName');
 					}
 				}
 				return;
@@ -303,68 +357,56 @@ export class ScimService {
 						(email: { primary?: boolean; value?: unknown }) =>
 							email?.primary && typeof email.value === 'string',
 					) as { value: string } | undefined;
-					if (primary) this.setField(person, 'email', primary.value.toLowerCase(), changes);
+					if (primary) {
+						user.email = primary.value.toLowerCase();
+						changes.add('email');
+					}
 				}
 				return;
 			default:
 				// e.g. Okta sends `emails[type eq "work"].value`
 				if (/^emails\[.*\]\.value$/.test(path) && typeof value === 'string') {
-					this.setField(person, 'email', value.toLowerCase(), changes);
+					user.email = value.toLowerCase();
+					changes.add('email');
 				}
 		}
 	}
 
 	/**
-	 * Set a field and record the change only when the value is different, so
-	 * a PATCH that repeats the stored state writes nothing and emits no event.
-	 */
-	private setField<K extends 'email' | 'firstName' | 'lastName' | 'disabled'>(
-		person: Person,
-		field: K,
-		value: Person[K],
-		changes: Set<string>,
-	) {
-		if (person[field] === value) return;
-		person[field] = value;
-		changes.add(field);
-	}
-
-	/**
 	 * Update a user via SCIM PUT operation
 	 */
-	async updateUser(id: string, scimUser: ScimUserCreateDto): Promise<ScimUser> {
-		const person = await this.getUserEntity(id);
-		const before = this.snapshot(person);
+	async updateUser(id: string, scimUser: ScimUserCreate): Promise<ScimUser> {
+		const user = await this.getUserEntity(id);
 
 		const changes = new Set<string>();
 
 		const email = this.resolveEmail(scimUser);
-		if (email !== person.email) {
-			person.email = email;
+		if (email !== user.email) {
+			user.email = email;
 			changes.add('email');
 		}
-		if (scimUser.name?.givenName !== undefined && scimUser.name.givenName !== person.firstName) {
-			person.firstName = scimUser.name.givenName;
+		if (scimUser.name?.givenName !== undefined && scimUser.name.givenName !== user.firstName) {
+			user.firstName = scimUser.name.givenName;
 			changes.add('firstName');
 		}
-		if (scimUser.name?.familyName !== undefined && scimUser.name.familyName !== person.lastName) {
-			person.lastName = scimUser.name.familyName;
+		if (scimUser.name?.familyName !== undefined && scimUser.name.familyName !== user.lastName) {
+			user.lastName = scimUser.name.familyName;
 			changes.add('lastName');
 		}
-		if (scimUser.active !== undefined && scimUser.active === person.disabled) {
-			person.disabled = !scimUser.active;
+		if (scimUser.active !== undefined && scimUser.active === user.disabled) {
+			user.disabled = !scimUser.active;
 			changes.add('disabled');
 		}
 
-		this.assertOwnerUnchanged(person, before);
+		await this.applyRoleChange(user, scimUser.roles, changes);
 
 		if (changes.size > 0) {
-			await this.saveUser(person);
-			this.eventService.emit('user-updated', { user: person, fieldsChanged: [...changes] });
+			await this.saveUser(user);
+			this.eventService.emit('user-updated', { user, fieldsChanged: [...changes] });
 		}
 
-		const updated = await this.getUserById(person.id);
-		if (!updated) throw new ScimResourceNotFoundError(person.id);
+		const updated = await this.getUserById(user.id);
+		if (!updated) throw new ScimResourceNotFoundError(user.id);
 		return updated;
 	}
 
@@ -375,62 +417,60 @@ export class ScimService {
 	 * ownership can be transferred by an admin afterwards.
 	 */
 	async deleteUser(id: string): Promise<void> {
-		const person = await this.getUserEntity(id);
+		const user = await this.getUserEntity(id);
 
-		if (this.isOwner(person)) {
-			throw new ScimForbiddenError('The instance owner cannot be deleted via SCIM');
-		}
-
-		person.disabled = true;
-		await this.personRepository.save(person);
-		this.eventService.emit('user-updated', { user: person, fieldsChanged: ['disabled'] });
-		this.logger.info('SCIM: User deprovisioned', { userId: person.id });
+		user.disabled = true;
+		await this.userRepository.save(user);
+		this.eventService.emit('user-updated', { user, fieldsChanged: ['disabled'] });
+		this.logger.info('SCIM: User deprovisioned', { userId: user.id });
 	}
 
-	/** SCIM manages people only. A service account id is not found. */
-	private async getUserEntity(id: string): Promise<Person> {
-		const person = await this.personRepository.findByIdWithRole(id);
-		if (!person) throw new ScimResourceNotFoundError(id);
-		return person;
+	private async getUserEntity(id: string): Promise<User> {
+		const user = await this.userRepository.findOne({ where: { id }, relations: ['role'] });
+		if (!user) throw new ScimResourceNotFoundError(id);
+		return user;
 	}
 
-	private isOwner(person: Person): boolean {
-		return person.role?.slug === GLOBAL_OWNER_ROLE_SLUG;
-	}
-
-	private snapshot(person: Person): OwnerGuardSnapshot {
-		return { email: person.email, disabled: person.disabled };
+	/** Narrow an unknown PATCH value to the SCIM roles shape. */
+	private toScimRoles(value: unknown): ScimRole[] | undefined {
+		if (!Array.isArray(value)) return undefined;
+		return value.filter(
+			(role): role is ScimRole =>
+				typeof role === 'object' && role !== null && typeof role.value === 'string',
+		);
 	}
 
 	/**
-	 * The owner is the account of last resort for the instance. An IdP must
-	 * not take it over through its email or lock it out, so reject the whole
-	 * request. Other attributes, such as the name, can still change.
+	 * Apply an IdP-requested role change to the user entity. No-op when no
+	 * role was sent or the role is unchanged.
+	 * The instance owner's role can never be changed through SCIM.
 	 */
-	private assertOwnerUnchanged(person: Person, before: OwnerGuardSnapshot): void {
-		if (!this.isOwner(person)) return;
+	private async applyRoleChange(
+		user: User,
+		roles: ScimRole[] | undefined,
+		changes: Set<string>,
+	): Promise<void> {
+		const requestedRole = await this.resolveRequestedRole(roles);
+		if (!requestedRole || requestedRole.slug === user.role?.slug) return;
 
-		// A difference in case only is the same address, so allow it.
-		if (person.email.toLowerCase() !== before.email.toLowerCase()) {
-			throw new ScimForbiddenError('The email of the instance owner cannot be changed via SCIM');
+		if (user.role?.slug === OWNER_ROLE_SLUG) {
+			throw new ScimInvalidValueError('The role of the instance owner cannot be changed via SCIM');
 		}
 
-		if (person.disabled && !before.disabled) {
-			throw new ScimForbiddenError('The instance owner cannot be deactivated via SCIM');
-		}
+		user.role = requestedRole;
+		changes.add('role');
 	}
 
 	/**
 	 * Persist user changes, translating unique-constraint violations on
 	 * email into a SCIM uniqueness conflict.
 	 */
-	private async saveUser(person: Person): Promise<void> {
-		// The email is unique across accounts of both kinds.
-		const conflictingUser = await this.userRepository.findOne({ where: { email: person.email } });
-		if (conflictingUser && conflictingUser.id !== person.id) {
+	private async saveUser(user: User): Promise<void> {
+		const conflictingUser = await this.userRepository.findOne({ where: { email: user.email } });
+		if (conflictingUser && conflictingUser.id !== user.id) {
 			throw new ScimConflictError('User with this userName already exists');
 		}
-		await this.personRepository.save(person);
+		await this.userRepository.save(user);
 	}
 
 	private getSsoProviderType(): Extract<AuthProviderType, 'saml' | 'oidc'> | null {

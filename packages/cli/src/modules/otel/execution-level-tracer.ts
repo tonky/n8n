@@ -263,7 +263,6 @@ export class ExecutionLevelTracer {
 				[ATTR.NODE_ITEMS_INPUT]: params.inputItemCount,
 				[ATTR.NODE_ITEMS_OUTPUT]: params.outputItemCount,
 				...this.buildCustomAttributes('node', params.customAttributes),
-				...params.genAiAttributes,
 			});
 
 			if (params.error) {
@@ -318,6 +317,7 @@ export class ExecutionLevelTracer {
 				executionId,
 				error: error instanceof Error ? error.message : String(error),
 			});
+			throw error;
 		}
 	}
 

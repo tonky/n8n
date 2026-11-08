@@ -21,8 +21,8 @@ export class PromotionReviewsController {
 	) {}
 
 	@Post('/:reviewId/approve')
-	@GlobalScope('promotions:approveReviews')
-	@Licensed(LICENSE_FEATURES.PROMOTIONS)
+	@GlobalScope('gitConnection:approveReviews')
+	@Licensed(LICENSE_FEATURES.GIT_CONNECTIONS)
 	async approve(
 		req: AuthenticatedRequest,
 		_res: Response,
@@ -33,8 +33,8 @@ export class PromotionReviewsController {
 	}
 
 	@Get('/:reviewId/changes')
-	@GlobalScope('promotions:readReviews')
-	@Licensed(LICENSE_FEATURES.PROMOTIONS)
+	@GlobalScope('gitConnection:readReviews')
+	@Licensed(LICENSE_FEATURES.GIT_CONNECTIONS)
 	async getChanges(
 		_req: AuthenticatedRequest,
 		_res: Response,
@@ -44,8 +44,8 @@ export class PromotionReviewsController {
 	}
 
 	@Post('/:reviewId/changes/details')
-	@GlobalScope('promotions:readReviews')
-	@Licensed(LICENSE_FEATURES.PROMOTIONS)
+	@GlobalScope('gitConnection:readReviews')
+	@Licensed(LICENSE_FEATURES.GIT_CONNECTIONS)
 	async getDetails(
 		req: AuthenticatedRequest,
 		_res: Response,

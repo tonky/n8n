@@ -19,8 +19,8 @@ describe('ImportPackageSelectionRequestDto', () => {
 					selectedProjectId: 'P1',
 					selectedWorkflowIds: ['WFA', 'WFB'],
 					deletedWorkflowIds: undefined,
-					conflictPolicy: 'new-version',
-					idPolicy: 'source',
+					workflowConflictPolicy: 'new-version',
+					workflowIdPolicy: 'source',
 					overwriteDeletionPolicy: 'archive',
 				}),
 			);
@@ -39,8 +39,8 @@ describe('ImportPackageSelectionRequestDto', () => {
 					selectedProjectId: 'P1',
 					selectedWorkflowIds: ['WFA', 'WFB'],
 					deletedWorkflowIds: ['WFC'],
-					conflictPolicy: 'new-version',
-					idPolicy: 'source',
+					workflowConflictPolicy: 'new-version',
+					workflowIdPolicy: 'source',
 					overwriteDeletionPolicy: 'archive',
 				}),
 			);
@@ -125,14 +125,14 @@ describe('ImportPackageSelectionRequestDto', () => {
 		it('defaults blank policy fields', () => {
 			const result = ImportPackageSelectionRequestDto.safeParse({
 				...base,
-				conflictPolicy: '',
-				idPolicy: '   ',
+				workflowConflictPolicy: '',
+				workflowIdPolicy: '   ',
 				overwriteDeletionPolicy: '',
 			});
 			expect(result.success).toBe(true);
 			if (result.success) {
-				expect(result.data.conflictPolicy).toBe('new-version');
-				expect(result.data.idPolicy).toBe('source');
+				expect(result.data.workflowConflictPolicy).toBe('new-version');
+				expect(result.data.workflowIdPolicy).toBe('source');
 				expect(result.data.overwriteDeletionPolicy).toBe('archive');
 			}
 		});
@@ -140,27 +140,21 @@ describe('ImportPackageSelectionRequestDto', () => {
 		it('accepts explicit values', () => {
 			const result = ImportPackageSelectionRequestDto.safeParse({
 				...base,
-				conflictPolicy: 'skip',
-				idPolicy: 'source',
+				workflowConflictPolicy: 'skip',
+				workflowIdPolicy: 'new',
 				overwriteDeletionPolicy: 'hard-delete',
 			});
 			expect(result.success).toBe(true);
 			if (result.success) {
-				expect(result.data.conflictPolicy).toBe('skip');
-				expect(result.data.idPolicy).toBe('source');
+				expect(result.data.workflowConflictPolicy).toBe('skip');
+				expect(result.data.workflowIdPolicy).toBe('new');
 				expect(result.data.overwriteDeletionPolicy).toBe('hard-delete');
 			}
 		});
 
 		it.each([
-			{ field: 'conflictPolicy', value: 'overwrite' },
-			{ field: 'workflowConflictPolicy', value: 'new-version' },
-			{ field: 'workflowIdPolicy', value: 'source' },
-			{ field: 'agentIdPolicy', value: 'source' },
-			{ field: 'workflowPublishingPolicy', value: 'publish-all' },
-			{ field: 'agentPublishingPolicy', value: 'publish-all' },
-			{ field: 'publishingPolicy', value: 'publish-all' },
-			{ field: 'idPolicy', value: 'reuse' },
+			{ field: 'workflowConflictPolicy', value: 'overwrite' },
+			{ field: 'workflowIdPolicy', value: 'reuse' },
 			{ field: 'overwriteDeletionPolicy', value: 'purge' },
 		])('rejects an unsupported $field value', ({ field, value }) => {
 			expect(ImportPackageSelectionRequestDto.safeParse({ ...base, [field]: value }).success).toBe(
@@ -188,8 +182,8 @@ describe('ImportPackageSelectionRequestDto', () => {
 			'selectedProjectId',
 			'selectedWorkflowIds',
 			'deletedWorkflowIds',
-			'conflictPolicy',
-			'idPolicy',
+			'workflowConflictPolicy',
+			'workflowIdPolicy',
 			'overwriteDeletionPolicy',
 		]);
 	});

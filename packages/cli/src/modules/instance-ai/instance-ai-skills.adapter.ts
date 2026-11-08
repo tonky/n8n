@@ -18,9 +18,8 @@ const STALE_SKILL_TOOL_MESSAGE =
 export class InstanceAiSkillsAdapterService {
 	constructor(private readonly skillsApi: SkillsApiService) {}
 
-	createService(user: User, assistantSkillsEnabled: boolean): InstanceAiSkillService {
+	createService(user: User): InstanceAiSkillService {
 		return {
-			assistantSkillsEnabled,
 			list: async ({ query, scope, projectId, attachableToAgentId, limit, skip }) =>
 				await this.skillsApi.list(
 					user,

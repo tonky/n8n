@@ -1,11 +1,13 @@
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { onClickOutside, type VueInstance } from '@vueuse/core';
+import { ref, type Ref } from 'vue';
 // Experiment cleanup (123_surface_mcp_to_claude_trial_users)
 import { useClaudeCreateMenu } from '@/experiments/surfaceMcpToClaudeTrialUsers/useClaudeCreateMenu';
+import claudeStyles from '@/experiments/surfaceMcpToClaudeTrialUsers/createMenu.module.scss';
 import ClaudeLogo from '@/experiments/surfaceMcpToClaudeTrialUsers/ClaudeLogo.vue';
 // EOF Experiment cleanup
 import { I18nT } from 'vue-i18n';
-import { RouterLink, useRouter, type RouteLocationRaw } from 'vue-router';
+import { RouterLink } from 'vue-router';
 import {
 	N8nButton,
 	N8nLogo,
@@ -13,8 +15,7 @@ import {
 	N8nLink,
 	N8nIcon,
 	N8nIconButton,
-	N8nDropdownMenu,
-	type DropdownMenuItemProps,
+	N8nNavigationDropdown,
 } from '@n8n/design-system';
 import { useI18n } from '@n8n/i18n';
 import { VIEWS } from '@/app/constants';
@@ -37,7 +38,11 @@ const i18n = useI18n();
 const sourceControlStore = useSourceControlStore();
 const settingsStore = useSettingsStore();
 
-const router = useRouter();
+const createBtn = ref<InstanceType<typeof N8nNavigationDropdown>>();
+
+onClickOutside(createBtn as Ref<VueInstance>, () => {
+	createBtn.value?.close();
+});
 
 function toggleCollapse() {
 	emit('collapse');
@@ -50,63 +55,19 @@ function openCommandBar(event: MouseEvent) {
 const {
 	menu,
 	handleSelect: handleMenuSelect,
+	createProjectAppendSlotName,
+	createWorkflowsAppendSlotName,
+	createCredentialsAppendSlotName,
 	projectsLimitReachedMessage,
 	upgradeLabel,
 	hasPermissionToCreateProjects,
 } = useGlobalEntityCreation();
 // Experiment cleanup (123_surface_mcp_to_claude_trial_users)
-const { claudeMenu, selectItem, trackOpen } = useClaudeCreateMenu(menu, handleMenuSelect);
+const { claudeMenu, claudeAppendSlotName, selectItem, trackOpen } = useClaudeCreateMenu(
+	menu,
+	handleMenuSelect,
+);
 // EOF Experiment cleanup
-type CreationMenuItem = DropdownMenuItemProps<string, { route?: RouteLocationRaw }>;
-type SourceMenuItem = (typeof menu.value)[number];
-
-function toDropdownItem(item: SourceMenuItem): CreationMenuItem {
-	return {
-		id: item.id,
-		label: item.title,
-		disabled: item.disabled,
-		icon: typeof item.icon === 'string' ? { type: 'icon', value: item.icon } : item.icon,
-		data: { route: item.route },
-		children: item.submenu?.map(toDropdownItem),
-	};
-}
-
-const creationMenu = computed(() => {
-	const items: CreationMenuItem[] = [];
-	let divided = false;
-	for (const item of claudeMenu.value) {
-		if ('isDivider' in item && item.isDivider) {
-			divided = true;
-			continue;
-		}
-		items.push({ ...toDropdownItem(item), divided });
-		divided = false;
-	}
-
-	const workflowIndex = items.findIndex((item) => item.id === 'workflow');
-	const agentIndex = items.findIndex((item) => item.id === 'agent');
-	if (workflowIndex !== -1 && agentIndex !== -1 && agentIndex !== workflowIndex + 1) {
-		const [agentItem] = items.splice(agentIndex, 1);
-		items.splice(items.findIndex((item) => item.id === 'workflow') + 1, 0, agentItem);
-	}
-	return items;
-});
-
-function handleSelect(id: string) {
-	const item = creationMenu.value
-		.flatMap((item) => [item, ...(item.children ?? [])])
-		.find((item) => item.id === id);
-	if (item?.data?.route) void router.push(item.data.route);
-	selectItem(id);
-}
-
-function handleLinkClick(event: MouseEvent) {
-	if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
-		event.stopPropagation();
-	} else {
-		event.preventDefault();
-	}
-}
 </script>
 
 <template>
@@ -143,101 +104,79 @@ function handleLinkClick(event: MouseEvent) {
 				</N8nTooltip>
 			</N8nLogo>
 		</RouterLink>
-		<!-- Experiment cleanup (123_surface_mcp_to_claude_trial_users): map menu instead of claudeMenu. Remove the Claude leading icon and trackOpen. -->
-		<N8nDropdownMenu
+		<!-- Experiment cleanup (123_surface_mcp_to_claude_trial_users): keep the dropdown; restore :menu="menu" and @select="handleMenuSelect". Remove submenu-class and the button @click="trackOpen". -->
+		<N8nNavigationDropdown
 			v-if="!hideCreate"
+			ref="createBtn"
 			data-test-id="universal-add"
-			:items="creationMenu"
-			content-test-id="creation-menu"
-			placement="bottom-start"
-			:modal="false"
-			@select="handleSelect"
+			:menu="claudeMenu"
+			:submenu-class="claudeStyles.claudeMenu"
+			:teleport="true"
+			@select="selectItem"
 		>
-			<template #trigger>
-				<N8nIconButton
-					class="n8n-button--highlight"
-					variant="ghost"
-					size="small"
-					icon="plus"
-					icon-size="large"
-					aria-label="Add new item"
-					@click="trackOpen"
-				/>
-			</template>
-			<template #item-leading="{ item, ui }">
-				<!-- Experiment cleanup (123_surface_mcp_to_claude_trial_users) -->
-				<ClaudeLogo v-if="item.id === 'claude-mcp'" :class="ui.class" />
-				<!-- EOF Experiment cleanup -->
-				<N8nIcon
-					v-else-if="item.icon?.type === 'icon'"
-					:icon="item.icon.value"
-					:class="ui.class"
-					size="large"
-				/>
-				<span v-else-if="item.icon?.type === 'emoji'" :class="ui.class">{{ item.icon.value }}</span>
-			</template>
-			<template #item-label="{ item, ui }">
-				<a
-					v-if="item.data?.route && !item.disabled"
-					:href="router.resolve(item.data.route).href"
-					:class="[ui.class, $style.creationLink]"
-					tabindex="-1"
-					@click="handleLinkClick"
-					>{{ item.label }}</a
+			<N8nIconButton
+				class="n8n-button--highlight"
+				variant="ghost"
+				size="small"
+				icon="plus"
+				icon-size="large"
+				aria-label="Add new item"
+				@click="trackOpen"
+			/>
+			<!-- Experiment cleanup (123_surface_mcp_to_claude_trial_users) -->
+			<template #[claudeAppendSlotName]
+				><ClaudeLogo :class="claudeStyles.claudeMenuIcon"
+			/></template>
+			<!-- EOF Experiment cleanup -->
+			<template #[createWorkflowsAppendSlotName]>
+				<N8nTooltip
+					v-if="sourceControlStore.preferences.branchReadOnly"
+					placement="right"
+					:content="i18n.baseText('readOnlyEnv.cantAdd.workflow')"
 				>
-				<span v-else :class="ui.class">{{ item.label }}</span>
+					<N8nIcon :class="$style.iconButton" icon="lock" size="xsmall" />
+				</N8nTooltip>
 			</template>
-			<template #item-trailing="{ item }">
-				<template v-if="item.id === 'workflow'">
-					<N8nTooltip
-						v-if="sourceControlStore.preferences.branchReadOnly"
-						placement="right"
-						:content="i18n.baseText('readOnlyEnv.cantAdd.workflow')"
-					>
-						<N8nIcon :class="$style.iconButton" icon="lock" size="xsmall" />
-					</N8nTooltip>
-				</template>
-				<template v-else-if="item.id === 'credential'">
-					<N8nTooltip
-						v-if="sourceControlStore.preferences.branchReadOnly"
-						placement="right"
-						:content="i18n.baseText('readOnlyEnv.cantAdd.credential')"
-					>
-						<N8nIcon :class="$style.iconButton" icon="lock" size="xsmall" />
-					</N8nTooltip>
-				</template>
-				<template v-else-if="item.id === 'create-project'">
-					<N8nTooltip
-						v-if="sourceControlStore.preferences.branchReadOnly"
-						placement="right"
-						:content="i18n.baseText('readOnlyEnv.cantAdd.project')"
-					>
-						<N8nIcon :class="$style.iconButton" icon="lock" size="xsmall" />
-					</N8nTooltip>
-					<N8nTooltip
-						v-else-if="item.disabled"
-						placement="right"
-						:content="projectsLimitReachedMessage"
-					>
-						<N8nIcon
-							v-if="!hasPermissionToCreateProjects"
-							:class="$style.iconButton"
-							icon="lock"
-							size="xsmall"
-						/>
-						<N8nButton
-							variant="outline"
-							v-else
-							:size="'mini'"
-							:class="$style.upgradeButton"
-							@click.stop="handleMenuSelect(item.id)"
-						>
-							{{ upgradeLabel }}
-						</N8nButton>
-					</N8nTooltip>
-				</template>
+			<template #[createCredentialsAppendSlotName]>
+				<N8nTooltip
+					v-if="sourceControlStore.preferences.branchReadOnly"
+					placement="right"
+					:content="i18n.baseText('readOnlyEnv.cantAdd.credential')"
+				>
+					<N8nIcon :class="$style.iconButton" icon="lock" size="xsmall" />
+				</N8nTooltip>
 			</template>
-		</N8nDropdownMenu>
+			<template #[createProjectAppendSlotName]="{ item }">
+				<N8nTooltip
+					v-if="sourceControlStore.preferences.branchReadOnly"
+					placement="right"
+					:content="i18n.baseText('readOnlyEnv.cantAdd.project')"
+				>
+					<N8nIcon :class="$style.iconButton" icon="lock" size="xsmall" />
+				</N8nTooltip>
+				<N8nTooltip
+					v-else-if="item.disabled"
+					placement="right"
+					:content="projectsLimitReachedMessage"
+				>
+					<N8nIcon
+						v-if="!hasPermissionToCreateProjects"
+						:class="$style.iconButton"
+						icon="lock"
+						size="xsmall"
+					/>
+					<N8nButton
+						variant="outline"
+						v-else
+						:size="'mini'"
+						:class="$style.upgradeButton"
+						@click="handleMenuSelect(item.id)"
+					>
+						{{ upgradeLabel }}
+					</N8nButton>
+				</N8nTooltip>
+			</template>
+		</N8nNavigationDropdown>
 		<KeyboardShortcutTooltip
 			v-if="!settingsStore.isCanvasOnly"
 			:placement="isCollapsed ? 'right' : 'bottom'"
@@ -324,10 +263,6 @@ function handleLinkClick(event: MouseEvent) {
 .iconButton {
 	margin-left: auto;
 	margin-right: 5px;
-}
-
-.creationLink {
-	color: inherit;
 }
 
 .upgradeButton {

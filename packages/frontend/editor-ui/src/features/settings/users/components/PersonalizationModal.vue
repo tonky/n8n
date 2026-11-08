@@ -84,12 +84,14 @@ import {
 } from '../users.constants';
 import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '@/features/settings/usage/usage.constants';
 import { useToast } from '@n8n/composables/useToast';
+import Modal from '@/app/components/Modal.vue';
 import type { IFormInputs } from '@/Interface';
 import type { IPersonalizationLatestVersion } from '@n8n/rest-api-client/api/users';
 import { useRootStore } from '@n8n/stores/useRootStore';
 import { useUsersStore } from '@n8n/stores/users.store';
 import { useSettingsStore } from '@n8n/stores/settings.store';
 import { createFormEventBus } from '@n8n/design-system';
+import { createEventBus } from '@n8n/utils/event-bus';
 import { usePostHog } from '@/app/stores/posthog.store';
 import { useExternalHooks } from '@/app/composables/useExternalHooks';
 import { useI18n } from '@n8n/i18n';
@@ -97,19 +99,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { useUIStore } from '@/app/stores/ui.store';
 import { getResourcePermissions } from '@n8n/permissions';
 
-import {
-	N8nButton,
-	N8nDialog,
-	N8nDialogBody,
-	N8nDialogDescription,
-	N8nDialogFooter,
-	N8nFormInputs,
-} from '@n8n/design-system';
-
-defineOptions({ inheritAttrs: false });
+import { N8nButton, N8nFormInputs } from '@n8n/design-system';
 const SURVEY_VERSION = 'v4';
 
 const externalHooks = useExternalHooks();
+const modalBus = createEventBus();
 const formBus = createFormEventBus();
 const { showError } = useToast();
 const i18n = useI18n();
@@ -120,7 +114,6 @@ const posthogStore = usePostHog();
 const route = useRoute();
 const router = useRouter();
 const uiStore = useUIStore();
-const modalOpen = computed(() => uiStore.modalsById[PERSONALIZATION_MODAL_KEY]?.open === true);
 
 const formValues = ref<Record<string, string>>({});
 const isSaving = ref(false);
@@ -581,8 +574,7 @@ const closeCallback = () => {
 };
 
 const closeDialog = () => {
-	if (uiStore.modalsById[PERSONALIZATION_MODAL_KEY]?.open !== true) return;
-	uiStore.closeModal(PERSONALIZATION_MODAL_KEY);
+	modalBus.emit('close');
 
 	// Community Plus enrollment is only offered on self-hosted instances.
 	if (settingsStore.deploymentType === 'default' && userPermissions.value.community.register) {
@@ -597,10 +589,6 @@ const closeDialog = () => {
 		closeCallback();
 	}
 };
-
-function onDialogOpenUpdate(open: boolean) {
-	if (!open) closeDialog();
-}
 
 const onSubmit = async (values: object) => {
 	isSaving.value = true;
@@ -628,40 +616,43 @@ const onSubmit = async (values: object) => {
 </script>
 
 <template>
-	<N8nDialog
-		:open="modalOpen"
-		size="medium"
-		:header="i18n.baseText('personalizationModal.customizeN8n')"
-		:show-close-button="false"
-		:close-on-overlay-click="false"
-		:close-on-escape="false"
-		@update:open="onDialogOpenUpdate"
+	<Modal
+		:name="PERSONALIZATION_MODAL_KEY"
+		:title="i18n.baseText('personalizationModal.customizeN8n')"
+		:subtitle="i18n.baseText('personalizationModal.theseQuestionsHelpUs')"
+		:center-title="true"
+		:show-close="false"
+		:event-bus="modalBus"
+		:close-on-click-modal="false"
+		:close-on-press-escape="false"
+		width="460px"
+		data-test-id="personalization-form"
+		@enter="onSave"
 	>
-		<N8nDialogBody :data-test-id="`${PERSONALIZATION_MODAL_KEY}-modal`">
-			<N8nDialogDescription>
-				{{ i18n.baseText('personalizationModal.theseQuestionsHelpUs') }}
-			</N8nDialogDescription>
-			<div :class="$style.container" data-test-id="personalization-form">
+		<template #content>
+			<div :class="$style.container">
 				<N8nFormInputs
 					v-model="formValues"
 					:inputs="survey"
 					:column-view="true"
 					:event-bus="formBus"
-					:teleported="false"
+					:teleported="true"
 					tag-size="small"
 					@submit="onSubmit"
 				/>
 			</div>
-		</N8nDialogBody>
-		<N8nDialogFooter>
-			<N8nButton
-				:loading="isSaving"
-				:label="i18n.baseText('personalizationModal.getStarted')"
-				float="right"
-				@click="onSave"
-			/>
-		</N8nDialogFooter>
-	</N8nDialog>
+		</template>
+		<template #footer>
+			<div>
+				<N8nButton
+					:loading="isSaving"
+					:label="i18n.baseText('personalizationModal.getStarted')"
+					float="right"
+					@click="onSave"
+				/>
+			</div>
+		</template>
+	</Modal>
 </template>
 
 <style lang="scss" module>

@@ -1122,30 +1122,28 @@ export class AgentRuntime {
 			if (guardrails && guardCtx) await guardrails.after(guardCtx, turn.usage);
 			return turn;
 		};
-		const retryModel = async () => {
-			this.assertNotAborted(ctx.abortScope);
-			return await callModel();
-		};
 
 		let turn = await callModel();
 		// Retry empty stop turns. Charge each attempt before checking for cancellation.
 		for (let retry = 0; turn && retry < MAX_EMPTY_TURN_RETRIES && isEmptyModelTurn(turn); retry++) {
-			[, turn] = await Promise.all([this.recordTurnUsage(ctx, sink, state, turn), retryModel()]);
+			this.recordTurnUsage(ctx, sink, state, turn);
+			this.assertNotAborted(ctx.abortScope);
+			turn = await callModel();
 		}
 		if (!turn) return undefined;
-		await this.recordTurnUsage(ctx, sink, state, turn);
+		this.recordTurnUsage(ctx, sink, state, turn);
 		return turn;
 	}
 
-	private async recordTurnUsage<T>(
+	private recordTurnUsage<T>(
 		ctx: PreparedLoopContext,
 		sink: RunOutputSink<T>,
 		state: LoopState,
 		turn: ModelTurnResult,
-	): Promise<void> {
+	): void {
 		state.totalUsage = mergeUsage(state.totalUsage, withPromptSizeBreakdown(turn.usage));
 		incrementTokenCountFromUsage(ctx.options?.executionCounter, turn.usage);
-		await sink.reportUsage(state.totalUsage);
+		sink.reportUsage(state.totalUsage);
 	}
 
 	private async finishToolBatch<T>(

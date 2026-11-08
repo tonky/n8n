@@ -84,8 +84,7 @@ export class ScimDiscoveryController {
 
 	/**
 	 * GET /scim/v2/Schemas
-	 * Return supported schemas. User has no `roles`: SSO role mapping owns
-	 * the instance role, and SCIM ignores it.
+	 * Return supported schemas
 	 */
 	@Get('/Schemas', scimRoute)
 	getSchemas(_req: AuthenticatedRequest, res: Response) {
@@ -94,7 +93,6 @@ export class ScimDiscoveryController {
 			totalResults: 1,
 			Resources: [
 				{
-					schemas: ['urn:ietf:params:scim:schemas:core:2.0:Schema'],
 					id: 'urn:ietf:params:scim:schemas:core:2.0:User',
 					name: 'User',
 					description: 'User Account',
@@ -147,6 +145,14 @@ export class ScimDiscoveryController {
 							name: 'active',
 							type: 'boolean',
 							multiValued: false,
+							required: false,
+							mutability: 'readWrite',
+							returned: 'default',
+						},
+						{
+							name: 'roles',
+							type: 'complex',
+							multiValued: true,
 							required: false,
 							mutability: 'readWrite',
 							returned: 'default',

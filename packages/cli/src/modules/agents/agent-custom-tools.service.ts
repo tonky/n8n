@@ -32,14 +32,6 @@ export class AgentCustomToolsService {
 		private readonly agentSkillRefs: AgentSkillRefsService,
 	) {}
 
-	validateDescriptor(descriptor: ToolDescriptor): void {
-		if (!CUSTOM_TOOL_ID_REGEX.test(descriptor.name)) {
-			throw new UserError(
-				`Custom tool name "${descriptor.name}" contains invalid characters. Only letters, numbers, and underscores are allowed.`,
-			);
-		}
-	}
-
 	/**
 	 * Validate and persist a custom tool for an agent.
 	 * The tool code is described in an isolate, and the descriptor + code
@@ -60,7 +52,11 @@ export class AgentCustomToolsService {
 			'Agent not found',
 		);
 
-		this.validateDescriptor(descriptor);
+		if (!CUSTOM_TOOL_ID_REGEX.test(descriptor.name)) {
+			throw new UserError(
+				`Custom tool name "${descriptor.name}" contains invalid characters. Only letters, numbers, and underscores are allowed.`,
+			);
+		}
 
 		const toolId = descriptor.name;
 		const nextEntry = { code, descriptor };

@@ -46,21 +46,18 @@ describe('SystemAgentHostEventChannel', () => {
 		});
 	});
 
-	it('sends the payload that it records', () => {
+	it('sends the sanitized payload that it records', () => {
 		const send = vi.fn();
-		const recorder = new ExecutionRecorder();
 		const channel = new SystemAgentHostEventChannel(send);
-		channel.attach(recorder);
+		channel.attach(new ExecutionRecorder());
 
-		channel.emit('test.notice', { credentialType: 'slackApi', message: 'ok' });
+		channel.emit('test.notice', { password: 'plain-secret', message: 'ok' });
 
-		const [recorded] = recorder.getMessageRecord().timeline;
 		expect(send).toHaveBeenCalledWith({
 			type: 'host-event',
 			name: 'test.notice',
-			payload: { credentialType: 'slackApi', message: 'ok' },
+			payload: { password: '[REDACTED]', message: 'ok' },
 		});
-		expect(recorded).toMatchObject({ payload: { credentialType: 'slackApi', message: 'ok' } });
 	});
 
 	it('drops events after close and reports them', () => {

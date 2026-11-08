@@ -1,5 +1,4 @@
 import { createTestingPinia } from '@pinia/testing';
-import type { FrontendSettings } from '@n8n/api-types';
 import {
 	CONTEXT_PREFERENCES_CONTROL_VARIANT,
 	CONTEXT_PREFERENCES_ENABLED_VARIANT,
@@ -30,12 +29,10 @@ const createTestRouter = () =>
 	});
 
 /** The flag is multivariate, so only the enabled arm opens the pages. */
-const setup = (value?: string | boolean, agentsActive = false) => {
+const setup = (value?: string | boolean, skillsHubEnabled = false) => {
 	createTestingPinia({ stubActions: false });
 	if (value !== undefined) usePostHog().overrides[CONTEXT_PREFERENCES_FLAG] = { value };
-	useSettingsStore().settings = {
-		activeModules: agentsActive ? ['skills', 'agents'] : [],
-	} as unknown as FrontendSettings;
+	useSettingsStore().moduleSettings.agents = { skillsHubEnabled } as never;
 };
 
 describe('ContextModule routes', () => {
@@ -67,7 +64,7 @@ describe('ContextModule routes', () => {
 	});
 
 	describe('skills', () => {
-		it('opens the skills page and the overview while the agents module is active', async () => {
+		it('opens the skills page and the overview when the backend reports the skills hub on', async () => {
 			setup(undefined, true);
 			const router = createTestRouter();
 
@@ -78,7 +75,7 @@ describe('ContextModule routes', () => {
 			expect(router.currentRoute.value.name).toBe(VIEWS.SETTINGS_CONTEXT);
 		});
 
-		it('redirects to the homepage while the agents module is inactive', async () => {
+		it('redirects to the homepage while the skills hub is off', async () => {
 			setup(CONTEXT_PREFERENCES_ENABLED_VARIANT, false);
 			const router = createTestRouter();
 
@@ -87,7 +84,7 @@ describe('ContextModule routes', () => {
 			expect(router.currentRoute.value.name).toBe(VIEWS.HOMEPAGE);
 		});
 
-		it('keeps the preferences page closed when only the agents module is active', async () => {
+		it('keeps the preferences page closed when only the skills hub is on', async () => {
 			setup(undefined, true);
 			const router = createTestRouter();
 

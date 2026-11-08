@@ -2,7 +2,7 @@ operationId: removeProjectFromPromotionEnvironment
 tags:
   - Promotions
 summary: Unlink a project from a promotion environment
-x-required-scope: promotions:manageProjects
+x-required-scope: gitConnection:manageProjects
 parameters:
   - schema:
       type: string

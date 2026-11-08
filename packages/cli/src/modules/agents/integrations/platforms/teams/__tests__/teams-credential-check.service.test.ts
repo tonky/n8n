@@ -36,7 +36,7 @@ describe('TeamsCredentialCheckService', () => {
 		credentialsService.getCredentialsAUserCanUseInAWorkflow.mockResolvedValue([
 			mock({ id: CREDENTIAL_ID }),
 		]);
-		credentialsService.decryptForUse.mockResolvedValue(data);
+		credentialsService.decrypt.mockResolvedValue(data);
 	};
 
 	beforeEach(() => {
@@ -196,7 +196,7 @@ describe('TeamsCredentialCheckService', () => {
 			reason: 'incomplete',
 		});
 		expect(request).not.toHaveBeenCalled();
-		expect(credentialsService.decryptForUse).not.toHaveBeenCalled();
+		expect(credentialsService.decrypt).not.toHaveBeenCalled();
 	});
 
 	it('never returns the client secret', async () => {

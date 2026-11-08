@@ -91,13 +91,7 @@ const chatPageClearBudgetStopsMock = vi.fn();
 const AgentPreviewChatPageStub = {
 	name: 'AgentPreviewChatPage',
 	props: ['beforeSend', 'initialPrompt', 'visible'],
-	emits: [
-		'continue-loaded',
-		'open-build',
-		'send-to-assistant',
-		'initial-consumed',
-		'usage-updated',
-	],
+	emits: ['continue-loaded', 'open-build', 'send-to-assistant', 'initial-consumed'],
 	setup(_props: unknown, { expose }: { expose: (exposed: Record<string, unknown>) => void }) {
 		expose({
 			focusInput: vi.fn(),
@@ -120,7 +114,6 @@ const AgentPreviewMoreMenuStub = {
 		'isDeletingSession',
 		'canDeleteSession',
 		'getConversationMarkdown',
-		'usageUpdates',
 	],
 	emits: ['toggle-full-width', 'delete-session', 'export-session'],
 	template: '<button data-testid="agent-preview-more-btn" @click="$emit(\'toggle-full-width\')" />',
@@ -176,50 +169,6 @@ describe('AgentPreviewDock', () => {
 	beforeEach(function resetMocks() {
 		vi.clearAllMocks();
 		localStorage.removeItem('N8N_AGENT_PREVIEW_LAYOUT');
-	});
-
-	it('keeps the last usage on completion', async () => {
-		const wrapper = mountDock();
-		const chat = wrapper.getComponent({ name: 'AgentPreviewChatPage' });
-		const menu = wrapper.getComponent({ name: 'AgentPreviewMoreMenu' });
-		const update = {
-			sessionId: 'thread-1',
-			executionId: 'execution-1',
-			usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15, cost: 0.01 },
-			complete: false,
-		};
-		chat.vm.$emit('usage-updated', update);
-		await wrapper.vm.$nextTick();
-		expect(menu.props('usageUpdates')).toEqual({ 'execution-1': update });
-		expect(wrapper.emitted('usage-updated')).toEqual([[update]]);
-		chat.vm.$emit('usage-updated', { ...update, usage: undefined, complete: true });
-		await wrapper.vm.$nextTick();
-		expect(menu.props('usageUpdates')).toEqual({ 'execution-1': { ...update, complete: true } });
-		expect(wrapper.emitted('usage-updated')?.at(-1)).toEqual([{ ...update, complete: true }]);
-	});
-
-	it('keeps live usage when switching away from a session and back', async () => {
-		const wrapper = mountDock();
-		const chat = wrapper.getComponent({ name: 'AgentPreviewChatPage' });
-		const menu = wrapper.getComponent({ name: 'AgentPreviewMoreMenu' });
-		const update = {
-			sessionId: 'thread-1',
-			executionId: 'execution-1',
-			usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15, cost: 0.01 },
-			complete: false,
-		};
-		chat.vm.$emit('usage-updated', update);
-		await wrapper.vm.$nextTick();
-		await wrapper.setProps({ effectiveSessionId: 'thread-2' });
-		const otherUpdate = { ...update, sessionId: 'thread-2', executionId: 'execution-2' };
-		chat.vm.$emit('usage-updated', otherUpdate);
-		chat.vm.$emit('usage-updated', { ...update, usage: { ...update.usage, cost: 1 } });
-		await wrapper.vm.$nextTick();
-		await wrapper.setProps({ effectiveSessionId: 'thread-1' });
-		expect(menu.props('usageUpdates')).toEqual({
-			'execution-1': update,
-			'execution-2': otherUpdate,
-		});
 	});
 
 	it('shows the session title only after a session starts', async () => {

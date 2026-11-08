@@ -2,7 +2,6 @@ import type { PromotionDirection, PromotionResource } from '@n8n/api-types';
 import { useI18n } from '@n8n/i18n';
 
 import { isBlocking, type Blocker } from '../promotionOperation';
-import { isContainer } from '../promotionPreview.tree';
 
 /** Apply keeps these resources as they are on the instance. It does not create them. */
 const KEPT_BY_APPLY = new Set<PromotionResource['type']>(['credential', 'variable']);
@@ -41,7 +40,7 @@ export function usePromotionPreviewLabels() {
 		}
 	}
 
-	/** Why the resource stops the operation. `undefined` when it does not. */
+	/** Why the resource stops Apply. `undefined` when it does not. */
 	function blockerMessage(
 		resource: PromotionResource,
 		blockers: readonly Blocker[] = [],
@@ -49,18 +48,8 @@ export function usePromotionPreviewLabels() {
 		const blocking = blockers.filter(isBlocking);
 		if (blocking.length === 0) return undefined;
 		if (resource.type === 'workflow') {
-			if (resource.movedToProject) {
-				return i18n.baseText('promotions.preview.marker.movedOut', {
-					interpolate: {
-						project:
-							resource.movedToProject.name ?? i18n.baseText('promotions.preview.personalProject'),
-					},
-				});
-			}
-			if (resource.movedFromProject) {
-				return i18n.baseText('promotions.preview.marker.movedIn', {
-					interpolate: { project: resource.movedFromProject.name },
-				});
+			if (blocking.every(({ kind }) => kind === 'location')) {
+				return i18n.baseText('promotions.preview.blockers.workflowLocation');
 			}
 			return i18n.baseText('promotions.preview.marker.workflow', {
 				adjustToNumber: blocking.length,
@@ -68,9 +57,7 @@ export function usePromotionPreviewLabels() {
 			});
 		}
 		const [first] = blocking;
-		if (first.kind === 'moved' && resource.type === 'folder') {
-			return i18n.baseText('promotions.preview.marker.movedFolder');
-		}
+		if (first.kind === 'location') return i18n.baseText('promotions.preview.folder.moveConflict');
 		const count = new Set(blocking.flatMap(({ workflowKeys }) => workflowKeys)).size;
 		const options = { adjustToNumber: count, interpolate: { count: String(count) } };
 		if (first.kind === 'access') return i18n.baseText('promotions.preview.marker.access', options);
@@ -83,13 +70,5 @@ export function usePromotionPreviewLabels() {
 		return i18n.baseText('promotions.preview.marker.conflict', options);
 	}
 
-	/** The checkbox of a project or folder selects the workflows inside it. */
-	function selectLabel(resource: PromotionResource): string {
-		const interpolate = { name: resource.name };
-		return isContainer(resource)
-			? i18n.baseText('promotions.preview.selectContainer', { interpolate })
-			: i18n.baseText('promotions.preview.select', { interpolate });
-	}
-
-	return { changeLabel, blockerMessage, selectLabel };
+	return { changeLabel, blockerMessage };
 }

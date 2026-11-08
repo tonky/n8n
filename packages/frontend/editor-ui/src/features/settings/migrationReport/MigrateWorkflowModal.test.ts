@@ -8,7 +8,6 @@ import { mockedStore } from '@/__tests__/utils';
 import { useRootStore } from '@n8n/stores/useRootStore';
 import { useWorkflowsStore } from '@/app/stores/workflows.store';
 import { ResponseError } from '@n8n/rest-api-client';
-import { STORES } from '@n8n/stores';
 import { MIGRATE_WORKFLOW_MODAL_KEY } from '@/app/constants';
 import * as breakingChangesApi from '@n8n/rest-api-client/api/breaking-changes';
 import MigrateWorkflowModal from './MigrateWorkflowModal.vue';
@@ -50,26 +49,22 @@ const recommendations = [
 let rootStore: ReturnType<typeof mockedStore<typeof useRootStore>>;
 let workflowsStore: ReturnType<typeof mockedStore<typeof useWorkflowsStore>>;
 let eventBus: EventBus;
+let modalBeforeClose: (() => unknown) | undefined;
+
 const renderComponent = createComponentRenderer(MigrateWorkflowModal, {
-	pinia: createTestingPinia({
-		initialState: {
-			[STORES.UI]: {
-				modalStateById: {
-					[MIGRATE_WORKFLOW_MODAL_KEY]: { open: true },
-				},
-			},
-		},
-	}),
+	pinia: createTestingPinia(),
 	global: {
 		stubs: {
-			// Render the dialog body directly so it is queryable without the open-state portal.
-			Dialog: {
-				template: '<div role="dialog"><slot /></div>',
+			// Render all slots directly so the modal body/footer are queryable
+			// without the open-state + teleport machinery of the real Modal.
+			Modal: {
+				props: ['beforeClose'],
+				setup(props: { beforeClose?: () => unknown }) {
+					modalBeforeClose = () => props.beforeClose?.();
+				},
+				template:
+					'<div role="dialog"><slot name="header" /><slot name="content" /><slot name="footer" /></div>',
 			},
-			DialogHeader: { template: '<div><slot /></div>' },
-			DialogTitle: { template: '<h2><slot /></h2>' },
-			DialogDescription: { template: '<p><slot /></p>' },
-			DialogFooter: { template: '<div><slot /></div>' },
 		},
 	},
 });
@@ -103,7 +98,7 @@ describe('MigrateWorkflowModal', () => {
 	it('closes without migrating when cancelled', async () => {
 		const onClose = vi.fn();
 		render();
-		eventBus.on('closed', onClose);
+		eventBus.on('close', onClose);
 
 		await userEvent.click(screen.getByTestId('migrate-modal-cancel-button'));
 
@@ -279,11 +274,12 @@ describe('MigrateWorkflowModal', () => {
 			expect(confirmButton).toHaveTextContent('Migrating 0 of 2');
 			expect(confirmButton).toBeDisabled();
 			expect(confirmButton).not.toHaveAttribute('aria-busy');
-			expect(screen.getByTestId('migrate-modal-cancel-button')).toBeDisabled();
+			expect(modalBeforeClose?.()).toBe(false);
 
 			resolveFirst(migrationResult);
 
 			expect(await screen.findByTestId('migrate-modal-done-button')).toBeInTheDocument();
+			expect(modalBeforeClose?.()).toBe(true);
 		});
 
 		it('publishes only the republishable workflows', async () => {

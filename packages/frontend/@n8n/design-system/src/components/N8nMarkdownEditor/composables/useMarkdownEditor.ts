@@ -53,6 +53,7 @@ export const useMarkdownEditor = (
 		}),
 		Placeholder.configure({
 			placeholder: () => props.placeholder ?? '',
+			showOnlyCurrent: false,
 		}),
 		Table.configure({
 			resizable: true,

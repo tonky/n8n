@@ -131,7 +131,7 @@ const trackTabClick = (insightType: keyof InsightsSummary) => {
 												}}</template>
 											</I18nT>
 										</template>
-										<N8nIcon icon="info" size="medium" />
+										<N8nIcon :class="$style.icon" icon="info" size="medium" />
 									</N8nTooltip>
 								</small>
 							</span>
@@ -250,8 +250,6 @@ const trackTabClick = (insightType: keyof InsightsSummary) => {
 				align-items: baseline;
 
 				&.empty {
-					align-items: center;
-
 					em {
 						color: var(--color--text--tint-2);
 						body[data-theme='dark'] & {
@@ -260,7 +258,14 @@ const trackTabClick = (insightType: keyof InsightsSummary) => {
 					}
 					small {
 						padding: 0;
-						color: var(--color--text--tint-1);
+						height: 21px;
+						font-weight: var(--font-weight--medium);
+
+						.icon {
+							top: 5px;
+							transform: translateY(0);
+							color: var(--color--text--tint-1);
+						}
 					}
 				}
 			}

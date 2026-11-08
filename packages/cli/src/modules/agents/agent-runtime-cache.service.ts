@@ -66,11 +66,10 @@ export interface AgentRuntime extends ReconstructedAgentRuntime {
 	projectId: string;
 	telemetryConfiguration: IAgentConfigurationTelemetryProperties;
 	/**
-	 * Grants baked into the runtime's tool list and draft integrations at build.
+	 * Grants baked into the runtime's tool list by `filterToolsForUser`.
 	 * The sliding TTL can keep an active runtime alive indefinitely, so these
 	 * are re-checked on cache hits (debounced) rather than waiting for
-	 * eviction. Absent when no user-gated tool or integration made it into the
-	 * runtime.
+	 * eviction. Absent when no user-gated tools made it into the runtime.
 	 */
 	userToolAccessSnapshot?: UserToolAccessSnapshot;
 	/** Epoch ms of the last passing tool-access re-check (build counts as one). */

@@ -25,6 +25,7 @@ import type {
 	AssistantMentionSelection,
 	WorkflowArtifactReference,
 } from '@/features/ai/assistant-at-mentions/assistantAtMentions.types';
+import { EMPTY_ASSISTANT_MENTION_COUNTS } from '@/features/ai/assistant-at-mentions/assistantAtMentions.types';
 import { buildMentionKey } from '@/features/ai/assistant-at-mentions/utils/buildMentionItems';
 import { INSTANCE_AI_EMPTY_STATE_SUGGESTIONS_VERSION } from '../emptyStateSuggestions';
 import { useInstanceAiPromptSuggestionsTelemetry } from '../instanceAiPromptSuggestions.telemetry';
@@ -86,6 +87,7 @@ const props = withDefaults(
 		isStreaming?: boolean;
 		isSubmitting?: boolean;
 		isAwaitingConfirmation?: boolean;
+		isAwaitingPlanReview?: boolean;
 		currentThreadId?: string;
 		amendContext?: AmendContext;
 		contextualSuggestion?: string | null;
@@ -120,6 +122,7 @@ const props = withDefaults(
 		isStreaming: false,
 		isSubmitting: false,
 		isAwaitingConfirmation: false,
+		isAwaitingPlanReview: false,
 		currentThreadId: '',
 		amendContext: null,
 		contextualSuggestion: null,
@@ -278,8 +281,12 @@ defineExpose({
 	isPreparingSubmission,
 });
 
-const isBusy = computed(
-	() => props.isStreaming || props.isSubmitting || isPreparingSubmission.value,
+// A run suspended on a plan review is parked, not working: the user is meant to
+// type into it. Only a real in-flight submission blocks the composer then.
+const isBusy = computed(() =>
+	props.isAwaitingPlanReview
+		? props.isSubmitting
+		: props.isStreaming || props.isSubmitting || isPreparingSubmission.value,
 );
 const hasNonWhitespaceDraftText = computed(() => inputText.value.trim().length > 0);
 const isInputVisuallyEmpty = computed(() => inputText.value.length === 0);
@@ -330,9 +337,13 @@ const isGatedBySetup = computed(
 	() => props.isAwaitingConfirmation || !props.isWorkflowBuilderAvailable,
 );
 const showAttach = computed(
-	() => props.attachOnlyMimeTypes === undefined || props.attachOnlyMimeTypes.length > 0,
+	() =>
+		!props.isAwaitingPlanReview &&
+		(props.attachOnlyMimeTypes === undefined || props.attachOnlyMimeTypes.length > 0),
 );
-const shouldShowMentions = computed(() => props.mentionsEnabled && Boolean(props.mentionProjectId));
+const shouldShowMentions = computed(
+	() => props.mentionsEnabled && Boolean(props.mentionProjectId) && !props.isAwaitingPlanReview,
+);
 const mentionAvailability = useAssistantMentionAvailability({
 	enabled: shouldShowMentions,
 	projectId: () => props.mentionProjectId,
@@ -416,6 +427,7 @@ const canSubmit = computed(() =>
 const canShowSuggestions = computed(
 	() =>
 		Boolean(props.suggestions?.length) &&
+		!props.isAwaitingPlanReview &&
 		!isComposerDirty.value &&
 		!isBusy.value &&
 		!isGatedBySetup.value,
@@ -435,6 +447,9 @@ const placeholder = computed(() => {
 	}
 	if (isGatedBySetup.value) {
 		return i18n.baseText('instanceAi.input.suspendedPlaceholder');
+	}
+	if (props.isAwaitingPlanReview) {
+		return i18n.baseText('instanceAi.input.planReviewPlaceholder');
 	}
 	// Experiment cleanup: remove with instanceAiSplitEmptyState. Split types the prompt out.
 	if (props.previewPromptKey && isInputVisuallyEmpty.value) {
@@ -520,8 +535,9 @@ function resolveAuthorship(
 	};
 }
 
-function resetDraftComposer() {
+function resetDraftComposer({ keepAttachments = false } = {}) {
 	inputText.value = '';
+	if (keepAttachments) return;
 	attachedFiles.value = [];
 	attachedResources.value = [];
 }
@@ -530,7 +546,20 @@ function resetDraftComposer() {
 function canSubmitMessage(message: string, attachmentCount = 0) {
 	if (props.isOutOfCredits) return false;
 	if (isBusy.value || isGatedBySetup.value) return false;
+	// Plan feedback travels as a plain string, so an attachment cannot carry it.
+	if (props.isAwaitingPlanReview) return message.length > 0;
 	return message.length > 0 || attachmentCount > 0;
+}
+
+/**
+ * Put failed plan feedback back. Only the text was submitted, so this cannot use
+ * `isDirty()` as its guard: staged attachments keep that true even when the text
+ * box is empty, which would block every restore.
+ */
+function restorePlanFeedbackDraft(message: string) {
+	if (hasNonWhitespaceDraftText.value) return false;
+	inputText.value = message;
+	return true;
 }
 
 /**
@@ -587,6 +616,27 @@ function submitComposerMessage(
 		return;
 	}
 
+	// Plan feedback is resumed as a plain string. Send the text alone and leave
+	// anything staged in place, so it stays visible for a later real message
+	// instead of being dropped on a send that could never carry it. A suggestion
+	// draft can reach here, but feedback on a plan is not a suggestion submission.
+	if (props.isAwaitingPlanReview) {
+		// Feedback on a plan is the user's own answer, so it reports as typed even
+		// when a pre-filled draft is what reached here -- the same reason this path
+		// skips the suggestion-submitted event below.
+		emitSubmittedMessage(
+			message,
+			undefined,
+			() => restorePlanFeedbackDraft(message),
+			USER_TYPED_MESSAGE,
+			responseStartedAtEpochMs,
+			() => {},
+			EMPTY_ASSISTANT_MENTION_COUNTS,
+		);
+		resetDraftComposer({ keepAttachments: true });
+		return;
+	}
+
 	trackSelectedSuggestionSubmitted(message);
 
 	const submittedFiles = draftSnapshot?.files ?? [...attachedFiles.value];
@@ -638,6 +688,12 @@ async function handleSubmit() {
 	}
 	mentions.close();
 	const responseStartedAtEpochMs = instanceAiResponseNow();
+
+	// Plan feedback carries no attachments, so skip encoding the staged files.
+	if (props.isAwaitingPlanReview) {
+		submitComposerMessage(text, undefined, null, responseStartedAtEpochMs);
+		return;
+	}
 
 	const submittedFiles = [...attachedFiles.value];
 	const submittedResources = [...attachedResources.value];
@@ -872,7 +928,7 @@ const resizable = computed(() => {
 			:model-value="inputText"
 			:class="$style.inputWrapper"
 			:placeholder="placeholder"
-			:is-streaming="props.isStreaming"
+			:is-streaming="props.isAwaitingPlanReview ? false : props.isStreaming"
 			:can-submit="canSubmit"
 			:disabled="isGatedBySetup || isPreparingSubmission || props.isOutOfCredits"
 			:autosize="resizable"
@@ -921,7 +977,10 @@ const resizable = computed(() => {
 					/>
 				</div>
 			</template>
-			<template v-if="props.attachOnlyMimeTypes === undefined" #footer-start>
+			<template
+				v-if="!props.isAwaitingPlanReview && props.attachOnlyMimeTypes === undefined"
+				#footer-start
+			>
 				<InstanceAiInputMenu
 					:disabled="isBusy || isGatedBySetup"
 					:is-streaming="props.isStreaming"

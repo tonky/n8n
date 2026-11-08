@@ -1,7 +1,6 @@
 import { splitModelId } from '@n8n/ai-utilities/agent-config';
 import {
 	DEFAULT_AGENT_PERSONALISATION,
-	N8N_CHAT_INTEGRATION_TYPE,
 	getRandomAgentPersonalisationGradient,
 	sanitizeAgentJsonConfig,
 	type AgentCapabilitySummary,
@@ -60,7 +59,6 @@ import { AgentTestChatService } from './agent-test-chat.service';
 import { AgentsSettingsService } from './agents-settings.service';
 import { Agent, type ProjectAgent } from './entities/agent.entity';
 import { ChatIntegrationService } from './integrations/chat-integration.service';
-import { N8nChatFlagService } from './integrations/platforms/n8n-chat/n8n-chat-flag.service';
 import { composeJsonConfig, decomposeJsonConfig } from './json-config/agent-config-composition';
 import { fromAgentDocument, type AgentSkillRefs } from './json-config/agent-document';
 import { sanitizeUnknownAgentCredentials } from './json-config/sanitize-unknown-agent-credentials';
@@ -76,25 +74,8 @@ import {
 import { toAgentRef } from './utils/agent-ref';
 import { SubAgentCleanupService } from './sub-agents/sub-agent-cleanup.service';
 import { createAgentCredentialProvider } from './utils/agent-credential-provider';
-import type {
-	CompleteAgentDefinition,
-	AgentDefinitionMetadata,
-	PlannedAgentDestinations,
-} from './utils/agent-definition';
-import { buildAgentMutationEvent } from './agent-modification-telemetry.service';
 
-type CreateAgentOptions =
-	| DraftAgentCreateOptions
-	| {
-			actor: PolicyActor;
-			id: string;
-			definition: CompleteAgentDefinition;
-			user: User;
-			metadata?: AgentDefinitionMetadata;
-			plannedDestinations?: PlannedAgentDestinations;
-	  };
-
-type DraftAgentCreateOptions = {
+type CreateAgentOptions = {
 	/** Who asked for the create, named on the policy block audit event. */
 	actor: PolicyActor;
 	availableInMCP?: boolean;
@@ -147,7 +128,6 @@ export class AgentsService {
 		private readonly configPreparation: AgentConfigPreparationService,
 		private readonly saveCompletion: AgentSaveCompletionService,
 		private readonly setupCompletion: AgentSetupCompletionService,
-		private readonly n8nChatFlag: N8nChatFlagService,
 	) {}
 
 	/**
@@ -183,10 +163,6 @@ export class AgentsService {
 		options: CreateAgentOptions,
 	): Promise<AgentCreationResult> {
 		await this.settingsService.assertEnabled();
-		if ('definition' in options) {
-			const agent = await this.createCompleteDefinition(projectId, options);
-			return await this.getCreationResult(agent, false);
-		}
 		this.assertCreateOptions(options);
 		const { schemaConfig, integrations } = await this.prepareInitialConfig(
 			projectId,
@@ -234,7 +210,7 @@ export class AgentsService {
 		return { agent, config, configHash: getAgentConfigHash(config), adopted };
 	}
 
-	private assertCreateOptions({ config, schema, user, createdBy }: DraftAgentCreateOptions): void {
+	private assertCreateOptions({ config, schema, user, createdBy }: CreateAgentOptions): void {
 		if (config !== undefined && schema !== undefined) {
 			throw new UserError(
 				'Use config for initial configuration or schema for duplication, not both.',
@@ -248,7 +224,7 @@ export class AgentsService {
 	private async prepareAgentCreation(
 		agent: ProjectAgent,
 		initialSchema: AgentJsonConfig,
-		options: DraftAgentCreateOptions,
+		options: CreateAgentOptions,
 	): Promise<{ skillRefs: AgentSkillRefs; credentialProvider?: AgentsCredentialProvider }> {
 		if (options.config === undefined || !options.user) {
 			await this.agentPolicyService.enforceSave(
@@ -263,13 +239,7 @@ export class AgentsService {
 		const { replacement, credentialProvider, validatedConfig } =
 			await this.configPreparation.prepareForSave(
 				agent,
-				{
-					...initialSchema,
-					// Keeps the default channels split out of `initialSchema`; a config that sets its own wins.
-					...(agent.integrations?.length ? { integrations: agent.integrations } : {}),
-					...options.config,
-					name: agent.name,
-				},
+				{ ...initialSchema, ...options.config, name: agent.name },
 				options.user,
 				{ previousSkillRefs: [], isNew: true, actor: options.actor },
 			);
@@ -280,11 +250,7 @@ export class AgentsService {
 		return { skillRefs, credentialProvider };
 	}
 
-	private async insertAgent(
-		agent: Agent,
-		skillRefs: AgentSkillRefs,
-		options: DraftAgentCreateOptions,
-	) {
+	private async insertAgent(agent: Agent, skillRefs: AgentSkillRefs, options: CreateAgentOptions) {
 		return await this.transactionRunner.run({}, async (ctx) => {
 			// Insert-only: a reused client id must not overwrite the winning draft.
 			await this.agentRepository.insertNew(agent, ctx);
@@ -305,7 +271,7 @@ export class AgentsService {
 	private async completeCreation(
 		{ agent, config }: AgentCreationResult,
 		skillRefs: AgentSkillRefs,
-		{ user, createdBy, pushRef, config: initialConfig }: DraftAgentCreateOptions,
+		{ user, createdBy, pushRef, config: initialConfig }: CreateAgentOptions,
 		credentialProvider?: AgentsCredentialProvider,
 	): Promise<void> {
 		if (!user) return;
@@ -340,108 +306,6 @@ export class AgentsService {
 		}
 	}
 
-	async recordSavedSetupComplete(agent: ProjectAgent, user: User): Promise<void> {
-		if (agent.setupCompletedAt) return;
-		try {
-			const { AgentSetupCompletionService } = await import('./agent-setup-completion.service.js');
-			const emitSetupCompleted = await Container.get(
-				AgentSetupCompletionService,
-			).recordIfSetupComplete(
-				agent,
-				await this.agentSkillRefs.refsForDraft(agent, {}),
-				agent.projectId,
-				createAgentCredentialProvider(this.credentialsService, agent.projectId, user),
-				user,
-			);
-			await emitSetupCompleted?.();
-		} catch (error) {
-			this.logger.warn('Failed to check Agent setup completion', { agentId: agent.id, error });
-		}
-	}
-
-	private async createCompleteDefinition(
-		projectId: string,
-		options: Extract<CreateAgentOptions, { definition: CompleteAgentDefinition }>,
-	): Promise<ProjectAgent> {
-		const { AgentConfigPreparationService } = await import('./agent-config-preparation.service.js');
-		const preparation = Container.get(AgentConfigPreparationService);
-		const { id, user, metadata } = options;
-		await preparation.assertCanSaveDefinition(projectId, user, 'create');
-		const { definition, credentialProvider } = await preparation.prepareDefinition(
-			id,
-			options.definition,
-			projectId,
-			user,
-			options.plannedDestinations,
-		);
-		const { schemaConfig, integrations } = definition.config
-			? decomposeJsonConfig(definition.config)
-			: { schemaConfig: null, integrations: [] };
-		const { config: storedConfig, skillRefs } = schemaConfig
-			? fromAgentDocument(schemaConfig)
-			: { config: null, skillRefs: undefined };
-		await this.agentPolicyService.enforceSave(
-			projectId,
-			null,
-			definition.config ?? { name: definition.name },
-			null,
-			options.actor,
-		);
-		const agent = Object.assign(
-			this.agentRepository.create({
-				id,
-				projectId,
-				name: definition.config?.name ?? definition.name,
-				schema: storedConfig,
-				integrations,
-				tools: definition.tools,
-				availableInMCP: metadata?.availableInMCP ?? false,
-				versionId: uuid(),
-				activeVersionId: null,
-				setupCompletedAt: null,
-			}),
-			{ projectId },
-		);
-		const importedSkillRefs = await Container.get(TransactionRunner).run({}, async (ctx) => {
-			try {
-				await this.agentRepository.insertNew(agent, ctx);
-			} catch (error) {
-				if (isUniqueConstraintError(error)) throw new ConflictError('Agent already exists');
-				throw error;
-			}
-			const imported = await this.agentSkillRefs.importDraftSkills(
-				agent,
-				skillRefs,
-				definition.skills,
-				user.id,
-				ctx,
-			);
-			await this.agentTaskRepository.replaceForAgent(id, definition.tasks, ctx);
-			return imported;
-		});
-		await Container.get(AgentSaveCompletionService).definitionSaved(
-			buildAgentMutationEvent(
-				agent,
-				importedSkillRefs,
-				projectId,
-				{ user, modifiedBy: 'user' },
-				[],
-			),
-			[],
-			credentialProvider,
-			definition.tasks,
-			'create',
-		);
-		return agent;
-	}
-
-	/**
-	 * Decompose a duplicated config the way `AgentConfigService.updateConfig` does:
-	 * sanitize the config, blank credentials the duplicating user cannot use in
-	 * this project, then split integrations onto their own column — copied as
-	 * drafts (credentialId blanked) so the clone does not claim the source's
-	 * channel credential.
-	 */
 	private async prepareDuplicateConfig(
 		schema: AgentJsonConfig,
 		projectId: string,
@@ -757,8 +621,6 @@ export class AgentsService {
 
 		await this.agentExecutionService.deleteExecutionLogsForAgent(agentId);
 
-		await this.agentExecutionService.deleteMemoryThreadsForAgent(agentId);
-
 		await this.agentRepository.remove(agent);
 
 		this.runtimeCacheService.clearRuntimes(agentId);
@@ -779,11 +641,7 @@ export class AgentsService {
 	private async prepareInitialConfig(
 		projectId: string,
 		name: string,
-		{
-			schema,
-			user,
-			defaultModel,
-		}: Pick<DraftAgentCreateOptions, 'schema' | 'user' | 'defaultModel'>,
+		{ schema, user, defaultModel }: Pick<CreateAgentOptions, 'schema' | 'user' | 'defaultModel'>,
 	): Promise<ReturnType<typeof decomposeJsonConfig>> {
 		const defaultConfig: AgentJsonConfig = {
 			name,
@@ -800,15 +658,7 @@ export class AgentsService {
 				gradient: getRandomAgentPersonalisationGradient(),
 			},
 		};
-		if (!schema) {
-			// New agents start available in n8n Chat while their creator is in the
-			// experiment. Duplicates and seeded configs keep their own channels;
-			// internal creates without a user get none.
-			if (user && (await this.n8nChatFlag.isEnabledFor(user))) {
-				defaultConfig.integrations = [{ type: N8N_CHAT_INTEGRATION_TYPE, credentialId: '' }];
-			}
-			return decomposeJsonConfig(defaultConfig);
-		}
+		if (!schema) return decomposeJsonConfig(defaultConfig);
 		if (!user) return decomposeJsonConfig(schema);
 		return await this.prepareDuplicateConfig(schema, projectId, user);
 	}

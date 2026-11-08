@@ -67,17 +67,16 @@ export class ActiveSkills {
 				...this.stampedActivations(list).map(([, skillId]) => skillId),
 			];
 		const registered = new Set(this.source.registry.skills.map(({ id }) => id));
-		const retainedIds = new Set<string>();
 		for (const id of new Set(ids)) {
-			const skill = registered.has(id) ? await this.source.loadSkill(id) : null;
+			if (!registered.has(id)) continue;
+			const skill = await this.source.loadSkill(id);
 			if (skill) this.loaded.set(id, skill);
-			if (skill || this.source.getLoadError?.(id)?.retryable) retainedIds.add(id);
 		}
-		list.activeSkillIds = [...retainedIds];
+		list.activeSkillIds = [...this.loaded.keys()];
 		const storeIsCurrent =
 			stored !== undefined &&
-			new Set(stored).size === retainedIds.size &&
-			stored.every((id) => retainedIds.has(id));
+			new Set(stored).size === this.loaded.size &&
+			stored.every((id) => this.loaded.has(id));
 		if (!storeIsCurrent && (ids.length > 0 || stored !== undefined)) await this.persist();
 	}
 
@@ -91,7 +90,7 @@ export class ActiveSkills {
 		if (!this.list) throw new Error('Active skills must be restored before loading');
 		if (!this.loaded.has(skillId)) {
 			this.loaded.set(skillId, skill);
-			this.list.activeSkillIds = [...new Set([...(this.list.activeSkillIds ?? []), skillId])];
+			this.list.activeSkillIds = [...this.loaded.keys()];
 			// Stamp the activating tool result so the body re-anchors there on a
 			// later turn instead of falling back into the system prompt.
 			if (anchor) this.list.stampActivatedSkill(anchor.toolCallId, skillId);

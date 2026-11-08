@@ -43,7 +43,7 @@ const $style = useCssModule();
 const i18n = useI18n();
 
 const { isExecuting, isExperimentalNdvActive } = useCanvas();
-const { isDisabled, isRestricted, render, name, isDeprecated } = useCanvasNode();
+const { isDisabled, render, name, isDeprecated } = useCanvasNode();
 
 const workflowDocumentStore = injectWorkflowDocumentStore();
 const nodeTypesStore = useNodeTypesStore();
@@ -88,8 +88,6 @@ const classes = computed(() => ({
 }));
 
 const isExecuteNodeVisible = computed(() => {
-	if (isRestricted.value) return false;
-
 	if (props.readOnly && !props.canExecute) {
 		return false;
 	}
@@ -115,7 +113,6 @@ const isDisableNodeVisible = computed(
 	() =>
 		!props.readOnly &&
 		!isDeprecated.value &&
-		!isRestricted.value &&
 		(render.value.type === CanvasNodeRenderType.Default ||
 			render.value.type === CanvasNodeRenderType.Agent),
 );
@@ -330,8 +327,8 @@ function onAddToChat() {
 	}
 }
 
-.canvasNodeToolbar.forceVisible .canvasNodeToolbarItems {
-	opacity: 1;
+.forceVisible {
+	opacity: 1 !important;
 }
 
 .statusIcons {

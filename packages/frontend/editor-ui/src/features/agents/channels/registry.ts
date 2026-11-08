@@ -74,7 +74,16 @@ const platforms = {
 		createRuntime: useSlackChannelRuntime,
 		shouldConfirmDisconnect: (runtime, credentialId, { isPublished }) =>
 			isPublished && isSlackChannelRuntime(runtime) && runtime.isManagedCredential(credentialId),
-		getConnectAction: ({ text }) => ({ label: text('generic.connect') }),
+		getConnectAction: ({ text }, runtime) => {
+			const managedSetupAvailable =
+				isSlackChannelRuntime(runtime) && runtime.setup.value.managedSetupAvailable;
+			return {
+				label: text(
+					managedSetupAvailable ? 'agents.channels.slack.managed.addToSlack' : 'generic.connect',
+				),
+				icon: managedSetupAvailable ? 'slack' : undefined,
+			};
+		},
 		presentDisconnectWarning: (warning, { text }) => {
 			if (!isSlackNotDeletedWarning(warning)) {
 				return null;

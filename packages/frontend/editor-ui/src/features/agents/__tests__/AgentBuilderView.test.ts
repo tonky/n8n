@@ -638,6 +638,7 @@ const commonStubs = {
 			'headerActions',
 			'beforeRevertToPublished',
 			'artifactMode',
+			'isPreviewOpen',
 			'configValidationStatus',
 			'saveStatus',
 			'beforePublish',
@@ -645,6 +646,8 @@ const commonStubs = {
 		],
 		emits: [
 			'header-action',
+			'open-preview',
+			'close-preview',
 			'publish-ready',
 			'published',
 			'unpublished',
@@ -1041,34 +1044,6 @@ describe('AgentBuilderView — preview routing', () => {
 			}),
 		});
 		expect(updateConfigMock).not.toHaveBeenCalled();
-	});
-
-	it('starts a new agent available in n8n Chat when the flag is on', async () => {
-		n8nChatFlag.value = true;
-		history.replaceState({ instanceAiPendingAgentId: 'a1' }, '');
-		const wrapper = await renderView();
-		const editor = wrapper.findComponent({ name: 'AgentBuilderEditorColumn' });
-
-		expect(editor.props('connectedTriggers')).toEqual(['n8n_chat']);
-
-		editor.vm.$emit('update:config', { instructions: 'Answer support mail' });
-		await vi.waitFor(() => expect(createAgentMock).toHaveBeenCalledOnce());
-
-		expect(createAgentMock).toHaveBeenCalledWith(expect.anything(), 'p1', expect.any(String), {
-			id: 'a1',
-			config: expect.objectContaining({
-				integrations: [{ type: 'n8n_chat', credentialId: '' }],
-			}),
-		});
-	});
-
-	it('starts a new agent without channels when the flag is off', async () => {
-		history.replaceState({ instanceAiPendingAgentId: 'a1' }, '');
-		const wrapper = await renderView();
-
-		expect(
-			wrapper.findComponent({ name: 'AgentBuilderEditorColumn' }).props('connectedTriggers'),
-		).toEqual([]);
 	});
 
 	it('chains a second save carrying a later auto-applied default model behind an in-flight save', async () => {
@@ -2354,7 +2329,7 @@ describe('AgentBuilderView — preview routing', () => {
 	});
 
 	it.each([
-		{ component: 'AgentBuilderEditorColumn', source: 'primary' },
+		{ component: 'AgentBuilderHeader', source: 'primary' },
 		{ component: 'AgentBuilderEditorColumn', source: 'icon' },
 	])('attributes the preview action from $component to $source', async ({ component, source }) => {
 		const wrapper = await renderView();
@@ -2369,19 +2344,6 @@ describe('AgentBuilderView — preview routing', () => {
 			TELEMETRY_EVENT.AGENTS.USER_OPENED_AGENT_PREVIEW,
 			{ agent_id: 'a1', source },
 		);
-	});
-
-	it('closes Preview from the primary action beside the Agent title', async () => {
-		const wrapper = await renderView();
-		const editor = wrapper.findComponent({ name: 'AgentBuilderEditorColumn' });
-		editor.vm.$emit('open-preview', 'primary');
-		await flushPromises();
-		expect(editor.props('isPreviewOpen')).toBe(true);
-
-		editor.vm.$emit('close-preview');
-		await flushPromises();
-		expect(editor.props('isPreviewOpen')).toBe(false);
-		expect(wrapper.findComponent({ name: 'AgentPreviewDock' }).props('isOpen')).toBe(false);
 	});
 
 	it('opens Preview with the selected task instructions', async () => {
@@ -2435,9 +2397,9 @@ describe('AgentBuilderView — preview routing', () => {
 		);
 
 		const wrapper = await renderView();
-		const editor = wrapper.findComponent({ name: 'AgentBuilderEditorColumn' });
+		const header = wrapper.findComponent({ name: 'AgentBuilderHeader' });
 
-		editor.vm.$emit('open-preview');
+		header.vm.$emit('open-preview');
 		await flushPromises();
 
 		expect(wrapper.findComponent({ name: 'AgentPreviewDock' }).props()).toEqual(
@@ -2456,9 +2418,9 @@ describe('AgentBuilderView — preview routing', () => {
 				artifactAgentId: 'a2',
 			},
 		});
-		const editor = wrapper.findComponent({ name: 'AgentBuilderEditorColumn' });
+		const header = wrapper.findComponent({ name: 'AgentBuilderHeader' });
 
-		editor.vm.$emit('open-preview');
+		header.vm.$emit('open-preview');
 		await flushPromises();
 
 		const dock = wrapper.findComponent({ name: 'AgentPreviewDock' });
@@ -2528,7 +2490,7 @@ describe('AgentBuilderView — preview routing', () => {
 					artifactAgentId: agentId,
 				},
 			});
-			wrapper.findComponent({ name: 'AgentBuilderEditorColumn' }).vm.$emit('open-preview');
+			wrapper.findComponent({ name: 'AgentBuilderHeader' }).vm.$emit('open-preview');
 			await flushPromises();
 			const dock = wrapper.findComponent({ name: 'AgentPreviewDock' });
 			routerPush.mockClear();
@@ -2664,7 +2626,7 @@ describe('AgentBuilderView — preview routing', () => {
 					artifactAgentId: 'a2',
 				},
 			});
-			wrapper.findComponent({ name: 'AgentBuilderEditorColumn' }).vm.$emit('open-preview');
+			wrapper.findComponent({ name: 'AgentBuilderHeader' }).vm.$emit('open-preview');
 			await flushPromises();
 			expect(wrapper.findComponent({ name: 'AgentPreviewDock' }).props('effectiveSessionId')).toBe(
 				'previous-agent-thread',
@@ -2865,11 +2827,11 @@ describe('AgentBuilderView — preview routing', () => {
 		getAgentMock.mockResolvedValue(makeAgentResponse({ isRunnable: false }));
 
 		const wrapper = await renderView();
-		const editor = wrapper.findComponent({ name: 'AgentBuilderEditorColumn' });
+		const header = wrapper.findComponent({ name: 'AgentBuilderHeader' });
 
-		expect(editor.props('agent')).toEqual(expect.objectContaining({ isRunnable: false }));
+		expect(header.props('agent')).toEqual(expect.objectContaining({ isRunnable: false }));
 
-		editor.vm.$emit('open-preview');
+		header.vm.$emit('open-preview');
 		await flushPromises();
 
 		expect(routerPush).not.toHaveBeenCalled();
@@ -5861,13 +5823,13 @@ describe('AgentBuilderView — three-column shell', () => {
 		expect(openModalWithDataMock).toHaveBeenCalledWith(
 			expect.objectContaining({
 				name: 'agentToolConfigModal',
-				data: expect.objectContaining({ toolRef, customTool }),
+				data: expect.objectContaining({
+					toolRef,
+					customTool,
+					validationIssues: [validationIssue],
+				}),
 			}),
 		);
-		const [{ data }] = openModalWithDataMock.mock.calls[0] as [
-			{ data: { validationIssues: () => unknown[] } },
-		];
-		expect(data.validationIssues()).toEqual([validationIssue]);
 	});
 
 	it('applies the tools modal confirm payload as arrays to the local config', async () => {
@@ -6011,8 +5973,7 @@ describe('AgentBuilderView — three-column shell', () => {
 		const wrapper = await renderView();
 		fetchConfigMock.mockClear();
 		wrapper.findComponent({ name: 'AgentSkillsSection' }).vm.$emit('add-skill');
-		// The modal opens once the agent is persisted.
-		await flushPromises();
+		await nextTick();
 
 		expect(openModalWithDataMock).toHaveBeenCalledWith(
 			expect.objectContaining({

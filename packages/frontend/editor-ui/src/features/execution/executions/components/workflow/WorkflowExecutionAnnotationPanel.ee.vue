@@ -6,14 +6,8 @@ import { getResourcePermissions } from '@n8n/permissions';
 import { useWorkflowsListStore } from '@/app/stores/workflowsList.store';
 import { useInjectWorkflowId } from '@/app/composables/useInjectWorkflowId';
 
-import {
-	N8nBadge,
-	N8nButton,
-	N8nDropdownMenu,
-	N8nHeading,
-	N8nText,
-	type DropdownMenuExposed,
-} from '@n8n/design-system';
+import { ElDropdown } from 'element-plus';
+import { N8nBadge, N8nButton, N8nHeading, N8nText } from '@n8n/design-system';
 const props = defineProps<{
 	execution: ExecutionSummary & {
 		customData?: Record<string, string>;
@@ -23,7 +17,7 @@ const props = defineProps<{
 const workflowsListStore = useWorkflowsListStore();
 const i18n = useI18n();
 
-const annotationDropdownRef = ref<DropdownMenuExposed | null>(null);
+const annotationDropdownRef = ref<InstanceType<typeof ElDropdown> | null>(null);
 const isDropdownVisible = ref(false);
 
 const workflowId = useInjectWorkflowId();
@@ -39,41 +33,40 @@ const customDataLength = computed(() => {
 function onEllipsisButtonBlur(event: FocusEvent) {
 	// Hide dropdown when clicking outside of current document
 	if (annotationDropdownRef.value && event.relatedTarget === null) {
-		annotationDropdownRef.value.close();
+		annotationDropdownRef.value.handleClose();
 	}
+}
+
+function onDropdownVisibleChange(visible: boolean) {
+	isDropdownVisible.value = visible;
 }
 </script>
 
 <template>
-	<N8nDropdownMenu
+	<ElDropdown
 		v-if="execution"
 		ref="annotationDropdownRef"
-		v-model="isDropdownVisible"
-		:items="[]"
-		placement="bottom-end"
-		width="250px"
-		:extra-popper-class="$style.menu"
+		trigger="click"
+		@visible-change="onDropdownVisibleChange"
 	>
-		<template #trigger>
-			<N8nButton
-				variant="outline"
-				:title="i18n.baseText('executionDetails.additionalActions')"
-				:disabled="!workflowPermissions.update"
-				icon="list-checks"
-				:icon-only="customDataLength === 0"
-				:class="{
-					[$style.highlightDataButtonOpen]: isDropdownVisible,
-				}"
-				size="small"
-				data-test-id="execution-preview-ellipsis-button"
-				@blur="onEllipsisButtonBlur"
-			>
-				<N8nBadge v-if="customDataLength > 0" :class="$style.badge" variant="primary">
-					{{ customDataLength.toString() }}
-				</N8nBadge>
-			</N8nButton>
-		</template>
-		<template #content>
+		<N8nButton
+			variant="outline"
+			:title="i18n.baseText('executionDetails.additionalActions')"
+			:disabled="!workflowPermissions.update"
+			icon="list-checks"
+			:icon-only="customDataLength === 0"
+			:class="{
+				[$style.highlightDataButtonOpen]: isDropdownVisible,
+			}"
+			size="small"
+			data-test-id="execution-preview-ellipsis-button"
+			@blur="onEllipsisButtonBlur"
+		>
+			<N8nBadge v-if="customDataLength > 0" :class="$style.badge" variant="primary">
+				{{ customDataLength.toString() }}
+			</N8nBadge>
+		</N8nButton>
+		<template #dropdown>
 			<div
 				ref="container"
 				:class="['execution-annotation-panel', $style.container]"
@@ -114,7 +107,7 @@ function onEllipsisButtonBlur(event: FocusEvent) {
 				</div>
 			</div>
 		</template>
-	</N8nDropdownMenu>
+	</ElDropdown>
 </template>
 
 <style module lang="scss">
@@ -128,19 +121,18 @@ function onEllipsisButtonBlur(event: FocusEvent) {
 	border: 0;
 }
 
-.menu {
-	width: var(--n8n--dropdown-menu-width);
-	min-width: var(--n8n--dropdown-menu-width);
-}
-
 .container {
 	z-index: 1;
 	max-height: calc(100vh - 250px);
-	width: 100%;
+	width: 250px;
 
 	display: flex;
 	flex-direction: column;
 	overflow: auto;
+
+	background-color: var(--color--background--light-3);
+	border: var(--border);
+	border-radius: var(--radius);
 }
 
 .section {

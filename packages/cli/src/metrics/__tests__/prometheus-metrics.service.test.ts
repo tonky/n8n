@@ -25,7 +25,6 @@ import type { PrometheusQueueMetricsService } from '../prometheus/queue-metrics.
 import type { PrometheusRouteMetricsService } from '../prometheus/route-metrics.service';
 import type { PrometheusSchedulerMetricsService } from '../prometheus/scheduler-metrics.service';
 import type { PrometheusSsrfMetricsService } from '../prometheus/ssrf-metrics.service';
-import type { PrometheusMemoryGuardMetricsService } from '../prometheus/memory-guard-metrics.service';
 import type { PrometheusSystemTaskMetricsService } from '../prometheus/system-task-metrics.service';
 import type { PrometheusTokenExchangeMetricsService } from '../prometheus/token-exchange-metrics.service';
 import type { PrometheusVersionMetricsService } from '../prometheus/version-metrics.service';
@@ -66,7 +65,6 @@ describe('PrometheusMetricsService', () => {
 	let scheduler: Mocked<PrometheusSchedulerMetricsService>;
 	let pollTrigger: Mocked<PrometheusPollTriggerMetricsService>;
 	let systemTask: Mocked<PrometheusSystemTaskMetricsService>;
-	let memoryGuard: Mocked<PrometheusMemoryGuardMetricsService>;
 	const databaseIndependentRoutes = mock<DatabaseIndependentRoutes>();
 
 	let service: PrometheusMetricsService;
@@ -99,7 +97,6 @@ describe('PrometheusMetricsService', () => {
 			pollTrigger,
 			encryption,
 			systemTask,
-			memoryGuard,
 			databaseIndependentRoutes,
 		);
 
@@ -139,7 +136,6 @@ describe('PrometheusMetricsService', () => {
 		pollTrigger = mock<PrometheusPollTriggerMetricsService>({ enabled: true });
 		encryption = mock<PrometheusEncryptionMetricsService>({ enabled: true });
 		systemTask = mock<PrometheusSystemTaskMetricsService>({ enabled: true });
-		memoryGuard = mock<PrometheusMemoryGuardMetricsService>({ enabled: true });
 
 		service = buildService();
 	});
@@ -177,7 +173,6 @@ describe('PrometheusMetricsService', () => {
 			expect(pollTrigger.init).toHaveBeenCalledWith(app);
 			expect(encryption.init).toHaveBeenCalledWith(app);
 			expect(systemTask.init).toHaveBeenCalledWith(app);
-			expect(memoryGuard.init).toHaveBeenCalledWith(app);
 		});
 
 		it('should NOT call init on disabled collectors', () => {

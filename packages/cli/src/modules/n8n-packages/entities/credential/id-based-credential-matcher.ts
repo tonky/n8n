@@ -12,8 +12,6 @@ import type { PackageCredentialRequirement } from '../../spec/requirements.schem
 
 @Service()
 export class IdBasedCredentialMatcher extends CredentialMatcher {
-	protected override matchesById = true;
-
 	constructor(credentialTypes: CredentialTypes, credentialsService: CredentialsService) {
 		super(credentialTypes, credentialsService);
 	}

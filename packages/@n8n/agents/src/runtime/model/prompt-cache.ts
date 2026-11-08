@@ -10,6 +10,7 @@ import type { ModelMessage, SystemModelMessage, ToolSet } from 'ai';
 import { createHash } from 'crypto';
 
 import type { PromptCachingConfig } from '../../types/sdk/agent';
+import type { JSONObject } from '../../types/utils/json';
 
 /** Anthropic hard-errors past this many `cacheControl` breakpoints in one request. */
 const MAX_ANTHROPIC_CACHE_BREAKPOINTS = 4;
@@ -21,7 +22,7 @@ export function mergeProviderOptions(
 	const defined = options.filter((o): o is ProviderOptions => o !== undefined);
 	if (defined.length === 0) return undefined;
 
-	const merged: ProviderOptions = {};
+	const merged: Record<string, JSONObject> = {};
 	for (const opts of defined) {
 		for (const [provider, providerOpts] of Object.entries(opts)) {
 			merged[provider] = { ...merged[provider], ...providerOpts };

@@ -4,10 +4,8 @@ import type {
 	User,
 	CredentialsRepository,
 	WorkflowRepository,
-	Person,
-	PersonRepository,
+	UserRepository,
 } from '@n8n/db';
-import type { Repository } from '@n8n/typeorm';
 import { IsNull, Not } from '@n8n/typeorm';
 import RudderStack from '@rudderstack/rudder-sdk-node';
 import type { Response } from 'express';
@@ -24,9 +22,7 @@ describe('HooksService', () => {
 	const mockedUser = mock<User>();
 	const userService = mock<UserService>();
 	const authService = mock<AuthService>();
-	const personRepository = mock<PersonRepository>();
-	const personCollection = mock<Repository<Person>>();
-	personRepository.forCloudHooks.mockReturnValue(personCollection);
+	const userRepository = mock<UserRepository>();
 	const settingsRepository = mock<SettingsRepository>();
 	const workflowRepository = mock<WorkflowRepository>();
 	const credentialsRepository = mock<CredentialsRepository>();
@@ -38,7 +34,7 @@ describe('HooksService', () => {
 	const hooksService = new HooksService(
 		userService,
 		authService,
-		personRepository,
+		userRepository,
 		settingsRepository,
 		workflowRepository,
 		credentialsRepository,
@@ -71,7 +67,7 @@ describe('HooksService', () => {
 		expect(authService.issueCookie).toHaveBeenCalledWith(res, mockedUser, false);
 	});
 
-	it('hooksService.findOneUser should search people only', async () => {
+	it('hooksService.findOneUser should call userRepository.findOne', async () => {
 		// ARRANGE
 		const filter = { where: { id: '1' } };
 
@@ -79,16 +75,16 @@ describe('HooksService', () => {
 		await hooksService.findOneUser(filter);
 
 		// ASSERT
-		expect(personCollection.findOne).toHaveBeenCalledWith(filter);
+		expect(userRepository.findOne).toHaveBeenCalledWith(filter);
 	});
 
-	it('hooksService.saveUser should save through the people collection', async () => {
+	it('hooksService.saveUser should call userRepository.save', async () => {
 		// ACT
 		await hooksService.saveUser(mockedUser);
 
 		// ASSERT
 
-		expect(personCollection.save).toHaveBeenCalledWith(mockedUser);
+		expect(userRepository.save).toHaveBeenCalledWith(mockedUser);
 	});
 
 	it('hooksService.updateSettings should call settingRepository.update', async () => {
@@ -156,7 +152,7 @@ describe('HooksService', () => {
 		const collections = hooksService.dbCollections();
 
 		// ASSERT
-		expect(collections.User).toBe(personCollection);
+		expect(collections).toHaveProperty('User');
 		expect(collections).toHaveProperty('Settings');
 		expect(collections).toHaveProperty('Credentials');
 		expect(collections).toHaveProperty('Workflow');

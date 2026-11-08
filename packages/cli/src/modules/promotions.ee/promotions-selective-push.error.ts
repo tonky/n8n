@@ -7,15 +7,13 @@ import { BadRequestError } from '@n8n/errors';
 export class PromotionsWorkflowsMovedCrossProjectError extends BadRequestError {
 	override readonly meta: PromotionsWorkflowsMovedCrossProjectMeta;
 
-	/** `detail` says where the workflow is, for example `now in project "Ops" here`. */
-	constructor(moved: ReadonlyArray<{ id: string; detail?: string }>) {
-		const described = moved.map(({ id, detail }) => (detail ? `${id} (${detail})` : id));
+	constructor(workflowIds: string[]) {
 		super(
-			`These workflows moved between projects: ${described.join(', ')}. Promote can't move a workflow between projects. Move them back on this instance, then promote again.`,
+			`These workflows moved to another project: ${workflowIds.join(', ')}. A selective push cannot move them. Push all projects instead.`,
 		);
 		this.meta = {
 			code: PROMOTIONS_WORKFLOWS_MOVED_CROSS_PROJECT_CODE,
-			workflowIds: moved.map(({ id }) => id),
+			workflowIds,
 		};
 	}
 }

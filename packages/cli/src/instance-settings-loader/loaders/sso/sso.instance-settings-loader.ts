@@ -3,7 +3,6 @@ import { InstanceSettingsLoaderConfig } from '@n8n/config';
 import { Service } from '@n8n/di';
 
 import {
-	emitSsoLoginDisabled,
 	getCurrentAuthenticationMethod,
 	setCurrentAuthenticationMethod,
 } from '@/sso.ee/sso-helpers';
@@ -76,7 +75,6 @@ export class SsoInstanceSettingsLoader {
 			this.logger.debug(
 				`Switching authentication method to email because SAML or OIDC is disabled. Current authentication method: ${current}`,
 			);
-			await emitSsoLoginDisabled(current);
 		}
 	}
 }

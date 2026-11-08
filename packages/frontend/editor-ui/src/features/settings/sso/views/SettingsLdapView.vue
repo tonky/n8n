@@ -28,7 +28,6 @@ import {
 	N8nHeading,
 	N8nInfoTip,
 } from '@n8n/design-system';
-import AuthenticationBackLink from '../components/AuthenticationBackLink.vue';
 type TableRow = {
 	status: string;
 	startAt: string;
@@ -629,7 +628,6 @@ onMounted(async () => {
 
 <template>
 	<div v-if="!isLDAPFeatureEnabled">
-		<AuthenticationBackLink />
 		<div :class="[$style.header, 'mb-2xl']">
 			<N8nHeading size="2xlarge">
 				{{ i18n.baseText('settings.ldap') }}
@@ -650,7 +648,6 @@ onMounted(async () => {
 		</N8nEmptyState>
 	</div>
 	<div v-else>
-		<AuthenticationBackLink />
 		<div :class="$style.container">
 			<div :class="$style.header">
 				<N8nHeading size="2xlarge">

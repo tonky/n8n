@@ -23,7 +23,6 @@ import type {
 	PublicationSkipReason,
 	TriggerPublicationStatus,
 } from '@/workflows/publication/publication-result';
-import { TriggerNodeIdTooLongError } from '@/workflows/publication/trigger-node-id-too-long.error';
 import { WorkflowPushNotifier } from '@/workflows/workflow-push-notifier.service';
 import type { TriggerTeardownFailure } from '@/workflows/triggers/workflow-trigger-activator';
 
@@ -128,16 +127,11 @@ export class PublicationStatusReporter {
 				if (!policyRefusal) {
 					this.errorReporter.error(result.error, { shouldBeLogged: true });
 				}
-				// Name a node only when the error belongs to it. Shared failures name none.
+				// Name the node only when one trigger failed with its own error: the FE prefixes the toast with it.
+				// A policy refusal fails every trigger with the same error, so it names none.
 				const failedTriggers = (triggerStatuses ?? []).filter((s) => s.status === 'failed');
-				let nodeId: string | undefined;
-				if (result.error instanceof TriggerNodeIdTooLongError) {
-					if (result.error.affectedNodes.length === 1) {
-						nodeId = result.error.affectedNodes[0]?.id;
-					}
-				} else if (!policyRefusal && failedTriggers.length === 1) {
-					nodeId = failedTriggers[0].nodeId;
-				}
+				const nodeId =
+					!policyRefusal && failedTriggers.length === 1 ? failedTriggers[0].nodeId : undefined;
 				await this.pushFailedToActivate(record.workflowId, result.error.message, nodeId);
 				return;
 			}

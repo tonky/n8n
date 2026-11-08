@@ -11,9 +11,9 @@ import type { ImportPackageRequest } from '../../n8n-packages.types';
 const DEFAULTS = {
 	credentialMatchingMode: 'id-only',
 	credentialMissingMode: 'must-preexist',
-	conflictPolicy: 'fail',
-	publishingPolicy: 'preserve-published-state',
-	idPolicy: 'source',
+	workflowConflictPolicy: 'fail',
+	workflowPublishingPolicy: 'preserve-published-state',
+	workflowIdPolicy: 'new',
 	missingNodeTypeMode: 'fail',
 	projectConflictPolicy: 'merge',
 	overwriteDeletionPolicy: 'archive',

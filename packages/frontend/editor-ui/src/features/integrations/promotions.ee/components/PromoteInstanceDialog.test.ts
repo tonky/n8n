@@ -50,17 +50,17 @@ describe('PromoteInstanceDialog', () => {
 		createTestingPinia();
 	});
 
-	it('promotes without a commit message when the field is empty or blank', async () => {
-		api.promotePackage.mockResolvedValue(promoteResult('main'));
+	it('keeps Promote disabled until a commit message is entered', async () => {
 		const { findByTestId, getByTestId } = renderComponent();
 
-		await userEvent.type(await findByTestId('promote-commit-message'), '   ');
-		expect(getByTestId('promote-confirm-button')).toBeEnabled();
-		await userEvent.click(getByTestId('promote-confirm-button'));
+		const input = await findByTestId('promote-commit-message');
+		expect(getByTestId('promote-confirm-button')).toBeDisabled();
 
-		await waitFor(() =>
-			expect(api.promotePackage).toHaveBeenCalledWith(expect.anything(), 'environment-1', {}),
-		);
+		await userEvent.type(input, '   ');
+		expect(getByTestId('promote-confirm-button')).toBeDisabled();
+
+		await userEvent.type(input, 'Deploy today');
+		expect(getByTestId('promote-confirm-button')).toBeEnabled();
 	});
 
 	it('promotes with the trimmed message and shows the result in the dialog', async () => {

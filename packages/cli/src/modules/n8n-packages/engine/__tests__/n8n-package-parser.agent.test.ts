@@ -88,7 +88,7 @@ describe('N8nPackageParser.getAgents', () => {
 			const expected = input.files[`${target}/agent.json`] as SerializedAgent;
 			expect(parsed.config).toMatchObject({
 				model: '',
-				skills: [{ id: `${expected.id}_skill` }],
+				skills: [{ id: 'shared-skill' }],
 				tools: [{ id: 'shared_tool', enabled: false, requireApproval: true }],
 				tasks: [{ id: `${parsed.sourceAgentId}_task`, enabled: false }],
 				mcpServers: [{ name: 'Reference', url: '' }],
@@ -187,8 +187,8 @@ describe('N8nPackageParser.getAgents', () => {
 	});
 
 	it.each([
-		['skills', 'support_source_skill', { instructions: 42 }],
-		['skills', 'support_source_skill', { references: [{ path: '../guide.md', content: 'Guide' }] }],
+		['skills', 'shared-skill', { instructions: 42 }],
+		['skills', 'shared-skill', { references: [{ path: '../guide.md', content: 'Guide' }] }],
 		['tools', 'shared_tool', { code: 42 }],
 		['tools', 'shared_tool', { descriptor: { name: 'Incomplete' } }],
 		['tasks', 'support_source_task', { timezone: 'Invalid/Zone' }],
@@ -273,23 +273,15 @@ describe('N8nPackageParser.getAgents', () => {
 		async (collection) => {
 			const missingId = Object.keys(agent[collection])[0];
 			agent[collection] = {};
-			await expect(parser.getAgents(memoryReader(fixture))).rejects.toMatchObject({
-				meta: {
-					issues: [
-						{
-							type: 'agent-invalid',
-							sourceAgentId: agent.id,
-							path: `${agentPath}#${collection}.${missingId}`,
-						},
-					],
-				},
-			});
+			await expect(parser.getAgents(memoryReader(fixture))).rejects.toThrow(
+				`${collection} asset "${missingId}" without a body`,
+			);
 		},
 	);
 
 	it('validates inline bodies that have no configuration reference', async () => {
 		agent.config = null;
-		fixture.files[agentPath] = { ...agent, skills: { support_source_skill: {} } };
+		fixture.files[agentPath] = { ...agent, skills: { 'shared-skill': {} } };
 		await expect(parser.getAgents(memoryReader(fixture))).rejects.toThrow(
 			`${agentPath} failed schema validation`,
 		);

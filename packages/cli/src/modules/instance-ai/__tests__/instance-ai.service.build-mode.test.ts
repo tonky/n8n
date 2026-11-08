@@ -51,6 +51,7 @@ const orphan = mock<ResumableOrphan>({
 	toolCallId: 'tool-1',
 	requestId: 'request-1',
 	messageGroupId: null,
+	checkpointTaskId: null,
 });
 
 function createService(checkpoint?: SerializableAgentState): ServiceInternals {

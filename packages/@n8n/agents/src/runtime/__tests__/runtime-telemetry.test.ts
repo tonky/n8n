@@ -73,10 +73,7 @@ describe('RuntimeTelemetry.withRootSpan()', () => {
 	it('starts a root span with root: true and generic gen_ai.* attributes, without langsmith.* noise', async () => {
 		const span = fakeSpan();
 		const tracer = fakeTracer(span);
-		const telemetry = builtTelemetry({
-			tracer,
-			metadata: { model_id: 'openai/gpt-4o-mini', agent_id: 'agent-1' },
-		});
+		const telemetry = builtTelemetry({ tracer, metadata: { model_id: 'openai/gpt-4o-mini' } });
 		const config = { name: 'my-agent' } as AgentRuntimeConfig;
 		const runtimeTelemetry = new RuntimeTelemetry(config);
 
@@ -97,8 +94,6 @@ describe('RuntimeTelemetry.withRootSpan()', () => {
 		expect(attributes).toMatchObject({
 			'gen_ai.operation.name': 'invoke_agent',
 			'gen_ai.agent.name': 'my-agent',
-			'gen_ai.agent.id': 'agent-1',
-			'gen_ai.provider.name': 'openai',
 			'gen_ai.request.model': 'openai/gpt-4o-mini',
 		});
 		expect(Object.keys(attributes).some((key) => key.startsWith('langsmith.'))).toBe(false);

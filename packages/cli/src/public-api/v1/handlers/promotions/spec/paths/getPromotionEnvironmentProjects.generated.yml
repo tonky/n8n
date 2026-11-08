@@ -2,7 +2,7 @@ operationId: getPromotionEnvironmentProjects
 tags:
   - Promotions
 summary: List projects linked to a promotion environment
-x-required-scope: promotions:read
+x-required-scope: gitConnection:read
 parameters:
   - schema:
       type: string

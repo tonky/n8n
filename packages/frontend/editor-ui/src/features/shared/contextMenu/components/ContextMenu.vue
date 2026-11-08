@@ -2,44 +2,51 @@
 import { useContextMenu } from '../composables/useContextMenu';
 import { isFocusHandoffAction, type ContextMenuAction } from '../composables/useContextMenuItems';
 import { useStyles } from '@n8n/composables/useStyles';
-import { watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import {
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuPortal,
-	DropdownMenuRoot,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuPortal,
+	ContextMenuRoot,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
 } from 'reka-ui';
 
 import { N8nIcon, N8nKeyboardShortcut } from '@n8n/design-system';
 
-// The menu is driven by `isOpen` instead of Reka's `ContextMenuRoot`. That
-// component only opens from a `contextmenu` event, so we used to re-dispatch
-// a synthetic one. A script-dispatched `contextmenu` cannot be cancelled in
-// time for WebKit, and Safari showed its own menu next to ours (API-490).
 const contextMenu = useContextMenu();
 const { position, isOpen, actions } = contextMenu;
+const trigger = ref<HTMLElement>();
 const emit = defineEmits<{
 	action: [action: ContextMenuAction, nodeIds: string[], groupId?: string];
 }>();
 const { APP_Z_INDEXES } = useStyles();
 
-// When a selected action hands off to another floating layer (e.g. the sticky
-// color popover), we must not restore focus as the menu closes — otherwise
-// the restore lands outside the freshly-opened layer and dismisses it.
-let suppressRestoreFocus = false;
-// Dropdown content would move focus to the hidden trigger on close. Restore
-// the element that was focused before the menu opened instead, and only when
-// the user did not click elsewhere, which already moved focus itself.
-let previouslyFocused: HTMLElement | null = null;
-let interactedOutside = false;
+watch(
+	isOpen,
+	(open) => {
+		if (!open) return;
 
-watch(isOpen, (open) => {
-	if (!open) return;
-	previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-	interactedOutside = false;
-});
+		void nextTick(() => {
+			const [clientX, clientY] = position.value;
+			trigger.value?.dispatchEvent(
+				new PointerEvent('contextmenu', {
+					bubbles: true,
+					cancelable: true,
+					button: 2,
+					clientX,
+					clientY,
+				}),
+			);
+		});
+	},
+	{ flush: 'post' },
+);
+
+// When a selected action hands off to another floating layer (e.g. the sticky
+// color popover), we must stop Reka from restoring focus as the menu closes —
+// otherwise the restore lands outside the freshly-opened layer and dismisses it.
+let suppressRestoreFocus = false;
 
 function onActionSelect(item: ContextMenuAction) {
 	suppressRestoreFocus = isFocusHandoffAction(item);
@@ -49,16 +56,11 @@ function onActionSelect(item: ContextMenuAction) {
 	emit('action', item, contextMenu.targetNodeIds.value, contextMenu.targetGroupId.value);
 }
 
-function onInteractOutside() {
-	interactedOutside = true;
-}
-
 function onCloseAutoFocus(event: Event) {
-	event.preventDefault();
-	const restore = !suppressRestoreFocus && !interactedOutside;
+	if (suppressRestoreFocus) {
+		event.preventDefault();
+	}
 	suppressRestoreFocus = false;
-	if (restore) previouslyFocused?.focus();
-	previouslyFocused = null;
 }
 
 function onOpenChange(open: boolean) {
@@ -70,9 +72,10 @@ function onOpenChange(open: boolean) {
 
 <template>
 	<Teleport v-if="isOpen" to="body">
-		<DropdownMenuRoot :open="isOpen" :modal="false" @update:open="onOpenChange">
-			<DropdownMenuTrigger as-child>
+		<ContextMenuRoot :modal="false" @update:open="onOpenChange">
+			<ContextMenuTrigger as-child>
 				<div
+					ref="trigger"
 					:class="$style.trigger"
 					:style="{
 						left: `${position[0]}px`,
@@ -80,21 +83,17 @@ function onOpenChange(open: boolean) {
 						zIndex: APP_Z_INDEXES.CONTEXT_MENU,
 					}"
 				/>
-			</DropdownMenuTrigger>
-			<DropdownMenuPortal>
-				<DropdownMenuContent
+			</ContextMenuTrigger>
+			<ContextMenuPortal>
+				<ContextMenuContent
 					:class="$style.content"
 					data-test-id="context-menu"
 					:style="{ zIndex: APP_Z_INDEXES.CONTEXT_MENU }"
-					side="right"
-					align="start"
-					:side-offset="2"
 					@close-auto-focus="onCloseAutoFocus"
-					@interact-outside="onInteractOutside"
 				>
 					<template v-for="item in actions" :key="item.id">
-						<DropdownMenuSeparator v-if="item.divided" :class="$style.separator" />
-						<DropdownMenuItem
+						<ContextMenuSeparator v-if="item.divided" :class="$style.separator" />
+						<ContextMenuItem
 							:class="[
 								$style.item,
 								$style.itemContainer,
@@ -115,11 +114,11 @@ function onOpenChange(open: boolean) {
 								v-bind="item.shortcut"
 								:class="$style.shortcut"
 							/>
-						</DropdownMenuItem>
+						</ContextMenuItem>
 					</template>
-				</DropdownMenuContent>
-			</DropdownMenuPortal>
-		</DropdownMenuRoot>
+				</ContextMenuContent>
+			</ContextMenuPortal>
+		</ContextMenuRoot>
 	</Teleport>
 </template>
 
@@ -144,7 +143,7 @@ function onOpenChange(open: boolean) {
 	width: fit-content;
 	min-width: calc(var(--n8n--dropdown-menu-width) / 4);
 	max-width: var(--n8n--dropdown-menu-width);
-	max-height: var(--reka-dropdown-menu-content-available-height);
+	max-height: var(--reka-context-menu-content-available-height);
 	overflow-y: auto;
 	border-radius: var(--radius--xs);
 	background-color: var(--background--surface);
@@ -175,10 +174,10 @@ function onOpenChange(open: boolean) {
 	color: var(--text-color);
 
 	&:not([data-disabled]) {
-		cursor: pointer;
-
+		&:hover,
 		&[data-highlighted] {
 			background-color: var(--background--hover);
+			cursor: pointer;
 		}
 	}
 

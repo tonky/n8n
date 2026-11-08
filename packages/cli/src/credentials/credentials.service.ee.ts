@@ -1,4 +1,4 @@
-import type { CredentialConnectionStatus, CredentialTransferPreview } from '@n8n/api-types';
+import type { CredentialConnectionStatus } from '@n8n/api-types';
 import { LicenseState } from '@n8n/backend-common';
 import type { User } from '@n8n/db';
 import {
@@ -16,7 +16,7 @@ import { NotFoundError } from '@n8n/errors';
 import { TransferCredentialError } from '@/errors/response-errors/transfer-credential.error';
 import { ExternalSecretsConfig } from '@/modules/external-secrets.ee/external-secrets.config';
 import { SecretsProviderAccessCheckService } from '@/modules/external-secrets.ee/secret-provider-access-check.service.ee';
-import { hasCheckErrors, PolicyEnforcementService } from '@/policy/policy-enforcement.service';
+import { PolicyEnforcementService } from '@/policy/policy-enforcement.service';
 import { OwnershipService } from '@/services/ownership.service';
 import { ProjectService } from '@/services/project.service.ee';
 import { RoleService, CredentialsFinderService } from '@n8n/backend-services';
@@ -193,45 +193,6 @@ export class EnterpriseCredentialsService {
 		return { ...enriched };
 	}
 
-	/**
-	 * What a move into `destinationProjectId` would restrict. Refuses what the move refuses for
-	 * other reasons, so it never warns about a move that cannot happen.
-	 */
-	async previewTransfer(
-		user: User,
-		credentialId: string,
-		destinationProjectId: string,
-	): Promise<CredentialTransferPreview> {
-		const credential = await this.credentialsFinderService.findCredentialForUser(
-			credentialId,
-			user,
-			['credential:move'],
-		);
-		NotFoundError.isDefinedAndNotNull(
-			credential,
-			`Could not find the credential with the id "${credentialId}". Make sure you have the permission to move it.`,
-		);
-
-		const destinationProject = await this.projectService.getProjectWithScope(
-			user,
-			destinationProjectId,
-			['credential:create'],
-		);
-		NotFoundError.isDefinedAndNotNull(
-			destinationProject,
-			`Could not find project with the id "${destinationProjectId}". Make sure you have the permission to create credentials in it.`,
-		);
-
-		await this.assertCanTransfer(user, credential, destinationProject);
-
-		const decision = await this.policyEnforcementService.evaluateCredentialTransfer({
-			credential: { id: credential.id, type: credential.type },
-			targetProjectId: destinationProject.id,
-		});
-
-		return { restricted: decision.violations, checkFailed: hasCheckErrors(decision) };
-	}
-
 	async transferOne(user: User, credentialId: string, destinationProjectId: string) {
 		// 1. get credential
 		const credential = await this.credentialsFinderService.findCredentialForUser(
@@ -244,7 +205,17 @@ export class EnterpriseCredentialsService {
 			`Could not find the credential with the id "${credentialId}". Make sure you have the permission to move it.`,
 		);
 
-		// 2. get destination project
+		// 2. get owner-sharing
+		const ownerSharing = credential.shared.find((s) => s.role === 'credential:owner');
+		NotFoundError.isDefinedAndNotNull(
+			ownerSharing,
+			`Could not find owner for credential "${credential.id}"`,
+		);
+
+		// 3. get source project
+		const sourceProject = ownerSharing.project;
+
+		// 4. get destination project
 		const destinationProject = await this.projectService.getProjectWithScope(
 			user,
 			destinationProjectId,
@@ -255,48 +226,8 @@ export class EnterpriseCredentialsService {
 			`Could not find project with the id "${destinationProjectId}". Make sure you have the permission to create credentials in it.`,
 		);
 
-		// 3. checks
-		await this.assertCanTransfer(user, credential, destinationProject);
-
-		// 4. projects losing access — the move drops all their sharings
-		const affectedProjectIds = [...new Set(credential.shared.map((s) => s.projectId))];
-
-		await this.sharedCredentialsRepository.manager.transaction(async (trx) => {
-			// 5. transfer the credential
-			// remove all sharings
-			await trx.remove(credential.shared);
-
-			// create new owner-sharing
-			await trx.save(
-				trx.create(SharedCredentials, {
-					credentialsId: credential.id,
-					projectId: destinationProject.id,
-					role: 'credential:owner',
-				}),
-			);
-
-			// 6. drop connections for members who lost access in the new project
-			await this.connectionStatusProxy.cleanupOrphanedEntriesForProjects(
-				credential.id,
-				affectedProjectIds,
-				trx,
-			);
-		});
-	}
-
-	/** The move's refusals that are not policies. The preview runs them too. */
-	private async assertCanTransfer(
-		user: User,
-		credential: CredentialsEntity,
-		destinationProject: Project,
-	): Promise<void> {
-		const ownerSharing = credential.shared.find((s) => s.role === 'credential:owner');
-		NotFoundError.isDefinedAndNotNull(
-			ownerSharing,
-			`Could not find owner for credential "${credential.id}"`,
-		);
-
-		if (ownerSharing.project.id === destinationProject.id) {
+		// 5. checks
+		if (sourceProject.id === destinationProject.id) {
 			throw new TransferCredentialError(
 				"You can't transfer a credential into the project that's already owning it.",
 			);
@@ -309,7 +240,15 @@ export class EnterpriseCredentialsService {
 			await this.credentialsService.ensureCanManageEndUserCredential(user, destinationProject.id);
 		}
 
-		// The destination project needs access to every external secret provider it references.
+		await this.policyEnforcementService.enforceCredentialTransfer(
+			{
+				credential: { id: credential.id, type: credential.type },
+				targetProjectId: destinationProject.id,
+			},
+			{ kind: 'user', user },
+		);
+
+		// 6. validate that the destination project has access to all external secret providers
 		if (
 			this.licenseState.isExternalSecretsLicensed() &&
 			this.externalSecretsConfig.externalSecretsForProjects
@@ -322,5 +261,30 @@ export class EnterpriseCredentialsService {
 				'transfer',
 			);
 		}
+
+		// 7. projects losing access — the move drops all their sharings
+		const affectedProjectIds = [...new Set(credential.shared.map((s) => s.projectId))];
+
+		await this.sharedCredentialsRepository.manager.transaction(async (trx) => {
+			// 8. transfer the credential
+			// remove all sharings
+			await trx.remove(credential.shared);
+
+			// create new owner-sharing
+			await trx.save(
+				trx.create(SharedCredentials, {
+					credentialsId: credential.id,
+					projectId: destinationProject.id,
+					role: 'credential:owner',
+				}),
+			);
+
+			// 9. drop connections for members who lost access in the new project
+			await this.connectionStatusProxy.cleanupOrphanedEntriesForProjects(
+				credential.id,
+				affectedProjectIds,
+				trx,
+			);
+		});
 	}
 }

@@ -19,7 +19,6 @@ import {
 	microsoftApiRequestAllItems,
 	SERVICE_PRINCIPAL_AUTH,
 } from '../transport';
-import { CHAT_SUBSCRIPTION_FORBIDDEN } from '../transport/forbiddenHints';
 
 export function generateClientState(): string {
 	return randomBytes(32).toString('hex');
@@ -452,12 +451,17 @@ export async function getResourcePath(
 /**
  * Chat triggers subscribe to `/me/chats[...]`, which has no app-only equivalent.
  * Throws a static `NodeOperationError` before composing any `/me` path under the
- * Service Principal credential. The copy lives on the chat 403 hint, so the two
- * cannot drift.
+ * Service Principal credential.
  */
 function throwChatTriggerUnsupported(this: IHookFunctions | IWebhookFunctions): never {
-	const { message, description } = CHAT_SUBSCRIPTION_FORBIDDEN;
-	throw new NodeOperationError(this.getNode(), message, { description });
+	throw new NodeOperationError(
+		this.getNode(),
+		'Chat triggers are not available with the Service Principal credential',
+		{
+			description:
+				'App-only Microsoft Graph cannot subscribe to the chats of a signed-in user. Use an OAuth2 credential for chat triggers.',
+		},
+	);
 }
 
 /**

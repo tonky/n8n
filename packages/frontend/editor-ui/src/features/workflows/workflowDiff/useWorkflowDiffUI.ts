@@ -228,6 +228,23 @@ export function useWorkflowDiffUI(options: UseWorkflowDiffUIOptions) {
 		return !sourceExists && targetExists;
 	});
 
+	// Dropdown modifiers for popper
+	const modifiers = [
+		{
+			name: 'preventOverflow',
+			options: {
+				boundary: 'viewport',
+				padding: 8,
+			},
+		},
+		{
+			name: 'offset',
+			options: {
+				offset: [80, 8],
+			},
+		},
+	];
+
 	function setSelectedDetailId(nodeId: string | undefined) {
 		selectedDetailId.value = nodeId;
 	}
@@ -244,6 +261,7 @@ export function useWorkflowDiffUI(options: UseWorkflowDiffUIOptions) {
 		nodeDiffs,
 		changesCount,
 		isSourceWorkflowNew,
+		modifiers,
 		setSelectedDetailId,
 	};
 }

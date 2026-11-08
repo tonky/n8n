@@ -8,9 +8,9 @@ import {
  * Decides whether to publish, unpublish, or leave publishing unchanged for one
  * imported workflow. Each policy is a pure function of import context — no writes.
  */
-const PUBLISHING_POLICIES: Record<
+const WORKFLOW_PUBLISHING_POLICIES: Record<
 	WorkflowPublishingPolicy,
-	(context: Omit<WorkflowPublishingContext, 'isArchived'>) => PublishingAction
+	(context: WorkflowPublishingContext) => PublishingAction
 > = {
 	[WorkflowPublishingPolicy.PreservePublishedState]: ({
 		status,
@@ -44,13 +44,5 @@ export function decideWorkflowPublishingAction(
 		return context.currentlyPublished ? 'unpublish' : 'noop';
 	}
 
-	return decidePublishingAction(policy, context);
-}
-
-export function decidePublishingAction(
-	policy: WorkflowPublishingPolicy,
-	context: Omit<WorkflowPublishingContext, 'isArchived'>,
-): PublishingAction {
-	if (context.status === 'skipped') return 'noop';
-	return PUBLISHING_POLICIES[policy](context);
+	return WORKFLOW_PUBLISHING_POLICIES[policy](context);
 }

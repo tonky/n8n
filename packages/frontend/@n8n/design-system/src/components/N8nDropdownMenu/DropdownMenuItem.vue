@@ -593,11 +593,11 @@ onBeforeUnmount(() => {
 	color: var(--text-color);
 
 	&:not([data-disabled]) {
-		cursor: pointer;
-
+		&:hover,
 		&[data-highlighted],
 		&[data-virtual-highlighted] {
 			background-color: var(--background--hover);
+			cursor: pointer;
 		}
 	}
 
@@ -607,6 +607,7 @@ onBeforeUnmount(() => {
 	}
 
 	&.destructive.destructive:not([data-disabled]) {
+		&:hover,
 		&[data-highlighted],
 		&[data-virtual-highlighted] {
 			.item-label.item-label {
@@ -621,23 +622,10 @@ onBeforeUnmount(() => {
 		}
 	}
 
-	// Searchable menus keep Reka focus on the row under the pointer.
-	// Hide that highlight when keyboard focus is on a different row.
 	:global([data-menu-items]:has([data-virtual-highlighted])) &:not([data-virtual-highlighted]) {
+		&:hover,
 		&[data-highlighted] {
 			background-color: transparent;
-
-			&.destructive.destructive {
-				.item-label.item-label {
-					color: var(--text-color);
-				}
-
-				.icon.icon,
-				.item-check.item-check,
-				.sub-indicator.sub-indicator {
-					color: var(--color--text--tint-1) !important;
-				}
-			}
 		}
 	}
 }

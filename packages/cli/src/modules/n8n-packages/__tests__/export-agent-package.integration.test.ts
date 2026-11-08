@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { mock } from 'vitest-mock-extended';
 
+import { setSkillsHubFlag } from '@/modules/skills/__tests__/test-utils/skills-hub-flag';
 import { registerSkillAgentsProvider } from '@/modules/agents/register-skill-agents-provider';
 import { AgentSkillDependency } from '@/modules/agents/entities/agent-skill-dependency.entity';
 import { AgentVersionSkillDependency } from '@/modules/agents/entities/agent-version-skill-dependency.entity';
@@ -21,7 +22,7 @@ import { AgentTaskRepository } from '@/modules/agents/repositories/agent-task.re
 import { AgentRepository } from '@/modules/agents/repositories/agent.repository';
 import { SkillRepository } from '@/modules/skills/skill.repository';
 import { AgentSkillRepository } from '@/modules/agents/repositories/agent-skill.repository';
-import { fromAgentDocument } from '@/modules/agents/json-config/agent-document';
+import { withoutLegacySkillRefs } from '@/modules/agents/json-config/agent-document';
 import { toSkillContent } from '@/modules/skills/skill.service';
 import type { NodeTypes } from '@/node-types';
 
@@ -38,6 +39,7 @@ import type { ManifestEntry, PackageManifest } from '../spec/manifest.schema';
 import { serializedAgentSchema, type SerializedAgent } from '../spec/serialized/agent.schema';
 import { looseAgentsFixture } from './fixtures/agent-package-fixtures';
 import { streamToBuffer } from './utils/tar-support';
+import { storedAgentConfig } from '@/modules/agents/__tests__/test-utils/stored-agent-config';
 
 const parser = new N8nPackageParser(mock<Logger>(), mock<NodeTypes>(), mock<WorkflowSerializer>());
 const limits = new PackageImportConfig();
@@ -70,6 +72,7 @@ async function readSourceRecords() {
 }
 
 beforeAll(async () => {
+	setSkillsHubFlag(true);
 	await testModules.loadModules(['skills', 'agents']);
 	await testDb.init();
 	registerSkillAgentsProvider();
@@ -86,7 +89,7 @@ beforeAll(async () => {
 		// A skill of a saved agent is a skills hub skill: it has its own id, no
 		// `enabled` flag on the ref, and no `allowedTools`.
 		const skillId = `${draft.id}_skill`;
-		const { allowedTools: _dropped, ...draftSkill } = draft.skills[skillId];
+		const { allowedTools: _dropped, ...draftSkill } = draft.skills['shared-skill'];
 		draft.skills = { [skillId]: draftSkill };
 		draft.config = {
 			...AgentJsonConfigSchema.parse(draft.config),
@@ -123,7 +126,7 @@ beforeAll(async () => {
 			id: draft.id,
 			name: draft.name,
 			projectId: project.id,
-			schema: draft.config && fromAgentDocument(draft.config).config,
+			schema: draft.config && withoutLegacySkillRefs(storedAgentConfig(draft.config)),
 			tools: draft.tools,
 			availableInMCP: draft.availableInMCP,
 			integrations: [{ type: 'slack', credentialId: 'current-slack' }],
@@ -141,7 +144,7 @@ beforeAll(async () => {
 		const history = await historyRepository.saveVersion({
 			versionId: `${agent.id}_published`,
 			agentId: agent.id,
-			schema: fromAgentDocument(published.config).config,
+			schema: withoutLegacySkillRefs(storedAgentConfig(published.config)),
 			tools: published.tools,
 			publishedBy: 'Package test',
 		});

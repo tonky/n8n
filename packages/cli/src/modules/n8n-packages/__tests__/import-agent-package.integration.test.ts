@@ -88,8 +88,8 @@ describe('Agent package import boundary', () => {
 			user: owner,
 			packageBuffer: await streamToBuffer(writer.finalize()),
 			projectConflictPolicy: 'overwrite',
-			conflictPolicy: 'new-version',
-			idPolicy: 'source',
+			workflowConflictPolicy: 'new-version',
+			workflowIdPolicy: 'source',
 			overwriteDeletionPolicy: 'hard-delete',
 		});
 		switch (entryPoint) {
@@ -140,9 +140,7 @@ describe('Agent package import boundary', () => {
 
 			await expect(result).rejects.toThrow(BadRequestError);
 			await expect(result).rejects.toThrow(
-				entryPoint === 'archive'
-					? 'The Agents module is not enabled.'
-					: 'Agent packages require the ordinary archive import endpoint.',
+				'Importing packages that contain Agents is not supported yet.',
 			);
 			expect(await destinationRecords()).toEqual(before);
 		},
@@ -156,7 +154,7 @@ describe('Agent package import boundary', () => {
 					selectedProjectId: 'unused',
 					selectedWorkflowIds: [],
 				}),
-			).rejects.toThrow('Agent packages require the ordinary archive import endpoint.');
+			).rejects.toThrow('Importing packages that contain Agents is not supported yet.');
 		},
 	);
 
@@ -205,9 +203,6 @@ describe('Agent package import boundary', () => {
 		expect(result.workflows).toMatchObject([
 			{ sourceWorkflowId: 'workflow_source', name: 'Lookup', status: 'created' },
 		]);
-		expect(result.agents).toEqual([]);
-		expect(result.bindings.agents).toEqual({});
-		expect(result.counts.agents).toEqual({ created: 0, updated: 0, skipped: 0 });
 		expect(
 			await Container.get(WorkflowRepository).findOneBy({ id: 'workflow_source' }),
 		).toMatchObject({ name: 'Lookup' });

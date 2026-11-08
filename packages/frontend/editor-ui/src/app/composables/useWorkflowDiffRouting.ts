@@ -8,7 +8,6 @@ import {
 	SOURCE_CONTROL_PULL_MODAL_KEY,
 	SOURCE_CONTROL_PUSH_MODAL_KEY,
 } from '@/features/integrations/sourceControl.ee/sourceControl.constants';
-import { usePromotionsEnabled } from '@/features/shared/promotions/usePromotionsEnabled';
 
 /**
  * Composable that handles source control modal state based on URL query parameters
@@ -19,7 +18,6 @@ import { usePromotionsEnabled } from '@/features/shared/promotions/usePromotions
 export function useWorkflowDiffRouting() {
 	const route = useRoute();
 	const uiStore = useUIStore();
-	const { isEnabled: isPromotionsEnabled } = usePromotionsEnabled();
 
 	// Create event buses for modal communication
 	const workflowDiffEventBus = createEventBus();
@@ -111,22 +109,20 @@ export function useWorkflowDiffRouting() {
 	};
 
 	const handleRouteChange = () => {
-		// On Environments v2 the query opens no v1 modal: a v1 pull would overwrite v2-managed resources.
-		const query: typeof route.query = isPromotionsEnabled.value ? {} : route.query;
-		const diffWorkflowId = typeof query.diff === 'string' ? query.diff : undefined;
+		const diffWorkflowId = typeof route.query.diff === 'string' ? route.query.diff : undefined;
 		const diffWorkflowStatus =
-			diffWorkflowId && isSourceControlledFileStatus(query.workflowStatus)
-				? query.workflowStatus
+			diffWorkflowId && isSourceControlledFileStatus(route.query.workflowStatus)
+				? route.query.workflowStatus
 				: undefined;
 		const direction =
-			typeof query.direction === 'string' &&
-			(query.direction === 'push' || query.direction === 'pull')
-				? query.direction
+			typeof route.query.direction === 'string' &&
+			(route.query.direction === 'push' || route.query.direction === 'pull')
+				? route.query.direction
 				: undefined;
 		const sourceControl =
-			typeof query.sourceControl === 'string' &&
-			(query.sourceControl === 'push' || query.sourceControl === 'pull')
-				? query.sourceControl
+			typeof route.query.sourceControl === 'string' &&
+			(route.query.sourceControl === 'push' || route.query.sourceControl === 'pull')
+				? route.query.sourceControl
 				: undefined;
 
 		handleDiffModal(diffWorkflowId, diffWorkflowStatus, direction);
@@ -135,12 +131,7 @@ export function useWorkflowDiffRouting() {
 
 	// Watch route changes and handle modal state
 	watch(
-		() => [
-			route.query.diff,
-			route.query.direction,
-			route.query.sourceControl,
-			isPromotionsEnabled.value,
-		],
+		() => [route.query.diff, route.query.direction, route.query.sourceControl],
 		handleRouteChange,
 		{ immediate: true },
 	);

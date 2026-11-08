@@ -20,8 +20,6 @@ export async function reconcileStaleCredentialPlan(args: {
 	logger: OrchestrationContext['logger'];
 	/** Host-resolved model used when no eval model API key is configured in the environment. */
 	fallbackModelConfig?: OrchestrationContext['modelId'];
-	/** Transport for the classification model call. */
-	modelFetch?: OrchestrationContext['modelFetch'];
 }): Promise<WorkflowBuildOutcome> {
 	const {
 		buildOutcome,
@@ -30,7 +28,6 @@ export async function reconcileStaleCredentialPlan(args: {
 		workflowTaskService,
 		logger,
 		fallbackModelConfig,
-		modelFetch,
 	} = args;
 	// Reconciliation can change something only when the outcome holds mocked
 	// credentials or an AI root simulated for missing model credentials.
@@ -49,7 +46,6 @@ export async function reconcileStaleCredentialPlan(args: {
 			workflow,
 			availableCredentials,
 			fallbackModelConfig,
-			modelFetch,
 		});
 		if (!patch) return buildOutcome;
 

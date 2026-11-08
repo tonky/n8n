@@ -123,7 +123,6 @@ function useInventory(inventory: Partial<PackageDirectoryInventory>) {
 		credentials: [],
 		variables: [],
 		dataTables: [],
-		folders: [],
 		...inventory,
 	});
 }
@@ -261,7 +260,6 @@ describe('PromotionBindingPreflightService', () => {
 			],
 			variables: [],
 			dataTables: [],
-			folders: [],
 		};
 		const selection = { selectedProjectId: PROJECT_A.id, selectedWorkflowIds: ['wf-1'] };
 		inventoryReader.read.mockResolvedValue(inventory);

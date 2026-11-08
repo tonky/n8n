@@ -28,8 +28,6 @@ import { useProjectsStore } from '@/features/collaboration/projects/projects.sto
 import PromotionBlockers from '../components/preview/PromotionBlockers.vue';
 import PromotionChangeCards from '../components/preview/PromotionChangeCards.vue';
 import PromotionResourceTree from '../components/preview/PromotionResourceTree.vue';
-import PromotionReviewBlocker from '../components/preview/PromotionReviewBlocker.vue';
-import PromoteSelectionDialog from '../components/PromoteSelectionDialog.vue';
 import { usePromotionOperation } from '../composables/usePromotionOperation';
 import { usePromotionResourceDetails } from '../composables/usePromotionResourceDetails';
 import { usePromotionPreview } from '../composables/usePromotionPreview';
@@ -40,7 +38,8 @@ import {
 	indexBlockers,
 	isBlocking,
 	listBlockers,
-	crossProjectMoveBlockers,
+	locationBlocker,
+	locationConflicts,
 	toOperationRequest,
 	scopeCheck,
 	touchesDestructiveChange,
@@ -71,23 +70,25 @@ const {
 	preview,
 	check,
 	graph,
-	environment,
 	repositoryName,
 	refreshing,
 	refreshFailed,
 	lastRefreshedAt,
 	refresh,
 } = usePromotionPreview(projectId, direction);
-const promoteEnvironment = computed(() =>
-	environment.value?.direction === 'promote' ? environment.value : null,
-);
 // The page shows and enforces only the blockers of the workflows it lists.
 const scopedCheck = computed(() =>
 	check.value && graph.value ? scopeCheck(check.value, graph.value) : null,
 );
+// Apply cannot move a workflow or a folder to another folder. The check does not report this,
+// but the preview shows it. A moved folder stops the whole apply, so it blocks every selection.
+const locations = computed(() =>
+	props.direction === 'apply' && graph.value ? locationConflicts(graph.value) : [],
+);
+const folderConflicts = computed(() => locations.value.filter(({ type }) => type === 'folder'));
 const blockerList = computed(() => [
 	...(scopedCheck.value ? listBlockers(scopedCheck.value) : []),
-	...(props.direction === 'promote' && graph.value ? crossProjectMoveBlockers(graph.value) : []),
+	...locations.value.map(locationBlocker),
 ]);
 const blockers = computed(() => indexBlockers(blockerList.value));
 const operation = usePromotionOperation(projectId, direction, { preview, check, refresh });
@@ -190,20 +191,13 @@ const hasSelectedBlocked = computed(() =>
 	[...selection.selected.value].some((key) => blockers.value.blocked.has(key)),
 );
 const submitBlockedReason = computed(() => {
-	// A folder that moved to another project stops the whole apply, so it blocks every selection.
-	const movedFolders = scopedCheck.value?.movedFolders ?? [];
-	if (movedFolders.length > 0) {
+	if (folderConflicts.value.length > 0) {
 		return i18n.baseText('promotions.preview.submit.folderMoved', {
-			adjustToNumber: movedFolders.length,
-			interpolate: { folders: movedFolders.map(({ name }) => `"${name}"`).join(', ') },
+			adjustToNumber: folderConflicts.value.length,
+			interpolate: { folders: folderConflicts.value.map(({ name }) => `"${name}"`).join(', ') },
 		});
 	}
-	if (!hasSelectedBlocked.value) return undefined;
-	return i18n.baseText(
-		props.direction === 'promote'
-			? 'promotions.preview.submit.blockedPromote'
-			: 'promotions.preview.submit.blocked',
-	);
+	return hasSelectedBlocked.value ? i18n.baseText('promotions.preview.submit.blocked') : undefined;
 });
 const canSubmit = computed(
 	() =>
@@ -223,28 +217,6 @@ const submitLabel = computed(() => {
 		interpolate: { count: String(includedChanges.value) },
 	});
 });
-
-// Promote asks for the optional commit message first. Apply confirms inside the operation.
-const promoteDialogOpen = ref(false);
-// Lives here, not in the dialog, so the typed message survives a failed promote.
-const promoteCommitMessage = ref('');
-// The router reuses this view across projects, so a draft must not carry over.
-watch(projectId, () => {
-	promoteCommitMessage.value = '';
-});
-
-async function onSubmit() {
-	if (props.direction === 'promote') {
-		promoteDialogOpen.value = true;
-		return;
-	}
-	await operation.submit(request.value);
-}
-
-async function onPromoteConfirm(commitMessage: string | undefined) {
-	promoteDialogOpen.value = false;
-	await operation.submit({ ...request.value, commitMessage });
-}
 
 type PreviewTab = 'changes' | 'blockers';
 const activeTab = ref<PreviewTab>('changes');
@@ -271,11 +243,6 @@ const tabs = computed(() => [
 			]
 		: []),
 ]);
-
-// Promote has no Blockers tab, so the tree's blocker icon only opens it on Apply.
-function showBlockers() {
-	if (showBlockersTab.value) activeTab.value = 'blockers';
-}
 
 async function inspectFromBlockers(key: string) {
 	activeTab.value = 'changes';
@@ -354,7 +321,7 @@ const treeResizer = useResizablePanel({
 						:disabled="!canSubmit"
 						:loading="operation.isRunning.value"
 						data-test-id="promotion-preview-submit"
-						@click="onSubmit"
+						@click="operation.submit(request)"
 					>
 						{{ submitLabel }}
 					</N8nButton>
@@ -398,7 +365,6 @@ const treeResizer = useResizablePanel({
 			data-test-id="promotion-preview-error"
 			@click:button="refresh"
 		/>
-		<PromotionReviewBlocker v-else-if="state === 'blocked'" :class="$style.state" />
 		<N8nEmptyState
 			v-else-if="state === 'empty'"
 			:class="$style.state"
@@ -446,7 +412,7 @@ const treeResizer = useResizablePanel({
 						:locked="operation.isBusy.value"
 						:direction="direction"
 						:blockers="blockers"
-						@show-blockers="showBlockers"
+						@show-blockers="activeTab = 'blockers'"
 						@toggle="selection.toggle"
 						@toggle-container="selection.toggleAllInside"
 						@select-all="selection.selectAll"
@@ -486,18 +452,13 @@ const treeResizer = useResizablePanel({
 						:order="order"
 						:graph="graph"
 						:direction="direction"
-						:selected="selection.selected.value"
 						:inclusion="selection.inclusion.value"
-						:disabled="blockers.blocked"
-						:locked="operation.isBusy.value"
 						:entries="details.entries.value"
 						:inspected-key="inspectedKey"
 						:blockers="blockers"
 						@retry="details.retry"
 						@refresh="refresh"
 						@inspect="inspect"
-						@toggle="selection.toggle"
-						@toggle-container="selection.toggleAllInside"
 					/>
 				</section>
 			</div>
@@ -506,6 +467,7 @@ const treeResizer = useResizablePanel({
 				v-show="activeTab === 'blockers'"
 				:class="$style.blockers"
 				:check="scopedCheck"
+				:locations="locations"
 				:busy="operation.isBusy.value"
 				@refresh="refresh"
 				@inspect="inspectFromBlockers"
@@ -515,17 +477,6 @@ const treeResizer = useResizablePanel({
 				</N8nCallout>
 			</PromotionBlockers>
 		</template>
-
-		<PromoteSelectionDialog
-			v-if="promoteDialogOpen && promoteEnvironment"
-			v-model:open="promoteDialogOpen"
-			v-model:commit-message="promoteCommitMessage"
-			:change-count="includedChanges"
-			:base-branch-name="promoteEnvironment.settings.baseBranchName"
-			:create-branch-on-promotion="promoteEnvironment.settings.createBranchOnPromotion"
-			:provider-type="promoteEnvironment.provider.type"
-			@confirm="onPromoteConfirm"
-		/>
 	</div>
 </template>
 

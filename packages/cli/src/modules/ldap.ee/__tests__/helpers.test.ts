@@ -1,12 +1,5 @@
 import { mockInstance } from '@n8n/backend-test-utils';
-import {
-	generateNanoId,
-	AuthIdentity,
-	Person,
-	PersonRepository,
-	User,
-	UserRepository,
-} from '@n8n/db';
+import { generateNanoId, AuthIdentity, User, UserRepository } from '@n8n/db';
 import type { EntityManager } from '@n8n/typeorm';
 import type { Mock } from 'vitest';
 import { mock } from 'vitest-mock-extended';
@@ -14,7 +7,6 @@ import { mock } from 'vitest-mock-extended';
 import * as helpers from '../helpers.ee';
 
 const userRepository = mockInstance(UserRepository);
-const personRepository = mockInstance(PersonRepository);
 
 describe('Ldap/helpers', () => {
 	describe('createFilter', () => {
@@ -83,13 +75,13 @@ describe('Ldap/helpers', () => {
 			//
 			// ARRANGE
 			//
-			const person = Object.assign(new Person(), { id: generateNanoId() });
+			const user = Object.assign(new User(), { id: generateNanoId() } as User);
 			const authIdentity = Object.assign(new AuthIdentity(), {
-				user: { id: person.id },
+				user: { id: user.id },
 			} as AuthIdentity);
 			const data: Partial<User> = { firstName: 'Nathan', lastName: 'Nathaniel' };
 
-			personRepository.findById.mockResolvedValueOnce(person);
+			userRepository.findOneBy.mockResolvedValueOnce(user);
 
 			//
 			// ACT
@@ -99,9 +91,11 @@ describe('Ldap/helpers', () => {
 			//
 			// ASSERT
 			//
-			expect(personRepository.save).toHaveBeenCalledWith(
-				expect.objectContaining({ id: person.id, ...data }),
+			expect(userRepository.save).toHaveBeenCalledWith(
+				{ id: user.id, ...data },
+				{ transaction: true },
 			);
+			expect(userRepository.update).not.toHaveBeenCalled();
 		});
 	});
 
@@ -214,7 +208,7 @@ describe('Ldap/helpers', () => {
 			//
 			// ASSERT
 			//
-			expect(transactionManager.save).toHaveBeenCalledWith(Person, existingUser);
+			expect(transactionManager.save).toHaveBeenCalledWith(User, existingUser);
 			expect(existingUser.email).toBe('new@example.com');
 		});
 
@@ -293,7 +287,7 @@ describe('Ldap/helpers', () => {
 			//
 			// ASSERT
 			//
-			expect(transactionManager.save).toHaveBeenCalledWith(Person, existingLocalUser);
+			expect(transactionManager.save).toHaveBeenCalledWith(User, existingLocalUser);
 			expect(existingLocalUser.firstName).toBe('Jane');
 			expect(existingLocalUser.lastName).toBe('Doe');
 		});

@@ -35,6 +35,8 @@ const INDEX_LAZY_REQUIRE_TEST_SPECS = new Set([
 	'./runtime/liveness-policy',
 	'./workflow-loop',
 	'./workflow-loop/runtime',
+	'./planned-tasks/planned-task-service',
+	'./planned-tasks/planned-task-permissions',
 ]);
 
 /**

@@ -56,7 +56,6 @@ const EMPTY_RESPONSE_ERROR_FINISH_REASONS = new Set([
 	'length',
 	'other',
 	'unknown',
-	'interrupted',
 	'content-filter',
 ]);
 

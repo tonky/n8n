@@ -394,10 +394,9 @@ export class ExecutionRecorder {
 
 	/**
 	 * Record a custom host event at its position in the turn. The payload is
-	 * stored as the host sent it. Host code builds it, not the model, and the
-	 * secret heuristics of the other recorded values damage ordinary fields
-	 * such as `credentialType`. When the turn already has an event with the
-	 * same name and key, the new payload replaces the old one in its position.
+	 * sanitized like other recorded values, because history returns it to the
+	 * client as it is stored. When the turn already has an event with the same
+	 * name and key, the new payload replaces the old one in its position.
 	 * Returns the recorded event, so that the live stream can send the same
 	 * payload.
 	 */
@@ -406,15 +405,14 @@ export class ExecutionRecorder {
 		payload: unknown,
 		key?: string,
 	): Extract<TimelineEvent, { type: 'host-event' }> {
-		// Copy, so a host that changes the object later does not change the record.
-		const recorded = structuredClone(payload);
+		const sanitized = sanitizeExecutionLogValue(payload);
 		if (key !== undefined) {
 			const index = this.timeline.findIndex(
 				(item) => item.type === 'host-event' && item.name === name && item.key === key,
 			);
 			const existing = this.timeline[index];
 			if (existing?.type === 'host-event') {
-				const replaced = { ...existing, payload: recorded };
+				const replaced = { ...existing, payload: sanitized };
 				this.timeline[index] = replaced;
 				// Text or reasoning can still stream here, so keep it in the snapshot.
 				this.emitTimelineSnapshot(this.activeBlock());
@@ -427,7 +425,7 @@ export class ExecutionRecorder {
 			type: 'host-event',
 			name,
 			...(key !== undefined ? { key } : {}),
-			payload: recorded,
+			payload: sanitized,
 			timestamp: Date.now(),
 		};
 		this.appendCompletedEvent(event);
@@ -500,15 +498,6 @@ export class ExecutionRecorder {
 					chunk.canceled === true,
 				);
 				break;
-			case 'usage':
-				this.usage = {
-					promptTokens: chunk.usage.promptTokens,
-					completionTokens: chunk.usage.completionTokens,
-					totalTokens: chunk.usage.totalTokens,
-				};
-				this.model = chunk.model;
-				this.totalCost = chunk.usage.cost ?? null;
-				break;
 			case 'finish':
 				this.flushReasoningBuffer();
 				this.flushTextBuffer();
@@ -527,11 +516,11 @@ export class ExecutionRecorder {
 						completionTokens: chunk.usage.completionTokens,
 						totalTokens: chunk.usage.totalTokens,
 					};
-					this.totalCost = chunk.usage.cost ?? null;
 					this.cacheReadTokens = chunk.usage.inputTokenDetails?.cacheRead ?? null;
 					this.cacheWriteTokens = chunk.usage.inputTokenDetails?.cacheWrite ?? null;
 				}
-				this.model = chunk.model ?? this.model;
+				this.model = chunk.model ?? null;
+				this.totalCost = chunk.usage?.cost ?? null;
 				break;
 			case 'tool-call-suspended':
 				this.flushReasoningBuffer();

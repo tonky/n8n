@@ -95,15 +95,11 @@ export class StreamSink implements RunOutputSink<void> {
 		private readonly options: ExecutionOptions | undefined,
 	) {}
 
-	async reportUsage(usage: TokenUsage | undefined): Promise<void> {
+	reportUsage(usage: TokenUsage | undefined): void {
 		this.lastUsage = usage;
 		// The just-completed turn is now folded into `usage`; its raw capture is
 		// stale and must not be re-added to a later between-turns abort total.
 		this.rawUsageReader = undefined;
-		const pricedUsage = this.services.applyCost(usage);
-		if (pricedUsage) {
-			await this.guard.write({ type: 'usage', usage: pricedUsage, model: this.services.modelId });
-		}
 	}
 
 	/**

@@ -1,4 +1,8 @@
-// Use subpath entries to avoid loading all components in the preview.
+// Import from the subpath entries, not the '@n8n/design-system' barrel: preview.ts
+// is a TurboSnap global, and the barrel's `export * from './components'` would make
+// every component a global dep, forcing a full snapshot on any component change.
+// Both specifiers are published `exports` keys, so they resolve outside this
+// monorepo alias too.
 import { IconBodyLoaderKey, loadLucideIconBody } from '@n8n/design-system/icons/lucide';
 import { N8nPlugin } from '@n8n/design-system/plugin';
 import { i18nInstance } from '@n8n/i18n';
@@ -76,6 +80,9 @@ export const parameters = {
 	},
 	docs: {
 		container: ThemedDocsContainer,
+	},
+	chromatic: {
+		disableSnapshot: false,
 	},
 };
 

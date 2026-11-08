@@ -18,8 +18,6 @@ export type OperationRequest = {
 	workflowIds: string[];
 	/** True when the selection imports a data table change that removes values. */
 	confirmDestructiveChanges: boolean;
-	/** Promote only. When it is missing, the backend generates the message. */
-	commitMessage?: string;
 };
 
 /** Why the page reloaded the preview after an apply that wrote nothing. */
@@ -105,10 +103,9 @@ export function usePromotionOperation(
 		});
 	}
 
-	async function promote({ workflowIds, commitMessage }: OperationRequest) {
+	async function promote({ workflowIds }: OperationRequest) {
 		const result = await promoteProjectSelection(rootStore.publicApiContext, projectId.value, {
 			workflowIds,
-			...(commitMessage && { commitMessage }),
 		});
 		outcome.showPromoted(projectId.value, result);
 		await leave();

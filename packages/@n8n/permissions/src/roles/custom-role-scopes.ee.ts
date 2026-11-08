@@ -34,7 +34,6 @@ export const PROJECT_CUSTOM_ROLE_OPERATIONS = {
 		'publish',
 		'unpublish',
 		'export',
-		'import',
 	],
 	credential: [
 		'read',

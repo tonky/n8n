@@ -2,14 +2,13 @@ import type { RoleChangeRequestDto } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
 import { EventService, UrlService, RoleService, JwtService } from '@n8n/backend-services';
 import { GlobalConfig } from '@n8n/config';
-import type { Person, PublicUser } from '@n8n/db';
+import type { PublicUser } from '@n8n/db';
 import {
 	AuthIdentity,
 	Project,
 	ProjectRelation,
 	User,
 	UserRepository,
-	PersonRepository,
 	ProjectRepository,
 	SharedCredentialsRepository,
 	SharedWorkflowRepository,
@@ -72,15 +71,13 @@ export class UserService {
 		private readonly externalHooks: ExternalHooks,
 		private readonly sharedCredentialsRepository: SharedCredentialsRepository,
 		private readonly sharedWorkflowRepository: SharedWorkflowRepository,
-		private readonly personRepository: PersonRepository,
 	) {}
 
-	/** Updates the profile or password of a person. A service account id is a no-op. */
-	async update(userId: string, data: Partial<Person>) {
-		const person = await this.personRepository.findById(userId);
+	async update(userId: string, data: Partial<User>) {
+		const user = await this.userRepository.findOneBy({ id: userId });
 
-		if (person) {
-			await this.personRepository.save(Object.assign(person, data));
+		if (user) {
+			await this.userRepository.save({ ...user, ...data }, { transaction: true });
 		}
 
 		return;
@@ -114,10 +111,11 @@ export class UserService {
 		await this.userRepository.save(user);
 	}
 
-	async findUserWithAuthIdentities(userId: string): Promise<Person> {
-		const person = await this.personRepository.findByIdWithAuthIdentities(userId);
-		if (!person) throw new NotFoundError('User not found');
-		return person;
+	async findUserWithAuthIdentities(userId: string): Promise<User> {
+		return await this.userRepository.findOneOrFail({
+			where: { id: userId },
+			relations: ['role', 'authIdentities'],
+		});
 	}
 
 	/**
@@ -125,11 +123,12 @@ export class UserService {
 	 * These users should not be able to change their profile information.
 	 */
 	async findSsoIdentity(userId: string): Promise<AuthIdentity | undefined> {
-		const person = await this.personRepository.findByIdWithAuthIdentities(userId);
+		const user = await this.userRepository.findOne({
+			where: { id: userId },
+			relations: ['authIdentities'],
+		});
 
-		const ssoIdentity = person?.authIdentities?.find(
-			(identity) => identity.providerType !== 'email',
-		);
+		const ssoIdentity = user?.authIdentities?.find((identity) => identity.providerType !== 'email');
 
 		return ssoIdentity;
 	}

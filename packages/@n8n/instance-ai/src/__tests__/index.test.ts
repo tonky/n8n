@@ -64,6 +64,7 @@ vi.mock('../storage', () => ({
 	formatPreviousAttempts: () => 'previous attempts',
 	ThreadIterationLogStorage: class ThreadIterationLogStorage {},
 	ThreadTaskStorage: class ThreadTaskStorage {},
+	PlannedTaskStorage: class PlannedTaskStorage {},
 	getThread: () => ({ id: 'thread-1' }),
 	TerminalOutcomeStorage: class TerminalOutcomeStorage {},
 	patchThread: () => ({ id: 'thread-1' }),
@@ -140,6 +141,12 @@ vi.mock('../workflow-loop', () => ({
 vi.mock('../workflow-loop/runtime', () => ({
 	WorkflowLoopRuntime: class WorkflowLoopRuntime {},
 }));
+vi.mock('../planned-tasks/planned-task-service', () => ({
+	PlannedTaskCoordinator: class PlannedTaskCoordinator {},
+}));
+vi.mock('../planned-tasks/planned-task-permissions', () => ({
+	applyPlannedTaskPermissionOverrides: () => ({ runWorkflow: 'always_allow' }),
+}));
 vi.mock('../parsers/structured-file-parser', () => ({
 	classifyAttachments: () => [{ index: 0, parseable: true, format: 'csv' }],
 	buildAttachmentManifest: () => '[ATTACHMENTS] parse-file [/ATTACHMENTS]',
@@ -213,6 +220,7 @@ describe('@n8n/instance-ai public entrypoint', () => {
 			entrypoint.ThreadIterationLogStorage,
 		);
 		expect(construct(entrypoint.ThreadTaskStorage)).toBeInstanceOf(entrypoint.ThreadTaskStorage);
+		expect(construct(entrypoint.PlannedTaskStorage)).toBeInstanceOf(entrypoint.PlannedTaskStorage);
 		expect(call(entrypoint.getThread)).toEqual({ id: 'thread-1' });
 		expect(construct(entrypoint.TerminalOutcomeStorage)).toBeInstanceOf(
 			entrypoint.TerminalOutcomeStorage,
@@ -280,6 +288,12 @@ describe('@n8n/instance-ai public entrypoint', () => {
 		expect(construct(entrypoint.WorkflowLoopRuntime)).toBeInstanceOf(
 			entrypoint.WorkflowLoopRuntime,
 		);
+		expect(construct(entrypoint.PlannedTaskCoordinator)).toBeInstanceOf(
+			entrypoint.PlannedTaskCoordinator,
+		);
+		expect(call(entrypoint.applyPlannedTaskPermissionOverrides)).toEqual({
+			runWorkflow: 'always_allow',
+		});
 
 		const classified = entrypoint.classifyAttachments([]);
 		expect(classified[0]).toMatchObject({ index: 0, parseable: true, format: 'csv' });

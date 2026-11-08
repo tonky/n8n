@@ -1,11 +1,3 @@
-import type {
-	FolderTransferPreview,
-	FolderTransferResult,
-	PolicyViolation,
-	UnpublishedWorkflow,
-	WorkflowTransferPreview,
-	WorkflowTransferResult,
-} from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
 import type {
 	CredentialUsedByWorkflow,
@@ -25,15 +17,12 @@ import {
 	WorkflowHistoryRepository,
 	WorkflowPublishHistoryRepository,
 } from '@n8n/db';
-import type { PolicyDecision } from '@n8n/decorators';
 import { Service } from '@n8n/di';
 import { hasGlobalScope } from '@n8n/permissions';
-import { ensureError } from '@n8n/utils/errors/ensure-error';
 import { isRecord } from '@n8n/utils/is-record';
 import { In, type EntityManager } from '@n8n/typeorm';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import pLimit from 'p-limit';
 import type { INode, INodeTypeDescription, IWorkflowBase, WorkflowId } from 'n8n-workflow';
 import {
 	isNodeWithWorkflowSelector,
@@ -56,12 +45,7 @@ import { TransferWorkflowError } from '@/errors/response-errors/transfer-workflo
 import { UninspectableSubworkflowSourceError } from '@/errors/uninspectable-subworkflow-source.error';
 import { extractAgentCredentialIds } from '@/modules/agents/utils/extract-agent-credential-ids';
 import { NodeTypes } from '@/node-types';
-import {
-	emptyDecision,
-	hasCheckErrors,
-	PolicyEnforcementService,
-} from '@/policy/policy-enforcement.service';
-import { findPolicyViolations } from '@/policy/policy-violation.error';
+import { PolicyEnforcementService } from '@/policy/policy-enforcement.service';
 import { OwnershipService } from '@/services/ownership.service';
 import { ProjectService } from '@/services/project.service.ee';
 import { stripToolSuffix } from '@/utils';
@@ -100,30 +84,6 @@ export type CredentialGuardOptions = {
 const EDITABLE_NODE_FIELDS = ['name', 'position', 'disabled'] as const;
 
 const HISTORY_LOOKBACK_LIMIT = 20;
-
-/** Bounded so a large folder does not flood the policy backend when the move dialog opens. */
-const TRANSFER_PREVIEW_CONCURRENCY = 5;
-
-/** One entry per restricted type, however many workflows in a folder use it. */
-function restrictedTypeKey({ kind, subjectType, subject, message }: PolicyViolation): string {
-	return JSON.stringify([kind, subjectType, subject ?? message]);
-}
-
-/** A project move refuses workflows the destination already owns. The preview refuses them too. */
-function assertNoneOwnedBy(workflows: WorkflowEntity[], destinationProject: Project) {
-	for (const workflow of workflows) {
-		const ownerSharing = workflow.shared.find((s) => s.role === 'workflow:owner');
-		NotFoundError.isDefinedAndNotNull(
-			ownerSharing,
-			`Could not find owner for workflow "${workflow.id}"`,
-		);
-		if (ownerSharing.project.id === destinationProject.id) {
-			throw new TransferWorkflowError(
-				"You can't transfer a workflow into the project that's already owning it.",
-			);
-		}
-	}
-}
 
 @Service()
 export class EnterpriseWorkflowService {
@@ -768,7 +728,7 @@ export class EnterpriseWorkflowService {
 		destinationProjectId: string,
 		shareCredentials: string[] = [],
 		destinationParentFolderId?: string,
-	): Promise<WorkflowTransferResult | undefined> {
+	) {
 		// 1. get workflow
 		const workflow = await this.workflowFinderService.findWorkflowForUser(
 			workflowId,
@@ -829,161 +789,34 @@ export class EnterpriseWorkflowService {
 			}
 		}
 
+		// 6. validate against the destination project's policy
+		await this.policyEnforcementService.enforceWorkflowTransfer(
+			{ workflow, targetProjectId: destinationProject.id },
+			{ kind: 'user', user },
+		);
+
 		const wasActive = this.isActiveWorkflow(workflow);
 
-		// 6. deactivate workflow if necessary
+		// 7. deactivate workflow if necessary
 		if (wasActive) {
 			await this.activeWorkflowManager.remove(workflowId);
 		}
 
-		// 7. transfer the workflow
+		// 8. transfer the workflow
 		await this.transferWorkflowOwnership(user, [workflow], destinationProject);
 
-		// 8. share credentials into the destination project
+		// 9. share credentials into the destination project
 		await this.shareCredentialsWithProject(user, shareCredentials, destinationProject.id);
 
-		// 9. Move workflow to the right folder if any
+		// 10. Move workflow to the right folder if any
 		await this.workflowRepository.update({ id: workflow.id }, { parentFolder });
 
-		// 10. try to activate it again if it was active. The destination's policy can refuse
-		// the republish, and then the move unpublishes the workflow.
+		// 11. try to activate it again if it was active
 		if (wasActive) {
 			return await this.attemptWorkflowReactivation(workflowId, workflow.activeVersionId, user.id);
 		}
 
 		return;
-	}
-
-	/**
-	 * What a move into `destinationProjectId` would restrict. Refuses what the move refuses for
-	 * other reasons, so it never warns about a move that cannot happen.
-	 */
-	async previewWorkflowTransfer(
-		user: User,
-		workflowId: string,
-		destinationProjectId: string,
-	): Promise<WorkflowTransferPreview> {
-		const workflow = await this.workflowFinderService.findWorkflowForUser(
-			workflowId,
-			user,
-			['workflow:move'],
-			{ includeActiveVersion: true },
-		);
-		NotFoundError.isDefinedAndNotNull(
-			workflow,
-			`Could not find workflow with the id "${workflowId}". Make sure you have the permission to move it.`,
-		);
-
-		const destinationProject = await this.getTransferDestination(user, destinationProjectId);
-		assertNoneOwnedBy([workflow], destinationProject);
-
-		const { transfer, publish } = await this.evaluateTransferInto(workflow, destinationProject.id);
-
-		return {
-			restricted: transfer.violations,
-			unpublishReasons: publish.violations,
-			checkFailed: hasCheckErrors(transfer) || hasCheckErrors(publish),
-		};
-	}
-
-	/**
-	 * What moving a folder tree into `destinationProjectId` would restrict. Refuses what the
-	 * move refuses for other reasons, so it never warns about a move that cannot happen.
-	 */
-	async previewFolderTransfer(
-		user: User,
-		sourceProjectId: string,
-		sourceFolderId: string,
-		destinationProjectId: string,
-	): Promise<FolderTransferPreview> {
-		try {
-			await this.folderRepository.findOneOrFailFolderInProject(sourceFolderId, sourceProjectId);
-		} catch {
-			throw new FolderNotFoundError(sourceFolderId);
-		}
-
-		const destinationProject = await this.getTransferDestination(user, destinationProjectId);
-
-		const preview: FolderTransferPreview = {
-			restricted: [],
-			workflowsToUnpublish: [],
-			checkFailed: false,
-		};
-
-		const checksAnything =
-			this.policyEnforcementService.hasChecksFor('workflowTransfer') ||
-			this.policyEnforcementService.hasChecksFor('workflowPublish');
-
-		const childrenFolderIds = await this.folderRepository.getAllFolderIdsInHierarchy(
-			sourceFolderId,
-			sourceProjectId,
-		);
-		const workflows = await this.workflowRepository.findInFoldersForTransfer(
-			[sourceFolderId, ...childrenFolderIds],
-			{ withNodes: checksAnything },
-		);
-
-		assertNoneOwnedBy(workflows, destinationProject);
-		if (!checksAnything) return preview;
-
-		const limit = pLimit(TRANSFER_PREVIEW_CONCURRENCY);
-		const decisions = await Promise.all(
-			workflows.map(
-				async (workflow) =>
-					await limit(async () => await this.evaluateTransferInto(workflow, destinationProject.id)),
-			),
-		);
-
-		const restricted = new Map<string, PolicyViolation>();
-		for (const [index, { transfer, publish }] of decisions.entries()) {
-			const workflow = workflows[index];
-
-			for (const violation of transfer.violations) {
-				const key = restrictedTypeKey(violation);
-				if (!restricted.has(key)) restricted.set(key, violation);
-			}
-			if (publish.violations.length > 0) {
-				preview.workflowsToUnpublish.push({ id: workflow.id, name: workflow.name });
-			}
-			preview.checkFailed ||= hasCheckErrors(transfer) || hasCheckErrors(publish);
-		}
-
-		preview.restricted = [...restricted.values()];
-		return preview;
-	}
-
-	/** A move republishes the published version, so that version is judged at the publish point. */
-	private async evaluateTransferInto(
-		workflow: WorkflowEntity,
-		targetProjectId: string,
-	): Promise<{ transfer: PolicyDecision; publish: PolicyDecision }> {
-		const { activeVersion } = workflow;
-
-		const [transfer, publish] = await Promise.all([
-			this.policyEnforcementService.evaluateWorkflowTransfer({ workflow, targetProjectId }),
-			activeVersion
-				? this.policyEnforcementService.evaluateWorkflowPublish({
-						workflow: { id: workflow.id, name: workflow.name, nodes: activeVersion.nodes },
-						projectId: targetProjectId,
-					})
-				: emptyDecision(),
-		]);
-
-		return { transfer, publish };
-	}
-
-	private async getTransferDestination(user: User, destinationProjectId: string) {
-		const destinationProject = await this.projectService.getProjectWithScope(
-			user,
-			destinationProjectId,
-			['workflow:create'],
-		);
-		NotFoundError.isDefinedAndNotNull(
-			destinationProject,
-			`Could not find project with the id "${destinationProjectId}". Make sure you have the permission to create workflows in it.`,
-		);
-
-		return destinationProject;
 	}
 
 	async getFolderUsedCredentials(user: User, folderId: string, projectId: string) {
@@ -1019,7 +852,7 @@ export class EnterpriseWorkflowService {
 		destinationProjectId: string,
 		destinationParentFolderId: string,
 		shareCredentials: string[] = [],
-	): Promise<FolderTransferResult> {
+	) {
 		// 1. Get all children folders
 
 		const childrenFolderIds = await this.folderRepository.getAllFolderIdsInHierarchy(
@@ -1029,10 +862,20 @@ export class EnterpriseWorkflowService {
 
 		// 2. Get all workflows in the nested folders
 
-		const workflows = await this.workflowRepository.findInFoldersForTransfer(
-			[...childrenFolderIds, sourceFolderId],
-			{ withNodes: false },
-		);
+		const checksTransfer = this.policyEnforcementService.hasChecksFor('workflowTransfer');
+		const workflows = await this.workflowRepository.find({
+			select: [
+				'id',
+				'name',
+				'activeVersionId',
+				'shared',
+				...(checksTransfer ? ['nodes' as const] : []),
+			],
+			relations: ['shared', 'shared.project'],
+			where: {
+				parentFolder: { id: In([...childrenFolderIds, sourceFolderId]) },
+			},
+		});
 
 		const activeWorkflows = workflows.filter((x) => this.isActiveWorkflow(x));
 
@@ -1058,7 +901,28 @@ export class EnterpriseWorkflowService {
 
 		await this.folderRepository.findOneOrFailFolderInProject(sourceFolderId, sourceProjectId);
 
-		assertNoneOwnedBy(workflows, destinationProject);
+		for (const workflow of workflows) {
+			const ownerSharing = workflow.shared.find((s) => s.role === 'workflow:owner')!;
+			NotFoundError.isDefinedAndNotNull(
+				ownerSharing,
+				`Could not find owner for workflow "${workflow.id}"`,
+			);
+			const sourceProject = ownerSharing.project;
+			if (sourceProject.id === destinationProject.id) {
+				throw new TransferWorkflowError(
+					"You can't transfer a workflow into the project that's already owning it.",
+				);
+			}
+		}
+
+		if (checksTransfer) {
+			for (const workflow of workflows) {
+				await this.policyEnforcementService.enforceWorkflowTransfer(
+					{ workflow, targetProjectId: destinationProject.id },
+					{ kind: 'user', user },
+				);
+			}
+		}
 
 		// 5. deactivate all workflows if necessary
 		const deactivateWorkflowsPromises = activeWorkflows.map(
@@ -1083,25 +947,23 @@ export class EnterpriseWorkflowService {
 
 		// 9. try to activate workflows again if they were active
 
-		const unpublishedWorkflows: UnpublishedWorkflow[] = [];
 		for (const workflow of activeWorkflows) {
-			const result = await this.attemptWorkflowReactivation(
-				workflow.id,
-				workflow.activeVersionId,
-				user.id,
-			);
-			if (result) unpublishedWorkflows.push({ id: workflow.id, name: workflow.name, ...result });
+			await this.attemptWorkflowReactivation(workflow.id, workflow.activeVersionId, user.id);
 		}
-
-		return { unpublishedWorkflows };
 	}
 
-	/** Returns a failed republish instead of throwing it, so one failure cannot stop a folder move. */
-	private async attemptWorkflowReactivation(
-		workflowId: string,
-		versionId: string,
-		userId: string,
-	): Promise<WorkflowTransferResult | undefined> {
+	private formatActivationError(error: WorkflowActivationError) {
+		return {
+			error: error.toJSON
+				? error.toJSON()
+				: {
+						name: error.name,
+						message: error.message,
+					},
+		};
+	}
+
+	private async attemptWorkflowReactivation(workflowId: string, versionId: string, userId: string) {
 		try {
 			await this.activeWorkflowManager.add(workflowId, 'update', undefined, {
 				actor: { kind: 'user', user: { id: userId } },
@@ -1122,35 +984,21 @@ export class EnterpriseWorkflowService {
 				});
 			}
 
-			try {
-				await this.workflowRepository.updateActiveState(workflowId, false);
+			await this.workflowRepository.updateActiveState(workflowId, false);
 
-				// If reactivation failed we track deactivation of the workflow
-				await this.workflowPublishHistoryRepository.addRecord({
-					workflowId,
-					versionId,
-					event: 'deactivated',
-					userId,
-				});
-			} catch (rollbackError) {
-				this.logger.error(`Failed to mark workflow "${workflowId}" as unpublished after a move`, {
-					workflowId,
-					error: rollbackError,
-				});
+			// If reactivation failed we track deactivation of the workflow
+			await this.workflowPublishHistoryRepository.addRecord({
+				workflowId,
+				versionId,
+				event: 'deactivated',
+				userId,
+			});
+
+			if (error instanceof WorkflowActivationError) {
+				return this.formatActivationError(error);
 			}
 
-			const unpublishReasons = findPolicyViolations(error);
-			if (unpublishReasons) return { unpublishReasons };
-
-			const { name, message } = ensureError(error);
-			if (!(error instanceof WorkflowActivationError)) {
-				this.logger.error(`Failed to republish workflow "${workflowId}" after a move`, {
-					workflowId,
-					error,
-				});
-			}
-
-			return { error: { name, message } };
+			throw error;
 		}
 	}
 

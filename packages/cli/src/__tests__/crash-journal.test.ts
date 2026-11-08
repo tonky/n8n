@@ -31,7 +31,7 @@ vi.mock('fs');
 vi.mock('fs/promises');
 vi.mock('@n8n/utils/sleep');
 
-import { didLastSessionCrash, init } from '../crash-journal';
+import { init } from '../crash-journal';
 
 describe('crash journal init()', () => {
 	const originalDevReload = process.env.N8N_DEV_RELOAD;
@@ -65,6 +65,5 @@ describe('crash journal init()', () => {
 		expect(loggerError).toHaveBeenCalledWith('Last session crashed');
 		expect(sleep).toHaveBeenCalledWith(10_000);
 		expect(utimes).toHaveBeenCalled();
-		expect(didLastSessionCrash()).toBe(true);
 	});
 });

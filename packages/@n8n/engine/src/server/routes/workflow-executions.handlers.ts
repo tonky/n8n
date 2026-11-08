@@ -113,9 +113,7 @@ function parseExecutionId(req: Request, res: Response): string | null {
 	return null;
 }
 
-export function toExecutionSnapshot(
-	record: ExecutionView | ExecutionWithStepsView,
-): ExecutionSnapshot {
+function toExecutionSnapshot(record: ExecutionView | ExecutionWithStepsView): ExecutionSnapshot {
 	return {
 		id: record.id,
 		workflowId: record.workflowId,

@@ -3,6 +3,7 @@ import type {
 	ApplyCheckResult,
 	PromotionBindingConflict,
 	PromotionBindingConsumer,
+	PromotionResource,
 	PromotionResourceType,
 } from '@n8n/api-types';
 import {
@@ -23,8 +24,10 @@ import { resourceIcon } from '../../promotionPreview.tree';
 import PromotionWorkflowLinks from './PromotionWorkflowLinks.vue';
 
 const props = defineProps<{
-	/** The Apply check, scoped to the workflows that the preview lists. Moved folders stay unscoped. */
+	/** The Apply check, scoped to the workflows that the preview lists. */
 	check: ApplyCheckResult;
+	/** Folders and workflows that the branch holds in another folder. Apply cannot move them. */
+	locations: PromotionResource[];
 	busy: boolean;
 }>();
 
@@ -118,40 +121,8 @@ const conflictRow = (conflict: HardConflict, index: number): BlockerRow => {
 	};
 };
 
-const MOVED_DETAIL = {
-	workflow: {
-		existing: 'promotions.preview.blockers.movedWorkflow',
-		newProject: 'promotions.preview.blockers.movedWorkflow.newProject',
-	},
-	folder: {
-		existing: 'promotions.preview.blockers.movedFolder',
-		newProject: 'promotions.preview.blockers.movedFolder.newProject',
-	},
-} as const;
-
-function movedRow(
-	type: keyof typeof MOVED_DETAIL,
-	move: ApplyCheckResult['movedWorkflows'][number],
-): BlockerRow {
-	return {
-		key: `moved:${type}:${move.id}`,
-		icon: resourceIcon(type),
-		name: move.name,
-		type,
-		usedBy: [],
-		status: status('moved'),
-		detail: i18n.baseText(MOVED_DETAIL[type][move.projectExists ? 'existing' : 'newProject'], {
-			interpolate: {
-				project: move.project.name,
-				instanceProject:
-					move.instanceProject.name ?? i18n.baseText('promotions.preview.personalProject'),
-			},
-		}),
-	};
-}
-
 const blockerRows = computed<BlockerRow[]>(() => {
-	const { preflight, movedWorkflows, movedFolders } = props.check;
+	const { preflight, movedWorkflows } = props.check;
 	return [
 		...bindings.rows.value.map(({ key, binding, status: bindingStatus }) => ({
 			key,
@@ -175,8 +146,30 @@ const blockerRows = computed<BlockerRow[]>(() => {
 			detail: i18n.baseText('promotions.preview.blockers.access'),
 		})),
 		...bindings.hardConflicts.value.map(conflictRow),
-		...movedWorkflows.map((move) => movedRow('workflow', move)),
-		...movedFolders.map((move) => movedRow('folder', move)),
+		...movedWorkflows.map((workflow) => ({
+			key: `moved:${workflow.id}`,
+			icon: resourceIcon('workflow'),
+			name: workflow.name,
+			type: 'workflow' as const,
+			usedBy: [],
+			status: status('moved'),
+			detail: i18n.baseText('promotions.preview.blockers.movedWorkflow', {
+				interpolate: { project: workflow.project.name },
+			}),
+		})),
+		...props.locations.map((resource) => ({
+			key: resource.key,
+			icon: resourceIcon(resource.type),
+			name: resource.name,
+			type: resource.type,
+			usedBy: [],
+			status: status('moved'),
+			detail: i18n.baseText(
+				resource.type === 'folder'
+					? 'promotions.preview.folder.moveConflict'
+					: 'promotions.preview.blockers.workflowLocation',
+			),
+		})),
 	];
 });
 

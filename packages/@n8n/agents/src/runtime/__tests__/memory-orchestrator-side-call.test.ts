@@ -47,10 +47,7 @@ function runOptions(
 	};
 }
 
-function buildOrchestrator(
-	observationalMemory: ObservationalMemoryConfig,
-	extraConfig: Partial<AgentRuntimeConfig> = {},
-): {
+function buildOrchestrator(observationalMemory: ObservationalMemoryConfig): {
 	orchestrator: MemoryOrchestrator;
 	events: ScopedMemoryTaskEvent[];
 } {
@@ -60,7 +57,6 @@ function buildOrchestrator(
 		memory: new InMemoryMemory(),
 		observationalMemory,
 		onMemoryTaskEvent: (event: ScopedMemoryTaskEvent) => events.push(event),
-		...extraConfig,
 	} as unknown as AgentRuntimeConfig;
 	const tracker = new BackgroundTaskTracker();
 	const orchestrator = new MemoryOrchestrator(
@@ -188,23 +184,5 @@ describe('MemoryOrchestrator side-call cost forwarding', () => {
 				}),
 			),
 		).resolves.toBeUndefined();
-	});
-
-	it("passes the agent's model transport to the observer", async () => {
-		const modelFetch = vi.fn(async () => new Response('{}'));
-		const observe = vi.fn(
-			async () => await Promise.resolve('* CRITICAL (14:30) User set up mid-run observation.'),
-		);
-		const { orchestrator } = buildOrchestrator(
-			{ observerThresholdTokens: 10, observationLogTailLimit: 20, observe },
-			{ modelFetch },
-		);
-		const list = new AgentMessageList();
-		list.addInput([userMsg('a user message crossing the threshold')]);
-		list.addResponse([assistantMsg('an assistant reply with more work')]);
-
-		await orchestrator.maybeObserveMidRun(list, runOptions());
-
-		expect(observe).toHaveBeenCalledWith(expect.objectContaining({ modelFetch }));
 	});
 });

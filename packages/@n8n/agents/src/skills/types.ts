@@ -17,9 +17,8 @@ export const RUNTIME_SKILL_LINKED_FILE_GROUPS = [
 
 export interface RuntimeSkillLinkedFile {
 	path: string;
-	/** Content metadata can be absent until a deferred file is read. */
-	bytes?: number;
-	sha256?: string;
+	bytes: number;
+	sha256: string;
 }
 
 export type RuntimeSkillLinkedFileGroup =
@@ -182,12 +181,6 @@ export type RuntimeSkillFileLoader = (
 	filePath: string,
 ) => Promise<RuntimeSkillFileContent | null>;
 
-export interface RuntimeSkillLoadError {
-	message: string;
-	/** Preserve an active selection when content is temporarily unavailable. */
-	retryable: boolean;
-}
-
 export interface RuntimeSkillSource {
 	registry: RuntimeSkillRegistry;
 	/**
@@ -199,7 +192,6 @@ export interface RuntimeSkillSource {
 	prepare?: () => Promise<void>;
 	loadSkill: RuntimeSkillLoader;
 	loadFile?: RuntimeSkillFileLoader;
-	getLoadError?: (skillId: string) => RuntimeSkillLoadError | undefined;
 }
 
 export interface RuntimeSkillStateScope {

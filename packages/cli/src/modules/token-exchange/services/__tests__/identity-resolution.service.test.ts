@@ -6,7 +6,6 @@ import {
 	type AuthIdentityRepository,
 	type EntityManager,
 	type User,
-	type PersonRepository,
 	type UserRepository,
 } from '@n8n/db';
 import { mock } from 'vitest-mock-extended';
@@ -24,7 +23,6 @@ const logger = mock<Logger>({ scoped: vi.fn().mockReturnThis() });
 const entityManager = mock<EntityManager>();
 const userRepository = mock<UserRepository>({ manager: entityManager });
 const authIdentityRepository = mock<AuthIdentityRepository>();
-const personRepository = mock<PersonRepository>();
 const eventService = mock<EventService>();
 const userService = mock<UserService>();
 const trustedKeyService = mock<TrustedKeyService>();
@@ -40,7 +38,6 @@ const service = new IdentityResolutionService(
 	trustedKeyService,
 	roleService,
 	config,
-	personRepository,
 );
 
 const CUSTOM_ROLE = 'global:custom-abc123';
@@ -79,7 +76,7 @@ describe('IdentityResolutionService', () => {
 		config.excludeOwner = false;
 		// Default: no linked identity, no existing user (JIT territory unless overridden).
 		authIdentityRepository.findOne.mockResolvedValue(null);
-		personRepository.findByEmailWithAuthIdentities.mockResolvedValue(null);
+		userRepository.findOne.mockResolvedValue(null);
 	});
 
 	describe('JIT provisioning (new user)', () => {
@@ -88,7 +85,7 @@ describe('IdentityResolutionService', () => {
 		beforeEach(() => {
 			// No existing identity, no existing user by email → JIT path.
 			authIdentityRepository.findOne.mockResolvedValue(null);
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(null);
+			userRepository.findOne.mockResolvedValue(null);
 			entityManager.transaction.mockImplementation(
 				// @ts-expect-error overloaded signature
 				async (runInTransaction: (em: EntityManager) => Promise<unknown>) =>
@@ -181,7 +178,7 @@ describe('IdentityResolutionService', () => {
 		function mockLinkedUser(currentRoleSlug: string) {
 			const user = mock<User>({ id: 'existing-1', role: { slug: currentRoleSlug } });
 			authIdentityRepository.findOne.mockResolvedValueOnce(mock<AuthIdentity>({ user }));
-			userRepository.findByIdWithRole.mockResolvedValue(user);
+			userRepository.findOneOrFail.mockResolvedValue(user);
 			return user;
 		}
 
@@ -234,26 +231,6 @@ describe('IdentityResolutionService', () => {
 			expect(userService.changeUserRole).not.toHaveBeenCalled();
 		});
 
-		it('updates a changed name and returns the reloaded user', async () => {
-			const user = mockLinkedUser('global:member');
-			user.firstName = 'Old';
-
-			const resolved = await service.resolve(makeClaims({ given_name: 'New' }), undefined, ctx());
-
-			expect(userService.update).toHaveBeenCalledWith('existing-1', { firstName: 'New' });
-			expect(resolved).toBe(user);
-		});
-
-		it('throws when the user is gone before the reload', async () => {
-			const user = mockLinkedUser('global:member');
-			user.firstName = 'Old';
-			userRepository.findByIdWithRole.mockResolvedValue(null);
-
-			await expect(
-				service.resolve(makeClaims({ given_name: 'New' }), undefined, ctx()),
-			).rejects.toThrow(TokenExchangeAuthError);
-		});
-
 		it('throws when the custom role is not in the key allowedRoles', async () => {
 			mockLinkedUser('global:member');
 
@@ -266,7 +243,7 @@ describe('IdentityResolutionService', () => {
 
 	describe('allowedRoles authority ceiling', () => {
 		it('rejects when a key authenticates as an existing user whose role exceeds allowedRoles (email match)', async () => {
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(makeUser('global:owner'));
+			userRepository.findOne.mockResolvedValue(makeUser('global:owner'));
 
 			await expect(service.resolve(makeClaims(), ['global:member'], ctx())).rejects.toMatchObject({
 				reason: TokenExchangeFailureReason.RoleNotAllowed,
@@ -285,14 +262,14 @@ describe('IdentityResolutionService', () => {
 
 		it('resolves the existing user when its role is within allowedRoles', async () => {
 			const member = makeUser('global:member');
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(member);
+			userRepository.findOne.mockResolvedValue(member);
 
 			await expect(service.resolve(makeClaims(), ['global:member'], ctx())).resolves.toBe(member);
 		});
 
 		it('resolves any existing user when allowedRoles is undefined (unrestricted)', async () => {
 			const owner = makeUser('global:owner');
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(owner);
+			userRepository.findOne.mockResolvedValue(owner);
 
 			await expect(service.resolve(makeClaims(), undefined, ctx())).resolves.toBe(owner);
 		});
@@ -301,7 +278,7 @@ describe('IdentityResolutionService', () => {
 	describe('excludeOwner lockout', () => {
 		it('rejects an owner even when allowedRoles explicitly permits it', async () => {
 			config.excludeOwner = true;
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(makeUser('global:owner'));
+			userRepository.findOne.mockResolvedValue(makeUser('global:owner'));
 
 			await expect(service.resolve(makeClaims(), ['global:owner'], ctx())).rejects.toMatchObject({
 				reason: TokenExchangeFailureReason.RoleNotAllowed,
@@ -311,7 +288,7 @@ describe('IdentityResolutionService', () => {
 
 	describe('requireVerifiedEmail', () => {
 		it('rejects email-fallback linking when email_verified is missing', async () => {
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(makeUser('global:member'));
+			userRepository.findOne.mockResolvedValue(makeUser('global:member'));
 
 			await expect(
 				service.resolve(makeClaims(), ['global:member'], ctx(true)),
@@ -327,7 +304,7 @@ describe('IdentityResolutionService', () => {
 
 		it('links an existing user when email_verified is true', async () => {
 			const member = makeUser('global:member');
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(member);
+			userRepository.findOne.mockResolvedValue(member);
 
 			await expect(
 				service.resolve(makeClaims({ email_verified: true }), ['global:member'], ctx(true)),
@@ -336,7 +313,7 @@ describe('IdentityResolutionService', () => {
 
 		it('links without an email_verified claim when the key does not require it', async () => {
 			const member = makeUser('global:member');
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(member);
+			userRepository.findOne.mockResolvedValue(member);
 
 			await expect(service.resolve(makeClaims(), ['global:member'], ctx(false))).resolves.toBe(
 				member,

@@ -118,17 +118,15 @@ describe('generateValidatedJson', () => {
 			url: 'https://proxy.example.com/anthropic/v1',
 			apiKey: 'proxy-token',
 		};
-		const modelFetch = vi.fn();
 		await generateValidatedJson('test-agent', {
 			instructions: 'instructions',
 			userText: 'do it',
 			schema,
 			fallbackModelConfig,
-			modelFetch,
 		});
 		expect(mockCreateEvalAgent).toHaveBeenCalledWith(
 			'test-agent',
-			expect.objectContaining({ fallbackModelConfig, modelFetch }),
+			expect.objectContaining({ fallbackModelConfig }),
 		);
 	});
 });

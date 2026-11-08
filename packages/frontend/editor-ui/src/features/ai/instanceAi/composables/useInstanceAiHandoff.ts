@@ -544,13 +544,6 @@ export async function provisionContextOnlyThread(
 let handoffInFlight = false;
 
 /**
- * How `startThread` ended. `started` means the thread opened and no retry is safe.
- * `busy` means another hand-off was in flight and nothing ran. `setup` means it
- * routed to the Assistant setup instead.
- */
-export type InstanceAiHandoffOutcome = 'started' | 'busy' | 'failed' | 'setup';
-
-/**
  * Create a thread, optionally seed its runtime (`prepare`), send the opening turn,
  * and navigate to it. Shared by the capability adapters and the credentials list.
  */
@@ -654,13 +647,13 @@ export function useInstanceAiHandoff() {
 			newTab?: boolean;
 			context?: InstanceAiHandoffContext;
 		},
-	): Promise<InstanceAiHandoffOutcome> {
+	): Promise<void> {
 		if (!instanceAiReady.value) {
 			await routeToSetup();
-			return 'setup';
+			return;
 		}
 		// Drop re-entrant clicks — each call mints a fresh thread, so spam would duplicate.
-		if (handoffInFlight) return 'busy';
+		if (handoffInFlight) return;
 		handoffInFlight = true;
 		const responseStartedAtEpochMs = instanceAiResponseNow();
 		try {
@@ -677,12 +670,12 @@ export function useInstanceAiHandoff() {
 				if (!threadId) {
 					tab?.close();
 					showOpenFailed();
-					return 'failed';
+					return;
 				}
 				const route = { name: INSTANCE_AI_THREAD_VIEW, params: { threadId } };
 				if (tab) tab.location.href = router.resolve(route).href;
 				else await router.push(route); // popup blocked → same tab; it consumes the message
-				return 'started';
+				return;
 			}
 			// Same tab: send through a runtime seeded here, which survives the navigation.
 			const threadId = uuidv4();
@@ -690,11 +683,11 @@ export function useInstanceAiHandoff() {
 				await instanceAiStore.syncThread(threadId, projectId, launch);
 			} catch {
 				showOpenFailed();
-				return 'failed';
+				return;
 			}
 			const thread = instanceAiStore.getOrCreateRuntime(threadId, projectId);
 			prepare?.(threadId);
-			if (!(await navigateToNewThread(threadId))) return 'failed';
+			if (!(await navigateToNewThread(threadId))) return;
 			// Send only after the navigation lands, so a run never starts in a thread
 			// the user can't see.
 			void thread.sendMessage(message, {
@@ -704,7 +697,6 @@ export function useInstanceAiHandoff() {
 				handoffContext: options?.context,
 				responseStartedAtEpochMs,
 			});
-			return 'started';
 		} finally {
 			handoffInFlight = false;
 		}

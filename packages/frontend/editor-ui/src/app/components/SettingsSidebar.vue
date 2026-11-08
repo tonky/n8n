@@ -2,7 +2,7 @@
 import { onMounted } from 'vue';
 import { ABOUT_MODAL_KEY } from '@/app/constants';
 
-import { N8nIcon, N8nLink, N8nMenuItem, N8nScrollArea, N8nText } from '@n8n/design-system';
+import { N8nIcon, N8nLink, N8nMenuItem, N8nText } from '@n8n/design-system';
 import { useSettingsItems } from '../composables/useSettingsItems';
 import { useAiGateway } from '../composables/useAiGateway';
 import { useI18n } from '@n8n/i18n';
@@ -17,7 +17,7 @@ const i18n = useI18n();
 const rootStore = useRootStore();
 const uiStore = useUIStore();
 
-const { settingsSections, handleSettingsItemSelect } = useSettingsItems();
+const { settingsItems, handleSettingsItemSelect } = useSettingsItems();
 const { fetchWallet, isEnabled } = useAiGateway();
 
 onMounted(() => {
@@ -27,47 +27,25 @@ onMounted(() => {
 
 <template>
 	<div :class="$style.container">
-		<div :class="$style.returnBar">
-			<div :class="$style.returnButton" data-test-id="settings-back" @click="emit('return')">
-				<div :class="$style.arrowIcon">
-					<N8nIcon icon="arrow-left" size="small" />
-				</div>
-				<N8nText bold>{{ i18n.baseText('settings') }}</N8nText>
+		<div :class="$style.returnButton" data-test-id="settings-back" @click="emit('return')">
+			<div :class="$style.arrowIcon">
+				<N8nIcon icon="arrow-left" size="small" />
 			</div>
+			<N8nText bold>{{ i18n.baseText('settings') }}</N8nText>
 		</div>
-		<!-- The back link stays put; only the links scroll, with faded edges showing there is more. -->
-		<N8nScrollArea edge-fade="y" :class="$style.scrollArea" data-test-id="settings-sidebar-scroll">
-			<div :class="$style.items">
-				<div
-					v-for="section in settingsSections"
-					:key="section.id"
-					:class="$style.section"
-					:data-test-id="`settings-section-${section.id}`"
-				>
-					<N8nText
-						v-if="section.title"
-						tag="div"
-						size="small"
-						bold
-						color="text-light"
-						:class="$style.sectionTitle"
-					>
-						{{ section.title }}
-					</N8nText>
-					<N8nMenuItem
-						v-for="item in section.items"
-						:key="item.id"
-						:item="item"
-						@click="handleSettingsItemSelect(item.id)"
-					/>
-				</div>
-			</div>
-			<div :class="$style.versionContainer">
-				<N8nLink size="small" @click="uiStore.openModal(ABOUT_MODAL_KEY)">
-					{{ i18n.baseText('settings.version') }} {{ rootStore.versionCli }}
-				</N8nLink>
-			</div>
-		</N8nScrollArea>
+		<div :class="$style.items">
+			<N8nMenuItem
+				v-for="item in settingsItems"
+				:key="item.id"
+				:item="item"
+				@click="handleSettingsItemSelect(item.id)"
+			/>
+		</div>
+		<div :class="$style.versionContainer">
+			<N8nLink size="small" @click="uiStore.openModal(ABOUT_MODAL_KEY)">
+				{{ i18n.baseText('settings.version') }} {{ rootStore.versionCli }}
+			</N8nLink>
+		</div>
 	</div>
 </template>
 
@@ -80,31 +58,15 @@ onMounted(() => {
 	background-color: var(--color--background--light-3);
 	border-right: var(--border);
 	position: relative;
-	/* Grid rows are definite once sized, so the scroll area can fill the rest and scroll. */
-	display: grid;
-	grid-template-rows: auto minmax(0, 1fr);
-	overflow: hidden;
-}
-
-.scrollArea {
-	min-height: 0;
-}
-
-.returnBar {
-	/* Same horizontal inset as the links below, so the hover pill lines up with theirs. */
-	padding: var(--spacing--2xs) var(--spacing--3xs);
-	border-bottom: var(--border);
+	overflow: auto;
 }
 
 .returnButton {
-	/* Mirrors the N8nMenuItem box and hover so the back link reads as part of the list. */
-	display: flex;
-	align-items: center;
-	gap: var(--spacing--4xs);
-	height: var(--spacing--xl);
-	padding: var(--spacing--4xs);
-	border-radius: var(--radius);
+	padding: var(--spacing--xs);
 	cursor: pointer;
+	display: flex;
+	gap: var(--spacing--4xs);
+	align-items: center;
 
 	.arrowIcon {
 		display: grid;
@@ -114,8 +76,7 @@ onMounted(() => {
 	}
 
 	&:hover {
-		background-color: var(--color--background--light-1);
-		color: var(--color--text--shade-1);
+		color: var(--color--primary);
 	}
 }
 
@@ -123,26 +84,11 @@ onMounted(() => {
 	display: flex;
 	flex-direction: column;
 
-	padding: var(--spacing--xs) var(--spacing--3xs) 0;
-}
-
-.section {
-	display: flex;
-	flex-direction: column;
-
-	& + & {
-		margin-top: var(--spacing--xs);
-	}
-}
-
-.sectionTitle {
-	padding: var(--spacing--4xs) var(--spacing--3xs);
-	margin-bottom: var(--spacing--5xs);
+	padding: 0 var(--spacing--3xs);
 }
 
 .versionContainer {
-	/* Extra bottom space keeps the version clear of the browser's link preview bar. */
-	padding: var(--spacing--xs) var(--spacing--xs) var(--spacing--xl);
+	padding: var(--spacing--xs);
 }
 
 @media screen and (max-height: 420px) {

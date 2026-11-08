@@ -21,7 +21,7 @@ export const LICENSE_FEATURES = {
 	ADVANCED_EXECUTION_FILTERS: 'feat:advancedExecutionFilters',
 	VARIABLES: 'feat:variables',
 	SOURCE_CONTROL: 'feat:sourceControl',
-	PROMOTIONS: 'feat:promotions',
+	GIT_CONNECTIONS: 'feat:gitConnections',
 	API_DISABLED: 'feat:apiDisabled',
 	EXTERNAL_SECRETS: 'feat:externalSecrets',
 	SHOW_NON_PROD_BANNER: 'feat:showNonProdBanner',

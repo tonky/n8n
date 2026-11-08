@@ -5,7 +5,6 @@ import { Service } from '@n8n/di';
 import { NotFoundError, UnprocessableRequestError } from '@n8n/errors';
 import { isRecord } from '@n8n/utils/is-record';
 import { CredentialDataError } from 'n8n-core';
-import { generateNanoId } from '@n8n/utils/generate-nano-id';
 import { UnexpectedError, type ICredentialDataDecryptedObject } from 'n8n-workflow';
 
 import { CredentialDescriptionsService } from '@/credentials/credential-descriptions.service';
@@ -67,22 +66,12 @@ export class CredentialImporter {
 				user: context.user,
 				credentialBindings: request.credentialBindings,
 			});
-		const stubIds = new Map(
-			credentialsToStub(request.missingMode, resolution).map(({ sourceId }) => [
-				sourceId,
-				request.matchingMode === 'id-only' ? sourceId : generateNanoId(),
-			]),
-		);
 
 		if (request.conflictPolicy === 'keep-existing') {
-			return { ...resolution, stubIds, candidates: [], updates: [], forbidden: [] };
+			return { ...resolution, candidates: [], updates: [], forbidden: [] };
 		}
 
-		return {
-			...resolution,
-			stubIds,
-			...(await this.planUpdates(context.user, request, resolution)),
-		};
+		return { ...resolution, ...(await this.planUpdates(context.user, request, resolution)) };
 	}
 
 	/**
@@ -233,7 +222,7 @@ export class CredentialImporter {
 	async apply(
 		context: ImportContext,
 		request: CredentialBindingRequest,
-		resolution: CredentialImportPlan,
+		resolution: CredentialResolution,
 	): Promise<CredentialBindResult> {
 		const bindings: ImportBindingMap = new Map(resolution.successes);
 		const matched = [...resolution.successes.keys()];
@@ -247,17 +236,17 @@ export class CredentialImporter {
 
 		for (const credential of credentialsToStub(request.missingMode, resolution)) {
 			const { sourceId, type, name } = credential;
-			const targetId = resolution.stubIds.get(sourceId);
-			if (type === undefined || targetId === undefined) {
+			if (type === undefined) {
 				throw new UnexpectedError(
-					`Cannot create stub for credential "${sourceId}": incomplete credential plan`,
+					`Cannot create stub for credential "${sourceId}": missing credential type`,
 				);
 			}
 
 			const data = packageData.get(sourceId);
 			const stubCredential = await this.credentialsService.createStubCredential(
 				{
-					id: targetId,
+					// Preserve source identity only when matching by id.
+					id: request.matchingMode === 'id-only' ? sourceId : undefined,
 					name: name ?? sourceId,
 					type,
 					projectId: context.projectId,

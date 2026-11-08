@@ -5,7 +5,6 @@ import { createTestingPinia } from '@pinia/testing';
 import { createMemoryHistory, createRouter, type RouteRecordRaw } from 'vue-router';
 
 import { VIEWS } from '@/app/constants';
-import { useSourceControlStore } from '@/features/integrations/sourceControl.ee/sourceControl.store';
 import { PromotionsModule } from '../module.descriptor';
 import { PROMOTION_PREVIEW_VIEWS, PROMOTIONS_SETTINGS_VIEW } from '../promotions.constants';
 
@@ -28,29 +27,20 @@ const createTestRouter = () =>
 		history: createMemoryHistory(),
 		routes: [
 			{ path: '/home', name: VIEWS.HOMEPAGE, component: stub },
-			{
-				path: '/settings',
-				component: stub,
-				children: [
-					{ path: 'environments', name: VIEWS.SOURCE_CONTROL, component: stub },
-					...settingsRoutes,
-				],
-			},
+			{ path: '/settings', component: stub, children: settingsRoutes },
 			{ path: '/projects/:projectId', component: stub, children: projectRoutes },
 		],
 	});
 
 const setup = ({
 	flag = 'true',
-	environmentsVersion = 'v2',
-	scopes = ['promotions:read', 'promotions:promote', 'promotions:apply'] as Scope[],
-}: { flag?: string; environmentsVersion?: 'v1' | 'v2'; scopes?: Scope[] } = {}) => {
+	scopes = ['gitConnection:read', 'gitConnection:push', 'gitConnection:pull'] as Scope[],
+} = {}) => {
 	createTestingPinia({ stubActions: false });
 
 	const settingsStore = useSettingsStore();
 	settingsStore.settings.activeModules = ['promotions'];
 	settingsStore.settings.envFeatureFlags = { N8N_ENV_FEAT_PROMOTIONS: flag };
-	useSourceControlStore().preferences.environmentsVersion = environmentsVersion;
 	// Project scopes stay empty, as in the app, where the frontend does not load them.
 	useRBACStore().setGlobalScopes(scopes);
 };
@@ -65,16 +55,13 @@ describe('PromotionsModule settings route', () => {
 		expect(router.currentRoute.value.name).toBe(PROMOTIONS_SETTINGS_VIEW);
 	});
 
-	it.each([
-		['the feature flag is off', { flag: 'false' }],
-		['the instance uses v1', { environmentsVersion: 'v1' as const }],
-	])('redirects to the v1 settings when %s', async (_, options) => {
-		setup(options);
+	it('redirects to home when the feature flag is off', async () => {
+		setup({ flag: 'false' });
 		const router = createTestRouter();
 
 		await router.push('/settings/promotions');
 
-		expect(router.currentRoute.value.name).toBe(VIEWS.SOURCE_CONTROL);
+		expect(router.currentRoute.value.name).toBe(VIEWS.HOMEPAGE);
 	});
 });
 
@@ -95,7 +82,7 @@ describe('PromotionsModule preview routes', () => {
 	});
 
 	it('leads users who cannot apply changes home', async () => {
-		setup({ scopes: ['promotions:read', 'promotions:promote'] });
+		setup({ scopes: ['gitConnection:read', 'gitConnection:push'] });
 		const router = createTestRouter();
 
 		await router.push('/projects/p1/promotions/apply');

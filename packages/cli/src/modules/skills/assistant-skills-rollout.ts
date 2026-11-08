@@ -3,18 +3,18 @@ import { Service } from '@n8n/di';
 
 import { PostHogClient } from '@/posthog';
 
-import { SkillAgentsProxy } from './skill-agents-proxy.service';
+import { SkillsHubRollout } from './skills-hub-rollout';
 
 @Service()
 export class AssistantSkillsRollout {
 	constructor(
-		private readonly skillAgents: SkillAgentsProxy,
+		private readonly skillsHubRollout: SkillsHubRollout,
 		private readonly postHog: PostHogClient,
 	) {}
 
 	async isEnabled(): Promise<boolean> {
 		return (
-			this.skillAgents.hasProvider &&
+			this.skillsHubRollout.isEnabled &&
 			(await this.postHog.getFeatureFlagForInstance(ASSISTANT_SKILLS_FLAG)) === true
 		);
 	}

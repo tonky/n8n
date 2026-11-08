@@ -21,7 +21,7 @@ import {
 	getActiveOrchestratorDomainToolNames,
 } from '../tools';
 import { createToolsFromLocalMcpServer } from '../tools/create-tools-from-mcp-server';
-import { ALWAYS_LOADED_TOOL_NAMES } from '../tools/tool-ids';
+import { ALWAYS_LOADED_TOOL_NAMES, CHECKPOINT_FOLLOW_UP_TOOL_NAMES } from '../tools/tool-ids';
 import { isSetupPanelEnabled } from '../tools/workflows/setup-items';
 import {
 	buildAgentTraceInputs,
@@ -57,12 +57,18 @@ function resolveModalSessionModelId(
 
 // ── Agent factory ───────────────────────────────────────────────────────────
 
-function splitDeferredTools(tools: InstanceAiToolRegistry) {
+function splitDeferredTools(
+	tools: InstanceAiToolRegistry,
+	options: { isCheckpointFollowUp?: boolean } = {},
+) {
 	const coreTools = createToolRegistry();
 	const deferredTools = createToolRegistry();
 
 	for (const [name, tool] of tools) {
-		if (ALWAYS_LOADED_TOOL_NAMES.has(name)) {
+		if (
+			ALWAYS_LOADED_TOOL_NAMES.has(name) ||
+			(options.isCheckpointFollowUp && CHECKPOINT_FOLLOW_UP_TOOL_NAMES.has(name))
+		) {
 			coreTools.set(name, tool);
 		} else {
 			deferredTools.set(name, tool);
@@ -181,12 +187,14 @@ export async function createInstanceAgent(
 			agentRole: 'orchestrator',
 			tags: ['orchestrator'],
 		}) ?? allOrchestratorTools;
-	const { coreTools, deferredTools } = splitDeferredTools(tracedOrchestratorTools);
+	const { coreTools, deferredTools } = splitDeferredTools(tracedOrchestratorTools, {
+		isCheckpointFollowUp: orchestrationContext?.isCheckpointFollowUp,
+	});
 	const hasDeferrableTools = !options.disableDeferredTools && deferredTools.size > 0;
 	const hasDeferredExternalMcpTools =
 		hasDeferrableTools && Array.from(safeMcpTools.keys()).some((name) => deferredTools.has(name));
 	const runtimeTools = hasDeferrableTools ? coreTools : tracedOrchestratorTools;
-	const baseSystemPrompt = getVersionedSystemPrompt(
+	const systemPrompt = getVersionedSystemPrompt(
 		orchestrationContext?.promptConfiguration?.systemPromptVersion ??
 			resolvePromptProfile({}).profile.systemPromptVersion,
 		{
@@ -201,7 +209,6 @@ export async function createInstanceAgent(
 			// for flagged-in users on project-bound runs.
 			conversationHistoryEnabled: Boolean(context.conversationHistoryService),
 			preferenceSavingEnabled: Boolean(context.aiPreferenceService),
-			skillManagementEnabled: Boolean(context.skillService),
 			setupPanelEnabled: isSetupPanelEnabled(context),
 			workspaceRoot:
 				orchestrationContext?.workspace && orchestrationContext.workspaceRoot
@@ -209,10 +216,6 @@ export async function createInstanceAgent(
 					: undefined,
 		},
 	);
-
-	const systemPrompt = orchestrationContext?.skillAvailabilityNotice
-		? `${baseSystemPrompt}\n\n${orchestrationContext.skillAvailabilityNotice}`
-		: baseSystemPrompt;
 
 	setTracePromptVersion(
 		orchestrationContext?.tracing,
@@ -237,7 +240,6 @@ export async function createInstanceAgent(
 	if (mcpConnectionFailures.length > 0) {
 		agent.mcpConnectionFailures(mcpConnectionFailures);
 	}
-	if (options.modelFetch) agent.modelFetch(options.modelFetch);
 	if (options.thinkingEnabled !== false) {
 		applyAgentThinking(agent, modelId);
 	}

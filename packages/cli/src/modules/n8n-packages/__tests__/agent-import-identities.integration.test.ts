@@ -51,46 +51,51 @@ async function records() {
 }
 
 async function resolve(projectId = project.id) {
-	return await service.findImportMatches(
-		{ user, projectId },
-		sources.map(({ sourceAgentId }) => sourceAgentId),
+	return await service.allocateAgentIds(
+		await service.findBySourceAgentIds(
+			{ user, projectId },
+			sources.map(({ sourceAgentId }) => sourceAgentId),
+		),
 	);
 }
 
 it('retains persisted Agent and task identities on re-import', async () => {
 	const sourceBefore = structuredClone(sources);
-	const initial = await resolve();
-	expect(initial.idConflicts).toEqual([]);
-	expect(initial.matches.size).toBe(0);
-	expect(await service.findTaskIdConflicts(sources)).toEqual([]);
+	const identities = await resolve();
+	const mapping = await service.mapTaskIds(sources, identities);
+	expect(identities.idConflicts).toEqual([]);
+	expect(mapping.idConflicts).toEqual([]);
 	for (const source of sources) {
-		await seedAgent(source.sourceAgentId);
-		for (const [id, body] of Object.entries(source.tasks)) {
-			await tasks.save({ ...body, id, agentId: source.sourceAgentId });
+		const { targetAgentId } = identities.identities.get(source.sourceAgentId)!;
+		await seedAgent(targetAgentId);
+		expect(targetAgentId).toBe(source.sourceAgentId);
+		for (const [sourceTaskId, body] of Object.entries(source.tasks)) {
+			const id = mapping.taskIdsBySourceAgentId.get(source.sourceAgentId)!.get(sourceTaskId)!;
+			await tasks.save({ ...body, id, agentId: targetAgentId });
+			expect(id).toBe(sourceTaskId);
 		}
 	}
 	const before = await records();
 	const repeated = await resolve();
-	expect(repeated.idConflicts).toEqual([]);
-	for (const { sourceAgentId } of sources) {
-		expect(repeated.matches.get(sourceAgentId)).toMatchObject({
-			id: sourceAgentId,
-			projectId: project.id,
-		});
-	}
-	expect(await service.findTaskIdConflicts(sources)).toEqual([]);
+	expect([...repeated.identities.values()].map(({ targetAgentId }) => targetAgentId)).toEqual(
+		[...identities.identities.values()].map(({ targetAgentId }) => targetAgentId),
+	);
+	expect((await service.mapTaskIds(sources, repeated)).taskIdsBySourceAgentId).toEqual(
+		mapping.taskIdsBySourceAgentId,
+	);
 	expect(await records()).toEqual(before);
 	expect(sources).toEqual(sourceBefore);
 });
 
-it('reports an occupied Agent ID in another project', async () => {
+it('reports an occupied Agent ID in another project under source policy', async () => {
 	await seedAgent('support_source', otherProject.id);
 	const before = await records();
 	const result = await resolve();
-	expect(result.matches.has('support_source')).toBe(false);
+	expect(result.identities.has('support_source')).toBe(false);
 	expect(result.idConflicts).toEqual([
 		{
 			sourceAgentId: 'support_source',
+			existingAgentId: 'support_source',
 			existingProjectId: otherProject.id,
 		},
 	]);
@@ -106,11 +111,14 @@ it('reports an occupied task ID owned by another Agent', async () => {
 		...taskBody,
 	});
 	const before = await records();
-	const result = await service.findTaskIdConflicts(sources);
-	expect(result).toEqual([
+	const result = await service.mapTaskIds(sources, await resolve());
+	expect(result.taskIdsBySourceAgentId.get('support_source')!.size).toBe(0);
+	expect(result.idConflicts).toEqual([
 		{
 			sourceAgentId: 'support_source',
+			targetAgentId: 'support_source',
 			sourceTaskId: 'support_source_task',
+			targetTaskId: 'support_source_task',
 			conflictingAgentId: 'other-agent',
 		},
 	]);
@@ -119,10 +127,15 @@ it('reports an occupied task ID owned by another Agent', async () => {
 
 it('keeps task and Agent ID namespaces separate', async () => {
 	await seedAgent('support_source');
-	const result = await service.findTaskIdConflicts([
-		{ sourceAgentId: 'support_source', tasks: { support_source: taskBody } },
-	]);
-	expect(result).toEqual([]);
+	const identities = await resolve();
+	const result = await service.mapTaskIds(
+		[{ sourceAgentId: 'support_source', tasks: { support_source: taskBody } }],
+		identities,
+	);
+	expect(result.taskIdsBySourceAgentId.get('support_source')).toEqual(
+		new Map([['support_source', 'support_source']]),
+	);
+	expect(result.idConflicts).toEqual([]);
 });
 
 it('restricts destination matching to projects the user can read', async () => {
@@ -137,21 +150,23 @@ it('restricts destination matching to projects the user can read', async () => {
 	const matches = await service.findBySourceAgentIds({ user: member, projectId: project.id }, [
 		'support_source',
 	]);
-	expect(matches.get('support_source')?.id).toBe('support_source');
+	expect(matches.matches.get('support_source')?.id).toBe('support_source');
 });
 
 it('keeps global ID checks for an authorized pending project', async () => {
 	await seedAgent('support_source');
 	const member = await createMember();
 	const read = vi.spyOn(agents, 'findImportCandidates');
-	const result = await service.findImportMatches(
+	const matches = await service.findBySourceAgentIds(
 		{ user: member, projectId: 'pending-project', projectPendingCreation: true },
 		['support_source'],
 	);
-	expect(result.matches.size).toBe(0);
+	const result = await service.allocateAgentIds(matches);
+	expect(result.identities.size).toBe(0);
 	expect(result.idConflicts).toEqual([
 		{
 			sourceAgentId: 'support_source',
+			existingAgentId: 'support_source',
 			existingProjectId: project.id,
 		},
 	]);
@@ -184,11 +199,9 @@ it('bounds candidate and ownership queries for large ID lists', async () => {
 it('returns empty results without database reads', async () => {
 	const agentRead = vi.spyOn(agents, 'find');
 	const taskRead = vi.spyOn(tasks, 'find');
-	expect(await service.findImportMatches({ user, projectId: project.id }, [])).toEqual({
-		matches: new Map(),
-		idConflicts: [],
-	});
-	expect(await service.findTaskIdConflicts([])).toEqual([]);
+	const matches = await service.findBySourceAgentIds({ user, projectId: project.id }, []);
+	const identities = await service.allocateAgentIds(matches);
+	expect((await service.mapTaskIds([], identities)).taskIdsBySourceAgentId.size).toBe(0);
 	expect(await agents.findImportCandidates(project.id, [])).toEqual([]);
 	expect(agentRead).not.toHaveBeenCalled();
 	expect(taskRead).not.toHaveBeenCalled();

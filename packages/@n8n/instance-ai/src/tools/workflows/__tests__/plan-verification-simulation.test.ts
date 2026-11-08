@@ -70,7 +70,6 @@ describe('planVerificationSimulation — simulated trigger verdicts', () => {
 			url: 'https://proxy.example.com/anthropic/v1',
 			apiKey: 'proxy-token',
 		};
-		const modelFetch = vi.fn();
 		mockClassify.mockResolvedValue([
 			{
 				nodeName: 'Send It',
@@ -85,14 +84,11 @@ describe('planVerificationSimulation — simulated trigger verdicts', () => {
 			workflow: wf([{ name: 'Send It', type: 'n8n-nodes-base.slack' }]),
 			workflowId: 'wf-1',
 			fallbackModelConfig,
-			modelFetch,
 		});
 
-		expect(mockClassify).toHaveBeenCalledWith(
-			expect.objectContaining({ fallbackModelConfig, modelFetch }),
-		);
+		expect(mockClassify).toHaveBeenCalledWith(expect.objectContaining({ fallbackModelConfig }));
 		expect(mockGenerateFixtures).toHaveBeenCalledWith(
-			expect.objectContaining({ fallbackModelConfig, modelFetch }),
+			expect.objectContaining({ fallbackModelConfig }),
 		);
 	});
 

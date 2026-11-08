@@ -280,7 +280,21 @@ describe('importPackageSelectionFromDirectory', () => {
 		expect(await Container.get(WorkflowRepository).count()).toBe(0);
 	});
 
-	it('honours an overridden conflictPolicy', async () => {
+	it('honours an overridden workflowIdPolicy', async () => {
+		const result = await importSelection(
+			await packageDir(twoWorkflowPackage),
+			{ selectedProjectId: 'P1', selectedWorkflowIds: ['WFA'] },
+			{ workflowIdPolicy: 'new' },
+		);
+
+		const summary = result.workflows[0];
+		expect(summary.sourceWorkflowId).toBe('WFA');
+		expect(summary.localId).not.toBe('WFA');
+		expect(await findWorkflow(summary.localId)).not.toBeNull();
+		expect(await findWorkflow('WFA')).toBeNull();
+	});
+
+	it('honours an overridden workflowConflictPolicy', async () => {
 		await importSelection(await packageDir(twoWorkflowPackage), {
 			selectedProjectId: 'P1',
 			selectedWorkflowIds: ['WFA'],
@@ -299,14 +313,14 @@ describe('importPackageSelectionFromDirectory', () => {
 		const result = await importSelection(
 			renamedDir,
 			{ selectedProjectId: 'P1', selectedWorkflowIds: ['WFA'] },
-			{ conflictPolicy: 'skip' },
+			{ workflowConflictPolicy: 'skip' },
 		);
 
 		expect(result.workflows[0]).toMatchObject({ sourceWorkflowId: 'WFA', status: 'skipped' });
 		expect((await findWorkflow('WFA'))?.name).toBe('wfa');
 	});
 
-	it('fails a conflicting re-import under conflictPolicy=fail, changing nothing', async () => {
+	it('fails a conflicting re-import under workflowConflictPolicy=fail, changing nothing', async () => {
 		await importSelection(await packageDir(twoWorkflowPackage), {
 			selectedProjectId: 'P1',
 			selectedWorkflowIds: ['WFA'],
@@ -326,7 +340,7 @@ describe('importPackageSelectionFromDirectory', () => {
 			importSelection(
 				renamedDir,
 				{ selectedProjectId: 'P1', selectedWorkflowIds: ['WFA'] },
-				{ conflictPolicy: 'fail' },
+				{ workflowConflictPolicy: 'fail' },
 			),
 		).rejects.toMatchObject({
 			constructor: ConflictError,
@@ -430,19 +444,21 @@ describe('importPackageSelectionFromDirectory', () => {
 		});
 
 		it.each([
-			{ isArchived: false, conflictPolicy: 'new-version', idPolicy: 'source' },
-			{ isArchived: true, conflictPolicy: 'new-version', idPolicy: 'source' },
-			{ isArchived: false, conflictPolicy: 'skip', idPolicy: 'source' },
+			{ isArchived: false, workflowConflictPolicy: 'new-version', workflowIdPolicy: 'source' },
+			{ isArchived: true, workflowConflictPolicy: 'new-version', workflowIdPolicy: 'source' },
+			{ isArchived: false, workflowConflictPolicy: 'skip', workflowIdPolicy: 'source' },
+			{ isArchived: false, workflowConflictPolicy: 'new-version', workflowIdPolicy: 'new' },
 		] as const)(
-			'rejects an overlap with archived=$isArchived, conflict=$conflictPolicy, ids=$idPolicy',
-			async ({ isArchived, conflictPolicy, idPolicy }) => {
+			'rejects an overlap with archived=$isArchived, conflict=$workflowConflictPolicy, ids=$workflowIdPolicy',
+			async ({ isArchived, workflowConflictPolicy, workflowIdPolicy }) => {
 				const sourceDir = await packageDir(twoWorkflowPackage);
 				const seeded = await importSelection(
 					sourceDir,
 					{ selectedProjectId: 'P1', selectedWorkflowIds: ['WFA'] },
-					{ idPolicy },
+					{ workflowIdPolicy },
 				);
 				const workflowId = seeded.workflows[0].localId;
+				if (workflowIdPolicy === 'new') expect(workflowId).not.toBe('WFA');
 				await Container.get(WorkflowRepository).update(workflowId, { isArchived });
 				const before = await findWorkflow(workflowId);
 				const historyBefore = await Container.get(WorkflowHistoryRepository).countBy({
@@ -458,7 +474,7 @@ describe('importPackageSelectionFromDirectory', () => {
 							selectedWorkflowIds: ['WFA', 'WFB'],
 							deletedWorkflowIds: [workflowId],
 						},
-						{ conflictPolicy },
+						{ workflowConflictPolicy },
 					),
 				).rejects.toMatchObject({
 					constructor: ConflictError,

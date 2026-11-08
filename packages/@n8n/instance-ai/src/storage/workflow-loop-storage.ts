@@ -9,6 +9,8 @@ import type {
 } from '../workflow-loop/workflow-loop-state';
 import {
 	attemptRecordSchema,
+	isPlannedWorkflowBuildOwner,
+	resolveWorkflowBuildOwner,
 	workflowBuildOutcomeSchema,
 	workflowLoopStateSchema,
 } from '../workflow-loop/workflow-loop-state';
@@ -46,6 +48,12 @@ function hasUnexpiredSetupRoutingClaim(state: WorkflowLoopState, nowIso: string)
 	if (!Number.isFinite(expiresAtMs)) return true;
 
 	return expiresAtMs > Date.parse(nowIso);
+}
+
+function isPlannedWorkItem(record: WorkflowLoopWorkItemRecord): boolean {
+	return isPlannedWorkflowBuildOwner(
+		resolveWorkflowBuildOwner(record.state, record.lastBuildOutcome),
+	);
 }
 
 export class WorkflowLoopStorage {
@@ -147,7 +155,7 @@ export class WorkflowLoopStorage {
 				const all = this.parse(metadata[METADATA_KEY]);
 				const record = all[workItemId];
 				if (!record) return null;
-				if (record.state.setupRoutedAt) return null;
+				if (record.state.setupRoutedAt || isPlannedWorkItem(record)) return null;
 				if (hasUnexpiredSetupRoutingClaim(record.state, claim.claimedAt)) return null;
 
 				const state: WorkflowLoopState = {
@@ -182,7 +190,7 @@ export class WorkflowLoopStorage {
 				const all = this.parse(metadata[METADATA_KEY]);
 				const record = all[workItemId];
 				if (!record) return null;
-				if (record.state.setupRoutedAt) return null;
+				if (record.state.setupRoutedAt || isPlannedWorkItem(record)) return null;
 				if (record.state.setupRoutingClaimId !== claimId) return null;
 
 				all[workItemId] = {

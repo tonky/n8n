@@ -16,7 +16,8 @@ import { usePinnedData } from '@/app/composables/usePinnedData';
 import { inject, computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTelemetry } from '@n8n/composables/useTelemetry';
-import { N8nDropdownMenu, N8nIconButton } from '@n8n/design-system';
+import { ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plus';
+import { N8nIconButton } from '@n8n/design-system';
 type JsonPathData = {
 	path: string;
 	startPath: string;
@@ -129,26 +130,6 @@ function getJsonParameterPath(): JsonPathData {
 	return { path, startPath };
 }
 
-const copyItems = computed(() => [
-	{
-		id: 'value',
-		label: i18n.baseText('runData.copyValue'),
-	},
-	{
-		id: 'itemPath',
-		label: i18n.baseText('runData.copyItemPath'),
-		divided: true,
-	},
-	{
-		id: 'parameterPath',
-		label: i18n.baseText('runData.copyParameterPath'),
-	},
-]);
-
-function onCopySelect(command: string) {
-	handleCopyClick({ command });
-}
-
 function handleCopyClick(commandData: { command: string }) {
 	let value: string;
 	if (commandData.command === 'value') {
@@ -223,25 +204,36 @@ function handleCopyClick(commandData: { command: string }) {
 			:circle="false"
 			@click="handleCopyClick({ command: 'value' })"
 		/>
-		<N8nDropdownMenu
+		<ElDropdown
 			v-else
-			:items="copyItems"
-			placement="bottom-end"
+			trigger="click"
 			:teleported="
-				!isInPopOutWindow // disabling teleport keeps the menu in the pop-out window
+				!isInPopOutWindow // disabling teleport ensures the menu is rendered in pop-out window
 			"
-			@select="onCopySelect"
+			@command="handleCopyClick"
 		>
-			<template #trigger>
+			<span class="el-dropdown-link">
 				<N8nIconButton
 					variant="outline"
 					:title="i18n.baseText('runData.copyToClipboard')"
 					icon="files"
 					:circle="false"
-					data-test-id="ndv-json-copy-menu"
 				/>
+			</span>
+			<template #dropdown>
+				<ElDropdownMenu>
+					<ElDropdownItem :command="{ command: 'value' }">
+						{{ i18n.baseText('runData.copyValue') }}
+					</ElDropdownItem>
+					<ElDropdownItem :command="{ command: 'itemPath' }" divided>
+						{{ i18n.baseText('runData.copyItemPath') }}
+					</ElDropdownItem>
+					<ElDropdownItem :command="{ command: 'parameterPath' }">
+						{{ i18n.baseText('runData.copyParameterPath') }}
+					</ElDropdownItem>
+				</ElDropdownMenu>
 			</template>
-		</N8nDropdownMenu>
+		</ElDropdown>
 	</div>
 </template>
 

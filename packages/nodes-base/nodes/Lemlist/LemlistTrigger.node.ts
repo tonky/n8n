@@ -9,7 +9,7 @@ import type {
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
-import { getEvents, lemlistApiRequest, lemlistApiRequestAllItems } from './GenericFunctions';
+import { getEvents, lemlistApiRequest } from './GenericFunctions';
 
 export class LemlistTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -81,10 +81,11 @@ export class LemlistTrigger implements INodeType {
 	methods = {
 		loadOptions: {
 			async getCampaigns(this: ILoadOptionsFunctions) {
-				const campaigns = await lemlistApiRequestAllItems.call(this, 'GET', '/campaigns');
-				return campaigns.flatMap(({ _id, name }) =>
-					typeof name === 'string' && typeof _id === 'string' ? [{ name, value: _id }] : [],
-				);
+				const campaigns = await lemlistApiRequest.call(this, 'GET', '/campaigns');
+				return campaigns.map(({ _id, name }: { _id: string; name: string }) => ({
+					name,
+					value: _id,
+				}));
 			},
 		},
 	};

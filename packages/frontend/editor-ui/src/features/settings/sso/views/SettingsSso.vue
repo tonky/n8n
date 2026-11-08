@@ -5,19 +5,17 @@ import { useSSOStore, SupportedProtocols, type SupportedProtocolType } from '../
 import { useI18n } from '@n8n/i18n';
 import { computed, onMounted, ref, useTemplateRef } from 'vue';
 import { onBeforeRouteLeave, type NavigationGuardNext } from 'vue-router';
+import { ElDialog } from 'element-plus';
+
 import {
-	N8nButton,
-	N8nDialog,
-	N8nDialogBody,
-	N8nDialogFooter,
 	N8nEmptyState,
+	N8nButton,
 	N8nCallout,
 	N8nOption,
 	N8nSelect,
 	N8nSettingsPageHeader,
 	N8nText,
 } from '@n8n/design-system';
-import AuthenticationBackLink from '../components/AuthenticationBackLink.vue';
 import SamlSettingsForm from '../components/SamlSettingsForm.vue';
 import OidcSettingsForm from '../components/OidcSettingsForm.vue';
 import { useUserRoleProvisioningStore } from '../provisioning/composables/userRoleProvisioning.store';
@@ -84,32 +82,24 @@ onBeforeRouteLeave((_to, _from, next) => {
 });
 
 async function onSaveAndLeave() {
-	const next = pendingNext.value;
-	pendingNext.value = null;
 	showUnsavedChangesDialog.value = false;
 	const saved = await activeForm.value?.onSave();
 	if (saved) {
-		next?.();
-	} else {
-		next?.(false);
+		pendingNext.value?.();
+		pendingNext.value = null;
 	}
 }
 
 function onLeaveWithoutSaving() {
-	const next = pendingNext.value;
-	pendingNext.value = null;
 	showUnsavedChangesDialog.value = false;
-	next?.();
+	pendingNext.value?.();
+	pendingNext.value = null;
 }
 
-function onDismissUnsavedChanges() {
+function onKeepEditing() {
 	showUnsavedChangesDialog.value = false;
 	pendingNext.value?.(false);
 	pendingNext.value = null;
-}
-
-function onUnsavedDialogOpenUpdate(open: boolean) {
-	if (!open) onDismissUnsavedChanges();
 }
 
 onMounted(() => {
@@ -121,7 +111,6 @@ onMounted(() => {
 
 <template>
 	<div class="pb-2xl">
-		<AuthenticationBackLink />
 		<N8nSettingsPageHeader
 			:title="i18n.baseText('settings.sso.title')"
 			:description="i18n.baseText('settings.sso.info')"
@@ -189,29 +178,35 @@ onMounted(() => {
 			</template>
 		</N8nEmptyState>
 
-		<N8nDialog
-			:open="showUnsavedChangesDialog"
-			size="medium"
-			:header="i18n.baseText('settings.sso.settings.unsavedChanges.title')"
+		<ElDialog
+			v-model="showUnsavedChangesDialog"
+			:title="i18n.baseText('settings.sso.settings.unsavedChanges.title')"
+			width="500"
 			data-test-id="sso-unsaved-changes-dialog"
-			@update:open="onUnsavedDialogOpenUpdate"
 		>
-			<N8nDialogBody>
-				<N8nText>{{ i18n.baseText('settings.sso.settings.unsavedChanges.message') }}</N8nText>
-			</N8nDialogBody>
-			<N8nDialogFooter>
-				<N8nButton variant="outline" data-test-id="sso-unsaved-leave" @click="onLeaveWithoutSaving">
-					{{ i18n.baseText('settings.sso.settings.unsavedChanges.leaveWithoutSaving') }}
-				</N8nButton>
-				<N8nButton
-					variant="solid"
-					data-test-id="sso-unsaved-save-and-leave"
-					@click="onSaveAndLeave"
-				>
-					{{ i18n.baseText('settings.sso.settings.unsavedChanges.saveAndLeave') }}
-				</N8nButton>
-			</N8nDialogFooter>
-		</N8nDialog>
+			<N8nText>{{ i18n.baseText('settings.sso.settings.unsavedChanges.message') }}</N8nText>
+			<template #footer>
+				<div :class="$style.dialogFooter">
+					<N8nButton variant="ghost" data-test-id="sso-unsaved-keep-editing" @click="onKeepEditing">
+						{{ i18n.baseText('settings.sso.settings.unsavedChanges.keepEditing') }}
+					</N8nButton>
+					<N8nButton
+						variant="outline"
+						data-test-id="sso-unsaved-leave"
+						@click="onLeaveWithoutSaving"
+					>
+						{{ i18n.baseText('settings.sso.settings.unsavedChanges.leaveWithoutSaving') }}
+					</N8nButton>
+					<N8nButton
+						variant="solid"
+						data-test-id="sso-unsaved-save-and-leave"
+						@click="onSaveAndLeave"
+					>
+						{{ i18n.baseText('settings.sso.settings.unsavedChanges.saveAndLeave') }}
+					</N8nButton>
+				</div>
+			</template>
+		</ElDialog>
 	</div>
 </template>
 
@@ -233,5 +228,11 @@ onMounted(() => {
 
 .actionBox {
 	margin-top: var(--spacing--lg);
+}
+
+.dialogFooter {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--spacing--2xs);
 }
 </style>

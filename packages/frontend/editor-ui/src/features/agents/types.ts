@@ -5,7 +5,6 @@ import type {
 	AgentReasoningLevel,
 	AgentSkill,
 	AgentSkillReference,
-	AgentTokenUsage,
 } from '@n8n/api-types';
 import type { Agent, ToolDescriptor, CustomToolEntry } from './agent.types';
 
@@ -14,14 +13,6 @@ export type { ToolDescriptor, CustomToolEntry, AgentSkill, AgentSkillReference }
 export interface AgentContinueLoadedEvent {
 	sessionId: string;
 	count: number;
-}
-
-export interface AgentUsageUpdate {
-	sessionId: string;
-	executionId: string;
-	usage?: AgentTokenUsage;
-	duration?: number;
-	complete: boolean;
 }
 
 export interface AgentFixWithAssistantFailure {

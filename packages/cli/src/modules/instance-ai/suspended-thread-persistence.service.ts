@@ -87,6 +87,7 @@ export class SuspendedThreadPersistenceService {
 		kind: 'inline' | 'suspended';
 		toolCallId?: string;
 		checkpointKey?: string;
+		checkpointTaskId?: string;
 	}): Promise<void> {
 		try {
 			await this.pendingConfirmationRepo.save(
@@ -99,6 +100,7 @@ export class SuspendedThreadPersistenceService {
 					messageGroupId: params.messageGroupId ?? null,
 					toolCallId: params.toolCallId ?? null,
 					checkpointKey: params.checkpointKey ?? null,
+					checkpointTaskId: params.checkpointTaskId ?? null,
 					expiresAt: this.computePendingConfirmationExpiresAt(),
 				}),
 			);

@@ -47,7 +47,10 @@ export type OrchestratorResumeReason =
 	| 'approval'
 	| 'background_task_completed'
 	| 'workflow_verification'
-	| 'workflow_setup';
+	| 'workflow_setup'
+	| 'planned_checkpoint'
+	| 'replan'
+	| 'synthesize';
 
 // The slice of each collaborator the tracing service actually uses. Anchored to
 // the concrete types via `Pick` so the signatures stay in sync with the source.
@@ -472,6 +475,7 @@ export class InstanceAiTracingService {
 			},
 			...(status === 'failed' && task.error ? { error: task.error } : {}),
 			metadata: {
+				...(task.plannedTaskId ? { planned_task_id: task.plannedTaskId } : {}),
 				...(task.workItemId ? { work_item_id: task.workItemId } : {}),
 			},
 		});

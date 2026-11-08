@@ -1,16 +1,14 @@
 import { mockInstance } from '@n8n/backend-test-utils';
 import type { AuthIdentity } from '@n8n/db';
-import { generateNanoId, Person, AuthIdentityRepository, PersonRepository } from '@n8n/db';
+import { generateNanoId, User, AuthIdentityRepository, UserRepository } from '@n8n/db';
 import { Container } from '@n8n/di';
 
 import { UrlService } from '@n8n/backend-services';
 
-import * as ssoHelpers from '@/sso.ee/sso-helpers';
-
 import * as helpers from '../saml-helpers';
 import type { SamlUserAttributes } from '../types';
 
-const personRepository = mockInstance(PersonRepository);
+const userRepository = mockInstance(UserRepository);
 mockInstance(AuthIdentityRepository);
 
 describe('sso/saml/samlHelpers', () => {
@@ -19,14 +17,14 @@ describe('sso/saml/samlHelpers', () => {
 		// packages/@n8n/db/src/entities/Project.ts receives the full user.
 		// With `update` it would only receive the updated fields, e.g. the `id`
 		// would be missing.
-		test('saves the whole person, not only the changed fields', async () => {
+		test('does not user `Repository.update`, but `Repository.save` instead', async () => {
 			//
 			// ARRANGE
 			//
-			const person = Object.assign(new Person(), {
+			const user = Object.assign(new User(), {
 				id: generateNanoId(),
 				authIdentities: [] as AuthIdentity[],
-			});
+			} as User);
 			const samlUserAttributes: SamlUserAttributes = {
 				firstName: 'Nathan',
 				lastName: 'Nathaniel',
@@ -35,26 +33,26 @@ describe('sso/saml/samlHelpers', () => {
 				n8nInstanceRole: 'n8n_instance_role',
 			};
 
-			personRepository.findByIdWithRole.mockResolvedValueOnce(person);
-			personRepository.save.mockResolvedValueOnce(person);
+			userRepository.findOne.mockImplementationOnce(async (_) => user);
+			userRepository.save.mockImplementationOnce(async (_) => user);
 
 			//
 			// ACT
 			//
-			await helpers.updateUserFromSamlAttributes(person, samlUserAttributes);
+			await helpers.updateUserFromSamlAttributes(user, samlUserAttributes);
 
 			//
 			// ASSERT
 			//
-			expect(personRepository.save).toHaveBeenCalledWith(person);
-			expect(person.firstName).toBe(samlUserAttributes.firstName);
-			expect(person.lastName).toBe(samlUserAttributes.lastName);
-			expect(person.authIdentities).toEqual([
-				expect.objectContaining({
-					providerId: samlUserAttributes.userPrincipalName,
-					providerType: 'saml',
-				}),
-			]);
+			expect(userRepository.save).toHaveBeenCalledWith(
+				{
+					...user,
+					firstName: samlUserAttributes.firstName,
+					lastName: samlUserAttributes.lastName,
+				},
+				{ transaction: false },
+			);
+			expect(userRepository.update).not.toHaveBeenCalled();
 		});
 	});
 
@@ -419,51 +417,6 @@ describe('sso/saml/samlHelpers', () => {
 		test('returns false when RelayState is missing', () => {
 			expect(helpers.isConnectionTestRequest({})).toBe(false);
 		});
-	});
-
-	describe('setSamlLoginEnabled', () => {
-		const emitSsoLoginDisabled = () => vi.mocked(ssoHelpers.emitSsoLoginDisabled);
-
-		beforeEach(() => {
-			vi.spyOn(ssoHelpers, 'setCurrentAuthenticationMethod').mockResolvedValue();
-			vi.spyOn(ssoHelpers, 'emitSsoLoginDisabled').mockResolvedValue();
-		});
-
-		afterEach(() => {
-			vi.restoreAllMocks();
-		});
-
-		test('emits sso-login-disabled when SAML login turns off', async () => {
-			vi.spyOn(ssoHelpers, 'getCurrentAuthenticationMethod').mockReturnValue('saml');
-
-			await helpers.setSamlLoginEnabled(false);
-
-			expect(ssoHelpers.setCurrentAuthenticationMethod).toHaveBeenCalledWith('email');
-			expect(emitSsoLoginDisabled()).toHaveBeenCalledExactlyOnceWith('saml');
-		});
-
-		test.each(['email', 'oidc', 'ldap'] as const)(
-			'does not emit when SAML is off and the method is %s',
-			async (method) => {
-				vi.spyOn(ssoHelpers, 'getCurrentAuthenticationMethod').mockReturnValue(method);
-
-				await helpers.setSamlLoginEnabled(false);
-
-				expect(emitSsoLoginDisabled()).not.toHaveBeenCalled();
-			},
-		);
-
-		test.each(['email', 'saml'] as const)(
-			'does not emit when SAML login turns on from %s',
-			async (method) => {
-				vi.spyOn(ssoHelpers, 'getCurrentAuthenticationMethod').mockReturnValue(method);
-
-				await helpers.setSamlLoginEnabled(true);
-
-				expect(ssoHelpers.setCurrentAuthenticationMethod).toHaveBeenCalledWith('saml');
-				expect(emitSsoLoginDisabled()).not.toHaveBeenCalled();
-			},
-		);
 	});
 
 	describe('extractTestIdFromRelayState', () => {

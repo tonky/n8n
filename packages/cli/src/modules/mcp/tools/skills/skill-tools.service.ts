@@ -48,9 +48,6 @@ const createSkillInput = {
 		.describe('project: one project can use the skill. instance: every project can use it'),
 	projectId: z.string().min(1).optional().describe('Required when scope is project'),
 	skill: CreateSkillDto.schema.shape.skill,
-	availableToAssistant: CreateSkillDto.schema.shape.availableToAssistant.describe(
-		'Allow the n8n Assistant to use this skill. Defaults to false.',
-	),
 } satisfies z.ZodRawShape;
 
 const updateSkillInput = {
@@ -109,10 +106,7 @@ export class McpSkillToolsService {
 
 	async registerTools(registerTool: RegisterToolFn, user: User): Promise<void> {
 		const assistantSkillsEnabled = await this.assistantSkillsRollout.isEnabled();
-		const { availableToAssistant: _createAvailability, ...createWithoutAssistant } =
-			createSkillInput;
-		const { availableToAssistant: _updateAvailability, ...updateWithoutAssistant } =
-			updateSkillInput;
+		const { availableToAssistant: _availability, ...updateWithoutAssistant } = updateSkillInput;
 		registerTool({
 			name: 'search_n8n_skills',
 			config: {
@@ -167,7 +161,7 @@ export class McpSkillToolsService {
 			name: 'create_skill',
 			config: {
 				description: 'Create a skill in the skills hub.',
-				inputSchema: assistantSkillsEnabled ? createSkillInput : createWithoutAssistant,
+				inputSchema: createSkillInput,
 				annotations: {
 					title: 'Create Skill',
 					readOnlyHint: false,
@@ -185,7 +179,6 @@ export class McpSkillToolsService {
 								scope: input.scope,
 								projectId: input.projectId,
 								skill: input.skill,
-								availableToAssistant: input.availableToAssistant,
 							}),
 							'mcp',
 						);

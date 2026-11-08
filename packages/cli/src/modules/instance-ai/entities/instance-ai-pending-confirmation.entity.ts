@@ -62,6 +62,9 @@ export class InstanceAiPendingConfirmation extends WithTimestamps {
 	@Column({ type: 'varchar', length: 255, nullable: true })
 	checkpointKey: string | null;
 
+	@Column({ type: 'varchar', length: 36, nullable: true })
+	checkpointTaskId: string | null;
+
 	@Index()
 	@DateTimeColumn({ precision: 3, nullable: true })
 	expiresAt: Date | null;

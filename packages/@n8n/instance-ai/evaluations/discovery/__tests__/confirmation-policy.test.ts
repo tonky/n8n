@@ -107,7 +107,13 @@ describe('resolveConfirmation', () => {
 			approved: true,
 			connectedSlugs: ['notion', 'linear'],
 		});
-		expect(resolveConfirmation(suspension('credentials', credentialPayload), empty, all)).toEqual({
+		expect(
+			resolveConfirmation(
+				suspension('workflow_builder_credentials', credentialPayload),
+				empty,
+				all,
+			),
+		).toEqual({
 			approved: true,
 			autoSetup: { credentialType: 'slackOAuth2Api' },
 		});
@@ -176,7 +182,7 @@ describe('unmatchedConfirmations', () => {
 		scenario({
 			confirmations: {
 				'mcp_notion_notion-search': 'deny',
-				credentials: {
+				workflow_builder_credentials: {
 					decision: 'approve',
 					resumeWith: { autoSetup: { credentialType: 'x' } },
 				},
@@ -185,11 +191,17 @@ describe('unmatchedConfirmations', () => {
 	);
 
 	it('reports every behaviour-changing answer no suspension asked for', () => {
-		expect(unmatchedConfirmations(policy, [])).toEqual(['mcp_notion_notion-search', 'credentials']);
+		expect(unmatchedConfirmations(policy, [])).toEqual([
+			'mcp_notion_notion-search',
+			'workflow_builder_credentials',
+		]);
 	});
 
 	it('reports nothing once each declared tool has suspended', () => {
-		const asked = [suspension('mcp_notion_notion-search'), suspension('credentials')];
+		const asked = [
+			suspension('mcp_notion_notion-search'),
+			suspension('workflow_builder_credentials'),
+		];
 		expect(unmatchedConfirmations(policy, asked)).toEqual([]);
 	});
 
@@ -197,10 +209,12 @@ describe('unmatchedConfirmations', () => {
 		const legacyPolicy = buildConfirmationPolicy(
 			scenario({ confirmations: { credentials: 'deny' } }),
 		);
-		expect(resolveConfirmation(suspension('credentials'), legacyPolicy)).toEqual({
+		expect(resolveConfirmation(suspension('workflow_builder_credentials'), legacyPolicy)).toEqual({
 			approved: false,
 		});
-		expect(unmatchedConfirmations(legacyPolicy, [suspension('credentials')])).toEqual([]);
+		expect(
+			unmatchedConfirmations(legacyPolicy, [suspension('workflow_builder_credentials')]),
+		).toEqual([]);
 	});
 
 	it('exempts a bare approve, which only asks for the default', () => {
@@ -216,7 +230,9 @@ describe('unmatchedConfirmations', () => {
 			requestId: 'req-1',
 			suspendPayload: { type: 'approval', toolName: 'mcp_notion_notion-search' },
 		};
-		expect(unmatchedConfirmations(policy, [gated, suspension('credentials')])).toEqual([]);
+		expect(
+			unmatchedConfirmations(policy, [gated, suspension('workflow_builder_credentials')]),
+		).toEqual([]);
 	});
 
 	it('ignores suspensions the scenario never declared', () => {

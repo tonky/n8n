@@ -6,8 +6,7 @@ import { N8nCallout, N8nIconButton } from '@n8n/design-system';
 import { useI18n } from '@n8n/i18n';
 import { useSettingsStore } from '@n8n/stores/settings.store';
 import { useUsersStore } from '@n8n/stores/users.store';
-import { LOCAL_STORAGE_INSTANCE_AI_LIMITED_MODE_DISMISSED } from '@/app/constants';
-import { INSTANCE_AI_SETTINGS_VIEW } from '../constants';
+import { LOCAL_STORAGE_INSTANCE_AI_LIMITED_MODE_DISMISSED, VIEWS } from '@/app/constants';
 import { useInstanceAiSettingsStore } from '../instanceAiSettings.store';
 
 const i18n = useI18n();
@@ -36,7 +35,7 @@ const isLimited = computed(() => !settingsStore.isAiDataSharingEnabled);
 			<span>{{ i18n.baseText('instanceAi.limitedMode.description') }}</span>
 			<RouterLink
 				v-if="instanceAiSettingsStore.canManageAiUsage"
-				:to="{ name: INSTANCE_AI_SETTINGS_VIEW }"
+				:to="{ name: VIEWS.AI_SETTINGS }"
 				data-test-id="instance-ai-limited-mode-settings-link"
 			>
 				{{ i18n.baseText('instanceAi.limitedMode.settingsLink') }}

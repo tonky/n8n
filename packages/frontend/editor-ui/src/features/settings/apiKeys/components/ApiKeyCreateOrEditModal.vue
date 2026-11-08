@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import ApiKeyScopes from './ApiKeyScopes.vue';
 import RevokeApiKeyConfirmModal from './RevokeApiKeyConfirmModal.vue';
+import Modal from '@/app/components/Modal.vue';
 import { API_KEY_CREATE_OR_EDIT_MODAL_KEY } from '../apiKeys.constants';
 import { isApiKeyExpired } from '../apiKeys.utils';
 import { computed, onMounted, ref } from 'vue';
 import { useUIStore } from '@/app/stores/ui.store';
 import { useUsersStore } from '@n8n/stores/users.store';
+import { createEventBus } from '@n8n/utils/event-bus';
 import { useI18n } from '@n8n/i18n';
 import { useRootStore } from '@n8n/stores/useRootStore';
 import { useRBACStore } from '@n8n/stores/rbac.store';
@@ -22,17 +24,12 @@ import { ElDatePicker } from 'element-plus';
 import {
 	N8nButton,
 	N8nCopyInput,
-	N8nDialog,
-	N8nDialogBody,
-	N8nDialogFooter,
 	N8nInput,
 	N8nInputLabel,
 	N8nOption,
 	N8nSelect,
 	N8nText,
 } from '@n8n/design-system';
-
-defineOptions({ inheritAttrs: false });
 const EXPIRATION_OPTIONS = {
 	'7_DAYS': 7,
 	'30_DAYS': 30,
@@ -57,11 +54,8 @@ const rbacStore = useRBACStore();
 const documentTitle = useDocumentTitle();
 
 const label = ref('');
-const inputRef = ref<InstanceType<typeof N8nInput> | null>(null);
 const expirationDaysFromNow = ref(EXPIRATION_OPTIONS['30_DAYS']);
-const modalOpen = computed(
-	() => uiStore.modalsById[API_KEY_CREATE_OR_EDIT_MODAL_KEY]?.open === true,
-);
+const modalBus = createEventBus();
 const newApiKey = ref<ApiKeyWithRawValue | null>(null);
 const loading = ref(false);
 const rawApiKey = ref('');
@@ -100,6 +94,8 @@ const getExpirationOptionLabel = (value: number) => {
 const expirationDate = ref(
 	calculateExpirationDate(expirationDaysFromNow.value).toFormat(API_KEY_DATE_FORMAT),
 );
+
+const inputRef = ref<HTMLTextAreaElement | null>(null);
 
 const props = withDefaults(
 	defineProps<{
@@ -221,7 +217,7 @@ async function onEdit() {
 			type: 'success',
 			title: i18n.baseText('settings.api.update.toast'),
 		});
-		closeDialog();
+		closeModal();
 	} catch (error) {
 		showError(error, i18n.baseText('settings.api.edit.error'));
 	} finally {
@@ -229,12 +225,8 @@ async function onEdit() {
 	}
 }
 
-async function closeDialog() {
+function closeModal() {
 	uiStore.closeModal(API_KEY_CREATE_OR_EDIT_MODAL_KEY);
-}
-
-function onDialogOpenUpdate(open: boolean) {
-	if (!open) void closeDialog();
 }
 
 const onSave = async () => {
@@ -319,7 +311,7 @@ async function onRevokeConfirm() {
 		await deleteApiKey(props.activeId);
 		showMessage({ type: 'success', title: i18n.baseText('settings.api.revoke.toast') });
 		showRevokeConfirm.value = false;
-		closeDialog();
+		closeModal();
 	} catch (error) {
 		showError(error, i18n.baseText('settings.api.delete.error'));
 	} finally {
@@ -358,123 +350,123 @@ async function handleEnterKey(event: KeyboardEvent) {
 </script>
 
 <template>
-	<N8nDialog
-		:open="modalOpen"
-		size="xlarge"
-		:header="modalTitle"
-		:close-on-overlay-click="false"
-		@update:open="onDialogOpenUpdate"
+	<Modal
+		:title="modalTitle"
+		:event-bus="modalBus"
+		:name="API_KEY_CREATE_OR_EDIT_MODAL_KEY"
+		width="600px"
+		:lock-scroll="false"
+		:close-on-esc="true"
+		:close-on-click-modal="false"
+		:show-close="true"
 	>
-		<N8nDialogBody>
-			<div :data-test-id="`${API_KEY_CREATE_OR_EDIT_MODAL_KEY}-modal`">
-				<div @keyup.enter="handleEnterKey">
-					<div v-if="newApiKey" :class="$style.createdView">
-						<N8nText size="small">{{ i18n.baseText('settings.api.view.copy') }}</N8nText>
-						<N8nCopyInput
-							:value="rawApiKey"
-							:display-value="apiKeyDisplay"
-							:label="i18n.baseText('generic.apiKey')"
-							size="large"
-							:copy-label="i18n.baseText('generic.copy')"
-							:copied-label="i18n.baseText('generic.copiedToClipboard')"
-							redact
-							data-test-id="copy-input"
-							@copy="onApiKeyCopied"
-						/>
-					</div>
+		<template #content>
+			<div @keyup.enter="handleEnterKey">
+				<div v-if="newApiKey" :class="$style.createdView">
+					<N8nText size="small">{{ i18n.baseText('settings.api.view.copy') }}</N8nText>
+					<N8nCopyInput
+						:value="rawApiKey"
+						:display-value="apiKeyDisplay"
+						:label="i18n.baseText('generic.apiKey')"
+						size="large"
+						:copy-label="i18n.baseText('generic.copy')"
+						:copied-label="i18n.baseText('generic.copiedToClipboard')"
+						redact
+						data-test-id="copy-input"
+						@copy="onApiKeyCopied"
+					/>
+				</div>
 
-					<div v-else :class="$style.form">
+				<div v-else :class="$style.form">
+					<N8nInputLabel
+						:label="i18n.baseText('settings.api.view.modal.form.label')"
+						color="text-dark"
+					>
+						<N8nInput
+							ref="inputRef"
+							required
+							:model-value="label"
+							size="large"
+							type="text"
+							:placeholder="i18n.baseText('settings.api.view.modal.form.label.placeholder')"
+							:maxlength="50"
+							:disabled="isReadOnly"
+							data-test-id="api-key-label"
+							@update:model-value="onInput"
+						/>
+					</N8nInputLabel>
+					<div v-if="mode === 'new'" :class="$style.expirationSection">
 						<N8nInputLabel
-							:label="i18n.baseText('settings.api.view.modal.form.label')"
-							color="text-dark"
-						>
-							<N8nInput
-								ref="inputRef"
-								required
-								:model-value="label"
-								size="large"
-								type="text"
-								:placeholder="i18n.baseText('settings.api.view.modal.form.label.placeholder')"
-								:maxlength="50"
-								:disabled="isReadOnly"
-								data-test-id="api-key-label"
-								@update:model-value="onInput"
-							/>
-						</N8nInputLabel>
-						<div v-if="mode === 'new'" :class="$style.expirationSection">
-							<N8nInputLabel
-								:label="i18n.baseText('settings.api.view.modal.form.expiration')"
-								color="text-dark"
-							>
-								<N8nSelect
-									v-model="expirationDaysFromNow"
-									size="large"
-									filterable
-									readonly
-									:teleported="false"
-									data-test-id="expiration-select"
-									@update:model-value="onSelect"
-								>
-									<N8nOption
-										v-for="key in Object.keys(EXPIRATION_OPTIONS)"
-										:key="key"
-										:value="EXPIRATION_OPTIONS[key as keyof typeof EXPIRATION_OPTIONS]"
-										:label="
-											getExpirationOptionLabel(
-												EXPIRATION_OPTIONS[key as keyof typeof EXPIRATION_OPTIONS],
-											)
-										"
-									>
-									</N8nOption>
-								</N8nSelect>
-							</N8nInputLabel>
-							<ElDatePicker
-								v-if="showExpirationDateSelector"
-								v-model="customExpirationDate"
-								type="date"
-								:teleported="false"
-								placeholder="yyyy-mm-dd"
-								value-format="X"
-								:disabled-date="isCustomDateInThePast"
-							/>
-							<N8nText
-								v-if="expirationHint"
-								size="small"
-								color="text-light"
-								data-test-id="api-key-expiration-hint"
-							>
-								{{ expirationHint }}
-							</N8nText>
-						</div>
-						<N8nInputLabel
-							v-else
 							:label="i18n.baseText('settings.api.view.modal.form.expiration')"
 							color="text-dark"
 						>
-							<N8nText size="small" color="text-light" data-test-id="api-key-expiration-readonly">
-								{{ editExpirationText }}
-							</N8nText>
+							<N8nSelect
+								v-model="expirationDaysFromNow"
+								size="large"
+								filterable
+								readonly
+								data-test-id="expiration-select"
+								@update:model-value="onSelect"
+							>
+								<N8nOption
+									v-for="key in Object.keys(EXPIRATION_OPTIONS)"
+									:key="key"
+									:value="EXPIRATION_OPTIONS[key as keyof typeof EXPIRATION_OPTIONS]"
+									:label="
+										getExpirationOptionLabel(
+											EXPIRATION_OPTIONS[key as keyof typeof EXPIRATION_OPTIONS],
+										)
+									"
+								>
+								</N8nOption>
+							</N8nSelect>
 						</N8nInputLabel>
-						<ApiKeyScopes
-							v-model="selectedScopes"
-							:available-scopes="availableScopes"
-							:disabled="isReadOnly"
-							@update:model-value="onScopeSelectionChanged"
+						<ElDatePicker
+							v-if="showExpirationDateSelector"
+							v-model="customExpirationDate"
+							type="date"
+							:teleported="false"
+							placeholder="yyyy-mm-dd"
+							value-format="X"
+							:disabled-date="isCustomDateInThePast"
 						/>
+						<N8nText
+							v-if="expirationHint"
+							size="small"
+							color="text-light"
+							data-test-id="api-key-expiration-hint"
+						>
+							{{ expirationHint }}
+						</N8nText>
 					</div>
-					<RevokeApiKeyConfirmModal
-						:api-key="currentApiKey"
-						:open="showRevokeConfirm"
-						:loading="revoking"
-						:revoking-for-other="!isOwnKey"
-						@confirm="onRevokeConfirm"
-						@cancel="showRevokeConfirm = false"
-						@update:open="showRevokeConfirm = $event"
+					<N8nInputLabel
+						v-else
+						:label="i18n.baseText('settings.api.view.modal.form.expiration')"
+						color="text-dark"
+					>
+						<N8nText size="small" color="text-light" data-test-id="api-key-expiration-readonly">
+							{{ editExpirationText }}
+						</N8nText>
+					</N8nInputLabel>
+					<ApiKeyScopes
+						v-model="selectedScopes"
+						:available-scopes="availableScopes"
+						:disabled="isReadOnly"
+						@update:model-value="onScopeSelectionChanged"
 					/>
 				</div>
+				<RevokeApiKeyConfirmModal
+					:api-key="currentApiKey"
+					:open="showRevokeConfirm"
+					:loading="revoking"
+					:revoking-for-other="!isOwnKey"
+					@confirm="onRevokeConfirm"
+					@cancel="showRevokeConfirm = false"
+					@update:open="showRevokeConfirm = $event"
+				/>
 			</div>
-		</N8nDialogBody>
-		<N8nDialogFooter>
+		</template>
+		<template #footer>
 			<div :class="$style.footer">
 				<template v-if="isReadOnly">
 					<div :class="$style.readonlyActions">
@@ -488,7 +480,7 @@ async function handleEnterKey(event: KeyboardEvent) {
 							variant="outline"
 							:label="i18n.baseText('settings.api.view.modal.close.button')"
 							data-test-id="api-key-readonly-close"
-							@click="closeDialog"
+							@click="closeModal"
 						/>
 					</div>
 					<N8nText size="small" color="text-light">{{ apiKeyCreationDate }}</N8nText>
@@ -504,7 +496,7 @@ async function handleEnterKey(event: KeyboardEvent) {
 					<N8nButton
 						v-else-if="mode === 'new'"
 						:label="i18n.baseText('settings.api.view.modal.done.button')"
-						@click="closeDialog"
+						@click="closeModal"
 					/>
 					<N8nButton
 						v-if="mode === 'edit'"
@@ -517,8 +509,8 @@ async function handleEnterKey(event: KeyboardEvent) {
 					}}</N8nText>
 				</template>
 			</div>
-		</N8nDialogFooter>
-	</N8nDialog>
+		</template>
+	</Modal>
 </template>
 <style module lang="scss">
 .notice {
@@ -549,7 +541,6 @@ async function handleEnterKey(event: KeyboardEvent) {
 	flex-direction: row-reverse;
 	justify-content: space-between;
 	align-items: center;
-	gap: var(--spacing--2xs);
 }
 
 .readonlyActions {

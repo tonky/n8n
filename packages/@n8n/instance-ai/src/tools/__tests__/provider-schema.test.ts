@@ -54,6 +54,8 @@ function createOrchestrationContext(): OrchestrationContext {
 			getLatestBuildOutcomeForWorkflow: vi.fn(),
 		},
 		domainContext,
+		plannedTaskService: {},
+		schedulePlannedTasks: vi.fn(),
 	} as unknown as OrchestrationContext;
 }
 

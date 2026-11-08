@@ -18,7 +18,7 @@ describe('AgentCredentialLookupService', () => {
 		credentialsService = mock<CredentialsService>();
 		credentialsService.findAllCredentialIdsForProject.mockResolvedValue([]);
 		credentialsService.findAllGlobalCredentialIds.mockResolvedValue([]);
-		credentialsService.decryptForUse.mockResolvedValue({ clientId: 'a-client' });
+		credentialsService.decrypt.mockResolvedValue({ clientId: 'a-client' });
 		service = new AgentCredentialLookupService(credentialsService);
 	});
 
@@ -34,11 +34,7 @@ describe('AgentCredentialLookupService', () => {
 		});
 		// Asserted by identity: decrypt is stubbed, so a wrong pick would still
 		// return the expected object.
-		expect(credentialsService.decryptForUse).toHaveBeenCalledWith(
-			wanted,
-			{ kind: 'system', reason: 'integration' },
-			PROJECT_ID,
-		);
+		expect(credentialsService.decrypt).toHaveBeenCalledWith(wanted, true);
 	});
 
 	it('finds a credential shared globally rather than through the project', async () => {
@@ -51,26 +47,7 @@ describe('AgentCredentialLookupService', () => {
 		expect(await service.decryptForProject(PROJECT_ID, CREDENTIAL_ID, TYPE)).toEqual({
 			clientId: 'a-client',
 		});
-		expect(credentialsService.decryptForUse).toHaveBeenCalledWith(
-			wanted,
-			{ kind: 'system', reason: 'integration' },
-			PROJECT_ID,
-		);
-	});
-
-	it('returns a policy refusal from the consuming project', async () => {
-		const credential = mock<CredentialsEntity>({ id: CREDENTIAL_ID, type: TYPE });
-		credentialsService.findAllGlobalCredentialIds.mockResolvedValue([credential]);
-		const refusal = new Error('Credential type is not available');
-		credentialsService.decryptForUse.mockRejectedValue(refusal);
-
-		await expect(service.decryptForProject(PROJECT_ID, CREDENTIAL_ID, TYPE)).rejects.toBe(refusal);
-		expect(credentialsService.decryptForUse).toHaveBeenCalledWith(
-			credential,
-			{ kind: 'system', reason: 'integration' },
-			PROJECT_ID,
-		);
-		expect(credentialsService.decrypt).not.toHaveBeenCalled();
+		expect(credentialsService.decrypt).toHaveBeenCalledWith(wanted, true);
 	});
 
 	it('leaves the global credentials unread when the project already has it', async () => {
@@ -90,12 +67,12 @@ describe('AgentCredentialLookupService', () => {
 		]);
 
 		expect(await service.decryptForProject(PROJECT_ID, CREDENTIAL_ID, TYPE)).toBeNull();
-		expect(credentialsService.decryptForUse).not.toHaveBeenCalled();
+		expect(credentialsService.decrypt).not.toHaveBeenCalled();
 	});
 
 	it('refuses a credential visible to neither', async () => {
 		expect(await service.decryptForProject(PROJECT_ID, CREDENTIAL_ID, TYPE)).toBeNull();
-		expect(credentialsService.decryptForUse).not.toHaveBeenCalled();
+		expect(credentialsService.decrypt).not.toHaveBeenCalled();
 	});
 
 	describe('decryptForUser', () => {
@@ -115,15 +92,9 @@ describe('AgentCredentialLookupService', () => {
 			expect(await service.decryptForUser(user, PROJECT_ID, CREDENTIAL_ID, TYPE)).toEqual({
 				clientId: 'a-client',
 			});
-			expect(credentialsService.decryptForUse).toHaveBeenCalledWith(
-				expect.objectContaining({ id: CREDENTIAL_ID }),
-				{ kind: 'user', user },
-				PROJECT_ID,
-			);
 			expect(credentialsService.getCredentialsAUserCanUseInAWorkflow).toHaveBeenCalledWith(user, {
 				projectId: PROJECT_ID,
 				excludePersonalRoute: true,
-				excludeResolvable: true,
 			});
 		});
 
@@ -131,7 +102,7 @@ describe('AgentCredentialLookupService', () => {
 			credentialsService.getCredentialsAUserCanUseInAWorkflow.mockResolvedValue([] as never);
 
 			expect(await service.decryptForUser(user, PROJECT_ID, CREDENTIAL_ID, TYPE)).toBeNull();
-			expect(credentialsService.decryptForUse).not.toHaveBeenCalled();
+			expect(credentialsService.decrypt).not.toHaveBeenCalled();
 		});
 	});
 });

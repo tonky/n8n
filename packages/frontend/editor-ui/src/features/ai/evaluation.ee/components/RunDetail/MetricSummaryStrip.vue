@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { N8nScrollArea } from '@n8n/design-system';
+import { ElScrollbar } from 'element-plus';
 import type { MetricScale } from '@n8n/api-types';
 import { normalizeMetricScore } from '@n8n/api-types';
 import {
@@ -77,11 +77,9 @@ const cards = computed(() =>
 </script>
 
 <template>
-	<N8nScrollArea
+	<ElScrollbar
 		v-if="cards.length > 0"
-		type="always"
-		enable-horizontal-scroll
-		:enable-vertical-scroll="false"
+		always
 		:class="$style.scroll"
 		data-test-id="metric-summary-strip"
 	>
@@ -99,7 +97,7 @@ const cards = computed(() =>
 				:case-values="card.caseValues"
 			/>
 		</div>
-	</N8nScrollArea>
+	</ElScrollbar>
 </template>
 
 <style module lang="scss">
@@ -107,6 +105,16 @@ const cards = computed(() =>
 	border: var(--border-width) var(--border-style) var(--color--foreground);
 	border-radius: var(--border-radius--base);
 	background-color: var(--color--background--light-3);
+
+	:global(.el-scrollbar__bar) {
+		opacity: 1;
+	}
+	:global(.el-scrollbar__thumb) {
+		background-color: var(--color--foreground);
+		&:hover {
+			background-color: var(--color--foreground--shade-1);
+		}
+	}
 }
 
 .row {

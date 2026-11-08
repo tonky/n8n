@@ -1,8 +1,4 @@
-import type {
-	AvailableCredentialTypesResponse,
-	AvailableTypesResponse,
-	SubWorkflowPolicyCheckResponse,
-} from '@n8n/api-types';
+import type { AvailableCredentialTypesResponse, AvailableTypesResponse } from '@n8n/api-types';
 import { makeRestApiRequest } from '@n8n/rest-api-client';
 import type { IRestApiContext } from '@n8n/rest-api-client';
 
@@ -21,17 +17,5 @@ export async function fetchAvailableCredentialTypes(
 		context,
 		'GET',
 		`/projects/${projectId}/available-credential-types`,
-	);
-}
-
-export async function fetchSubWorkflowPolicyCheck(
-	context: IRestApiContext,
-	parentWorkflowId: string,
-	subWorkflowId: string,
-): Promise<SubWorkflowPolicyCheckResponse> {
-	return await makeRestApiRequest(
-		context,
-		'GET',
-		`/workflows/${parentWorkflowId}/sub-workflows/${subWorkflowId}/policy-check`,
 	);
 }

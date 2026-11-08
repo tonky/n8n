@@ -1,7 +1,9 @@
 <script lang="ts" setup>
+import Modal from '@/app/components/Modal.vue';
 import { VARIABLE_MODAL_KEY } from '../environments.constants';
-import { computed, nextTick, reactive, ref, onMounted } from 'vue';
+import { computed, reactive, ref, onMounted, nextTick } from 'vue';
 import { useUIStore } from '@/app/stores/ui.store';
+import { createEventBus } from '@n8n/utils/event-bus';
 import { useToast } from '@n8n/composables/useToast';
 import {
 	N8nFormInput,
@@ -12,9 +14,6 @@ import {
 	N8nCallout,
 	N8nText,
 	N8nIcon,
-	N8nDialog,
-	N8nDialogBody,
-	N8nDialogFooter,
 } from '@n8n/design-system';
 import type { Rule, RuleGroup } from '@/Interface';
 import type { EnvironmentVariable, VariableModalOptions } from '../environments.types';
@@ -25,8 +24,6 @@ import { useSourceControlStore } from '@/features/integrations/sourceControl.ee/
 import { getResourcePermissions } from '@n8n/permissions';
 import { useI18n } from '@n8n/i18n';
 import type { IconOrEmoji } from '@n8n/design-system';
-
-defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(defineProps<VariableModalOptions>(), {
 	mode: 'new',
@@ -42,7 +39,7 @@ const projectsStore = useProjectsStore();
 const usersStore = useUsersStore();
 const sourceControlStore = useSourceControlStore();
 
-const modalOpen = computed(() => uiStore.modalsById[VARIABLE_MODAL_KEY]?.open === true);
+const modalBus = createEventBus();
 const loading = ref(false);
 const keyInputRef = ref<InstanceType<typeof N8nFormInput> | null>(null);
 
@@ -209,13 +206,9 @@ const canCreate = computed(() => {
 	return destination.kind === 'pending' && destination.permissions.create;
 });
 
-async function closeDialog() {
+function closeModal() {
 	if (loading.value) return;
 	uiStore.closeModal(VARIABLE_MODAL_KEY);
-}
-
-function onDialogOpenUpdate(open: boolean) {
-	if (!open) void closeDialog();
 }
 
 async function handleSubmit() {
@@ -279,16 +272,17 @@ onMounted(async () => {
 </script>
 
 <template>
-	<N8nDialog
-		:open="modalOpen"
-		size="xlarge"
-		:header="modalTitle"
-		:show-close-button="!loading"
-		:stacked="appendToBody === true"
-		:data-test-id="`${VARIABLE_MODAL_KEY}-modal`"
-		@update:open="onDialogOpenUpdate"
+	<Modal
+		:title="modalTitle"
+		:event-bus="modalBus"
+		:name="VARIABLE_MODAL_KEY"
+		width="600px"
+		:lock-scroll="false"
+		:show-close="!loading"
+		:before-close="() => !loading"
+		:append-to-body="appendToBody"
 	>
-		<N8nDialogBody>
+		<template #content>
 			<div :class="$style.form" @keyup.enter="handleSubmit">
 				<N8nCallout v-if="notice" theme="info">{{ notice() }}</N8nCallout>
 				<N8nText v-if="destinationName">{{ destinationName }}</N8nText>
@@ -344,7 +338,6 @@ onMounted(async () => {
 							v-model="form.projectId"
 							size="large"
 							filterable
-							:teleported="false"
 							data-test-id="variable-modal-scope-select"
 						>
 							<template #prefix>
@@ -375,15 +368,15 @@ onMounted(async () => {
 					</N8nInputLabel>
 				</div>
 			</div>
-		</N8nDialogBody>
-		<N8nDialogFooter>
+		</template>
+		<template #footer>
 			<div :class="$style.footer">
 				<N8nButton
 					variant="outline"
 					:label="i18n.baseText('variables.modal.button.cancel')"
 					data-test-id="variable-modal-cancel-button"
 					:disabled="loading"
-					@click="closeDialog"
+					@click="closeModal"
 				/>
 				<N8nButton
 					:loading="loading"
@@ -393,8 +386,8 @@ onMounted(async () => {
 					@click="handleSubmit"
 				/>
 			</div>
-		</N8nDialogFooter>
-	</N8nDialog>
+		</template>
+	</Modal>
 </template>
 
 <style module lang="scss">

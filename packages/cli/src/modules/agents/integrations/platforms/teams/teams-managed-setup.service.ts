@@ -167,7 +167,7 @@ export class TeamsManagedSetupService {
 
 		const usable = await this.credentialsService.getCredentialsAUserCanUseInAWorkflow(
 			options.user,
-			{ projectId: options.projectId, excludePersonalRoute: true, excludeResolvable: true },
+			{ projectId: options.projectId, excludePersonalRoute: true },
 		);
 
 		const managerCredentials: TeamsManagerCredentialSummary[] = [];

@@ -1,6 +1,5 @@
 import { createTestingPinia } from '@pinia/testing';
 import userEvent from '@testing-library/user-event';
-import { nextTick } from 'vue';
 import { createComponentRenderer } from '@/__tests__/render';
 import { mockedStore, waitAllPromises } from '@/__tests__/utils';
 import { useUsageStore } from '../usage.store';
@@ -56,12 +55,7 @@ const pinia = createTestingPinia({ stubActions: false });
 const renderComponent = createComponentRenderer(SettingsUsageAndPlan, { pinia });
 
 describe('SettingsUsageAndPlan', () => {
-	beforeEach(async () => {
-		// A dialog can leave pointer-events set to none on the body after it unmounts.
-		// Flush that update, then clear the style before the next test clicks the page.
-		await nextTick();
-		document.body.style.pointerEvents = '';
-
+	beforeEach(() => {
 		usageStore = mockedStore(useUsageStore);
 		uiStore = mockedStore(useUIStore);
 		usersStore = mockedStore(useUsersStore);

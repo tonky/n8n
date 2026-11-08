@@ -258,12 +258,9 @@ export class SourceControlService {
 				}
 			}
 		}
-		// A first connect moves the instance to Environments v1, also while the promotions flag is off.
-		const wasConnected = this.sourceControlPreferencesService.isSourceControlConnected();
 		await this.sourceControlPreferencesService.setPreferences({
 			branchName: getBranchesResult.currentBranch,
 			connected: true,
-			...(wasConnected ? {} : { environmentsVersion: 'v1' }),
 		});
 		return getBranchesResult;
 	}

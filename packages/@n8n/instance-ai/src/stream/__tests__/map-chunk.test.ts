@@ -312,7 +312,7 @@ describe('mapAgentChunkToEvent', () => {
 					],
 					requireUserSelection: true,
 					projectId: 'project-1',
-					inputType: 'questions',
+					inputType: 'plan-review',
 					questions: [
 						{
 							id: 'q1',
@@ -321,6 +321,18 @@ describe('mapAgentChunkToEvent', () => {
 						},
 					],
 					introMessage: 'Before continuing',
+					tasks: {
+						tasks: [{ id: 't1', description: 'Build workflow', status: 'todo' }],
+					},
+					planItems: [
+						{
+							id: 'task-1',
+							title: 'Build workflow',
+							kind: 'build-workflow',
+							spec: 'Create a workflow',
+							deps: [],
+						},
+					],
 					domainAccess: { url: 'https://example.com/api', host: 'example.com' },
 					credentialFlow: { stage: 'generic' },
 					credentialDestination: {
@@ -364,7 +376,7 @@ describe('mapAgentChunkToEvent', () => {
 				],
 				requireUserSelection: true,
 				projectId: 'project-1',
-				inputType: 'questions',
+				inputType: 'plan-review',
 				domainAccess: { url: 'https://example.com/api', host: 'example.com' },
 				credentialFlow: { stage: 'generic' },
 				credentialDestination: {
@@ -387,6 +399,18 @@ describe('mapAgentChunkToEvent', () => {
 					},
 				],
 				introMessage: 'Before continuing',
+				tasks: {
+					tasks: [{ id: 't1', description: 'Build workflow', status: 'todo' }],
+				},
+				planItems: [
+					{
+						id: 'task-1',
+						title: 'Build workflow',
+						kind: 'build-workflow',
+						spec: 'Create a workflow',
+						deps: [],
+					},
+				],
 				resourceDecision: {
 					toolGroup: 'Local Gateway',
 					resource: '/tmp/file.txt',

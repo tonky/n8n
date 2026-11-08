@@ -67,6 +67,9 @@ function render(
 					props: ['items', 'activatorIcon', 'activatorSize', 'placement', 'teleported'],
 					emits: ['select'],
 				},
+				ElDropdown: true,
+				ElDropdownMenu: true,
+				ElDropdownItem: true,
 				NodeIcon: {
 					template: '<span data-test-id="node-icon-stub" />',
 					props: ['nodeType', 'size'],

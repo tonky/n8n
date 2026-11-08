@@ -104,22 +104,11 @@ function findPropertyInItems(
 	return null;
 }
 
-/**
- * Nodes can declare several top-level properties with the same name, each shown for a
- * different resource, operation, or version. Pass `isVisible` to pick the one that applies
- * to the current node parameters. Without a visible match, the first match is returned.
- */
 export function findNodeParameterProperty(
 	properties: INodeProperties[],
 	parameterPath: string,
-	isVisible?: (property: INodeProperties) => boolean,
 ): INodeProperties | null {
-	const pathParts = normalizeParameterPath(parameterPath).split('.');
-	if (isVisible) {
-		const visible = findPropertyInItems(properties.filter(isVisible), pathParts);
-		if (visible) return visible;
-	}
-	return findPropertyInItems(properties, pathParts);
+	return findPropertyInItems(properties, normalizeParameterPath(parameterPath).split('.'));
 }
 
 export function getDynamicNodeParameterLookup(

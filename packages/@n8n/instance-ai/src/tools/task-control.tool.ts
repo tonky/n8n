@@ -28,7 +28,9 @@ const checklistItemSchema = taskItemSchema.extend({
 const updateChecklistAction = z.object({
 	action: z
 		.literal('update-checklist')
-		.describe('Write or update a lightweight visible checklist for multi-step work.'),
+		.describe(
+			'Write or update a lightweight visible checklist for multi-step work that does not need scheduler-driven execution. For coordinated background tasks, use workflow_builder_create_tasks instead.',
+		),
 	tasks: z.array(checklistItemSchema).describe('Ordered list of tasks'),
 });
 
@@ -110,7 +112,7 @@ export function createTaskControlTool(context: OrchestrationContext) {
 	return new Tool(ORCHESTRATION_TOOL_IDS.TASK_CONTROL)
 		.legacyNames(...getLegacyBuilderToolNames(ORCHESTRATION_TOOL_IDS.TASK_CONTROL))
 		.description(
-			'Manage tasks and background work. Use action="update-checklist" for lightweight visible checklists.',
+			'Manage tasks and background work. Use action="update-checklist" only for lightweight visible checklists that do not need scheduler-driven execution; for coordinated background tasks use workflow_builder_create_tasks instead.',
 		)
 		.input(inputSchema)
 		.handler(async (input: Input) => {

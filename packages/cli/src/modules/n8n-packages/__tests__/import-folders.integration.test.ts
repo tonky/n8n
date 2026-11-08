@@ -38,7 +38,7 @@ async function importFolders(params: FolderImportParams) {
 			folderId: params.folderId,
 			packageBuffer: params.packageBuffer,
 			apiKeyScopes: params.apiKeyScopes,
-			conflictPolicy: 'new-version',
+			workflowConflictPolicy: 'new-version',
 			folderConflictPolicy: params.folderConflictPolicy ?? 'merge',
 			variableParentPolicy: 'project',
 		}),

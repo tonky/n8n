@@ -90,7 +90,7 @@ function onCardClick(e: MouseEvent) {
 			<N8nButton
 				variant="outline"
 				v-if="useWorkflowButton"
-				:label="i18n.baseText('template.buttons.useWorkflowButton')"
+				label="Use workflow"
 				data-test-id="use-workflow-button"
 				@click.stop="onUseWorkflowClick"
 			/>

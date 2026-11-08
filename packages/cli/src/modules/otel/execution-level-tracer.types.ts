@@ -1,4 +1,3 @@
-import type { GenAiAttributes } from '@n8n/ai-utilities/gen-ai';
 import type { ExecutionStatus, WorkflowExecuteMode, INode } from 'n8n-workflow';
 
 import type { CrashDetector } from '@/events/maps/relay.event-map';
@@ -93,5 +92,4 @@ export type EndNodeParams = {
 	outputItemCount: number;
 	error?: EndNodeError;
 	customAttributes?: Record<string, string>;
-	genAiAttributes?: GenAiAttributes;
 };

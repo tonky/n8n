@@ -192,7 +192,7 @@ export class AgentContextService {
 
 		if (input.type === 'capabilities') {
 			return {
-				channels: await this.agentIntegrationService.listBuilderChatIntegrations(user),
+				channels: this.agentIntegrationService.listChatIntegrations(),
 				agentCapabilities: [...AGENT_CAPABILITIES],
 				limitations: [...AGENT_LIMITATIONS],
 			};
@@ -200,7 +200,7 @@ export class AgentContextService {
 
 		if (input.type === 'integrations') {
 			if (!input.queries) {
-				return { channels: await this.agentIntegrationService.listBuilderChatIntegrations(user) };
+				return { channels: this.agentIntegrationService.listChatIntegrations() };
 			}
 			const mcpResults = (await this.mcpRegistryService.search(input.queries)).filter(
 				(result) => !result.isTemplated,
@@ -243,7 +243,7 @@ export class AgentContextService {
 				};
 			case 'skills': {
 				// The skills hub keeps no skill on an agent that is not attached.
-				const skills = await this.agentSkillRefs.skillsForRefs(skillRefs, {});
+				const skills = await this.agentSkillRefs.skillsForRefs(agent, skillRefs, {});
 				return {
 					skills: Object.entries(skills).map(([id, skill]) => ({
 						id,

@@ -364,10 +364,6 @@ export class TypeOrmStepStore implements StepStore {
 		});
 	}
 
-	async loadWaitingSteps(executionId: string): Promise<StepRecord[]> {
-		return await this.repo.find({ where: { executionId, status: 'waiting' } });
-	}
-
 	async countSettledSteps(executionId: string): Promise<number> {
 		return await this.repo.count({
 			where: { executionId, status: In([...SETTLED_STEP_STATUSES]) },

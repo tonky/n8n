@@ -63,8 +63,7 @@ export async function handleInsertOperation<T extends VectorStore = VectorStore>
 
 	// For the version 1.1, we run the populateVectorStore in batches
 	if (nodeVersion >= 1.1) {
-		// Skip setup when nothing will be inserted, so that a clear step does not empty the store
-		if (args.beforeInsert && documentsForEmbedding.length > 0) {
+		if (args.beforeInsert) {
 			await args.beforeInsert(context, embeddings, 0);
 		}
 
@@ -74,7 +73,7 @@ export async function handleInsertOperation<T extends VectorStore = VectorStore>
 		// Populate the vector store with the processed documents in batches
 		for (let i = 0; i < documentsForEmbedding.length; i += embeddingBatchSize) {
 			const nextBatch = documentsForEmbedding.slice(i, i + embeddingBatchSize);
-			await args.populateVectorStore(context, embeddings, nextBatch, 0, documentsForEmbedding);
+			await args.populateVectorStore(context, embeddings, nextBatch, 0);
 		}
 	}
 

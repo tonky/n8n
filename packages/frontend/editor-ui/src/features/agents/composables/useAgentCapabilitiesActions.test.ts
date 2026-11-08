@@ -7,7 +7,6 @@ import {
 	useAgentCapabilitiesActions,
 	type AgentCapabilitiesTelemetry,
 } from './useAgentCapabilitiesActions';
-import type { AgentConfigValidationIssue } from '@n8n/api-types';
 import type {
 	AgentJsonConfig,
 	AgentJsonMcpServerConfig,
@@ -50,52 +49,29 @@ function makeConfig(overrides: Partial<AgentJsonConfig> = {}): AgentJsonConfig {
 function makeActions(
 	overrides: Partial<AgentJsonConfig> = {},
 	telemetry?: AgentCapabilitiesTelemetry,
-	validationIssues = ref<AgentConfigValidationIssue[]>([]),
 ) {
 	const scheduleConfigUpdate = vi.fn();
 	const scheduleSkillSave = vi.fn();
 	const agent = ref<AgentResource | null>(null);
 	const agentId = ref('agent-1');
 	const localConfig = ref<AgentJsonConfig | null>(makeConfig(overrides));
-	const connectedTriggers = ref<string[]>([]);
 	const actions = useAgentCapabilitiesActions({
 		localConfig,
 		agent,
 		projectId: computed(() => 'proj-1'),
 		agentId: computed(() => agentId.value),
-		connectedTriggers,
+		connectedTriggers: ref<string[]>([]),
 		scheduleConfigUpdate,
 		scheduleSkillSave,
 		telemetry,
-		validationIssues,
 	});
-	return {
-		actions,
-		scheduleConfigUpdate,
-		scheduleSkillSave,
-		agent,
-		agentId,
-		localConfig,
-		connectedTriggers,
-	};
+	return { actions, scheduleConfigUpdate, scheduleSkillSave, agent, agentId, localConfig };
 }
 
 describe('useAgentCapabilitiesActions', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		setActivePinia(createTestingPinia());
-	});
-
-	it('stores the remaining triggers and tracks a removed trigger', () => {
-		const trackTriggerRemoved = vi.fn();
-		const { actions, connectedTriggers } = makeActions({}, { trackTriggerRemoved });
-		connectedTriggers.value = ['n8n_chat', 'slack'];
-		const payload = { triggerType: 'n8n_chat', triggers: ['slack'] };
-
-		actions.onTriggerRemoved(payload);
-
-		expect(connectedTriggers.value).toEqual(['slack']);
-		expect(trackTriggerRemoved).toHaveBeenCalledExactlyOnceWith(payload);
 	});
 
 	it('forwards the selected picker mode to the tools modal', () => {
@@ -141,38 +117,6 @@ describe('useAgentCapabilitiesActions', () => {
 		modalData.data.onConfirm({ tools });
 
 		expect(scheduleConfigUpdate).toHaveBeenCalledWith({ tools });
-	});
-
-	it("gives the tool modal a live read of that tool's validation issues", () => {
-		const issue = (index: number): AgentConfigValidationIssue => ({
-			code: 'restricted_node_type',
-			reason: 'restricted_by_inline_tool',
-			path: `tools.${index}.node.nodeType`,
-			capability: { kind: 'tool', index, toolType: 'node' },
-			restriction: { nodeType: 'n8n-nodes-base.mySql' },
-		});
-		const validationIssues = ref<AgentConfigValidationIssue[]>([]);
-		const { actions } = makeActions(
-			{
-				tools: [
-					{ type: 'node', name: 'first' } as AgentJsonToolConfig,
-					{ type: 'node', name: 'second' } as AgentJsonToolConfig,
-				],
-			},
-			undefined,
-			validationIssues,
-		);
-		actions.onOpenToolFromList(1);
-
-		const modalData = openModalWithData.mock.calls[0][0] as {
-			data: { validationIssues: () => AgentConfigValidationIssue[] };
-		};
-		expect(modalData.data.validationIssues()).toEqual([]);
-
-		// The builder validates again after the modal opened.
-		validationIssues.value = [issue(0), issue(1)];
-
-		expect(modalData.data.validationIssues()).toEqual([issue(1)]);
 	});
 
 	it('offers no skill activation toggle', () => {

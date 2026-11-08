@@ -1,7 +1,7 @@
 import type { McpServerConfig } from '@n8n/instance-ai';
 import type { Mock } from 'vitest';
 
-import { AssistantAgentFactory } from '../turn-setup/assistant-agent.factory';
+import { InstanceAiService } from '../instance-ai.service';
 
 interface McpTrackingService {
 	trackMcpToolCall: (event: {
@@ -13,9 +13,9 @@ interface McpTrackingService {
 	push: { sendToUsers: Mock };
 }
 
-describe('AssistantAgentFactory MCP status updates', () => {
+describe('InstanceAiService MCP status updates', () => {
 	it('notifies the connection owner only for failed registry MCP calls', () => {
-		const service = Object.create(AssistantAgentFactory.prototype) as McpTrackingService;
+		const service = Object.create(InstanceAiService.prototype) as McpTrackingService;
 		service.telemetry = { track: vi.fn() };
 		service.push = { sendToUsers: vi.fn() };
 		const registryServer: McpServerConfig = {

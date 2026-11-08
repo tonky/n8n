@@ -2,7 +2,6 @@ import { WorkflowEntity } from '@n8n/db';
 import { Service } from '@n8n/di';
 
 import { ForbiddenError } from '@n8n/errors';
-import { PROJECT_ROOT } from 'n8n-workflow';
 import {
 	WorkflowCreationService,
 	type WorkflowCreateBatchContext,
@@ -15,6 +14,7 @@ import {
 	decideWorkflowArchiveTransition,
 	type WorkflowArchiveTransition,
 } from './workflow-archive-transition';
+import { decideWorkflowConflictAction } from './workflow-conflict-policy';
 import {
 	WorkflowImportMatchService,
 	type WorkflowIdConflict,
@@ -29,8 +29,8 @@ import type {
 	WorkflowImportContext,
 	WorkflowImportPlan,
 	WorkflowPlanItem,
+	WorkflowPlannedAction,
 } from './workflow-import.types';
-import { LayoutConflictPolicy } from '../../n8n-packages.types';
 import type {
 	ImportBindingMap,
 	ImportContext,
@@ -39,7 +39,6 @@ import type {
 	WorkflowIdPolicy,
 } from '../../n8n-packages.types';
 import { visitWorkflowCredentials } from '../credential/workflow-credential-references';
-import { decideImportConflictAction, type ImportDecision } from '../import-conflict-policy';
 import { decideImportId } from '../import-id-policy';
 
 export interface WorkflowImportResult {
@@ -65,10 +64,7 @@ export class WorkflowImporter {
 		context: ImportContext,
 		prepared: PreparedWorkflow[],
 		options: ImportWorkflowProperties,
-		{
-			checkRootPlacement,
-			layoutConflictPolicy,
-		}: { checkRootPlacement: boolean; layoutConflictPolicy?: LayoutConflictPolicy },
+		{ checkRootPlacement }: { checkRootPlacement: boolean },
 	): Promise<WorkflowImportPlan> {
 		const { matches: existingBySourceWorkflowId, lineageConflicts } =
 			await this.workflowImportMatchService.findBySourceWorkflowIds(
@@ -94,15 +90,15 @@ export class WorkflowImporter {
 				items.push({ action: 'skip', ...workflow, existing });
 				continue;
 			}
-			const { action, blocked } = decideImportConflictAction(
-				options.conflictPolicy,
-				existing !== null,
+			const { action, blocked } = decideWorkflowConflictAction(
+				options.workflowConflictPolicy,
+				existing,
 			);
 
-			const item = toPlanItem(workflow, existing, action, options.idPolicy);
+			const item = toPlanItem(workflow, existing, action, options.workflowIdPolicy);
 			items.push(item);
 
-			if (item.action === 'create' && !blocked) {
+			if (item.action === 'create' && options.workflowIdPolicy === 'source' && !blocked) {
 				sourceCreateIds.push(item.decidedId);
 			}
 
@@ -125,10 +121,6 @@ export class WorkflowImporter {
 			if (item.action === 'update' && (targetFolderId !== null || checkRootPlacement)) {
 				const existingParentFolderId = item.existing.parentFolder?.id ?? null;
 				if (existingParentFolderId !== targetFolderId) {
-					if (layoutConflictPolicy === LayoutConflictPolicy.FollowPackage) {
-						item.moveToFolderId = targetFolderId;
-						continue;
-					}
 					folderConflicts.push({
 						sourceWorkflowId: workflow.sourceWorkflowId,
 						existingWorkflowId: item.existing.id,
@@ -297,9 +289,6 @@ export class WorkflowImporter {
 			publicApi: true,
 			source: 'import',
 			allowArchivedUpdate: item.existing.isArchived,
-			...(item.moveToFolderId !== undefined
-				? { parentFolderId: item.moveToFolderId ?? PROJECT_ROOT }
-				: {}),
 			// `settings.errorWorkflow` is a package reference this importer rebinds. The
 			// handler it now points at can still be unwritten (later in this loop) and is
 			// unpublished until the package-wide sweep, so the write-time check on that
@@ -393,7 +382,7 @@ function applyCredentialBindingsInPlace(
 function toPlanItem(
 	prepared: PreparedWorkflow,
 	existing: WorkflowEntity | null,
-	action: ImportDecision['action'],
+	action: WorkflowPlannedAction,
 	idPolicy: WorkflowIdPolicy,
 ): WorkflowPlanItem {
 	if (existing === null) {

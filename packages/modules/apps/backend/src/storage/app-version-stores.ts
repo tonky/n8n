@@ -1,5 +1,4 @@
 import type { OperationContext } from '@n8n/db';
-import type { AppBuildAttempt } from '../build/app-build.types';
 
 export type AppFiles = ReadonlyMap<string, Buffer>;
 
@@ -26,12 +25,7 @@ export abstract class AppSourceVersionStore {
 
 export abstract class AppBuildResultStore {
 	/** Attaches a stored bundle and records build success atomically. */
-	abstract recordSuccess(
-		appId: string,
-		versionId: string,
-		files: AppFiles,
-		attempt: AppBuildAttempt,
-	): Promise<void>;
+	abstract recordSuccess(appId: string, versionId: string, files: AppFiles): Promise<void>;
 
 	abstract readBundle(versionId: string): Promise<AppFiles>;
 

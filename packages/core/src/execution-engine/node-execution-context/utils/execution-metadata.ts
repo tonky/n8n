@@ -32,12 +32,7 @@ export function setWorkflowExecutionMetadata(
 			`Custom data key can only contain letters, numbers, and underscores (key "${key}")`,
 		);
 	}
-	if (
-		typeof value !== 'string' &&
-		typeof value !== 'number' &&
-		typeof value !== 'bigint' &&
-		typeof value !== 'boolean'
-	) {
+	if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'bigint') {
 		throw new InvalidExecutionMetadataError('value', key);
 	}
 	const val = String(value);

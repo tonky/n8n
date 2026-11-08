@@ -10,9 +10,8 @@ import { InstanceSettings } from 'n8n-core';
 
 import { Telemetry } from '@/telemetry';
 
-import { buildVectorStoreFingerprints } from './agent-knowledge-telemetry';
 import { buildAgentCapabilityTelemetryProperties } from './agent-telemetry';
-import { builderTelemetrySessionProperties } from './builder/builder-telemetry-session';
+import { buildVectorStoreFingerprints } from './agent-knowledge-telemetry';
 import type { Agent } from './entities/agent.entity';
 import { toAgentDocument, type AgentSkillRefs } from './json-config/agent-document';
 
@@ -32,7 +31,6 @@ export type AgentConfigPart =
 	| 'credential'
 	| 'memory'
 	| 'name'
-	| 'description'
 	| 'config'
 	| 'tools'
 	| 'providerTools'
@@ -54,7 +52,6 @@ const CONFIG_PARTS = [
 	'credential',
 	'memory',
 	'name',
-	'description',
 	'config',
 	'tools',
 	'providerTools',
@@ -163,13 +160,13 @@ export type AgentCreationEvent = Omit<AgentModificationEvent, 'changedParts' | '
 
 export type AgentSidecarChanges = Partial<Record<'tools' | 'skills' | 'tasks', boolean>>;
 
-export function buildAgentMutationEvent<AgentType extends Agent>(
-	agent: AgentType,
+export function buildAgentMutationEvent(
+	agent: Agent,
 	skillRefs: AgentSkillRefs,
 	projectId: string,
 	context: AgentMutationTelemetryContext,
 	changedParts: AgentConfigPart[],
-): AgentModificationEvent & { agent: AgentType } {
+): AgentModificationEvent {
 	const config = agent.schema ? toAgentDocument(agent.schema, skillRefs) : null;
 	return {
 		agent,
@@ -230,19 +227,11 @@ export class AgentModificationTelemetryService {
 				return;
 			}
 
-			if (by === 'builder') {
-				this.telemetry.track(TELEMETRY_EVENT.AGENTS.BUILDER_MODIFIED_AGENT, {
-					...properties,
-					...builderTelemetrySessionProperties(),
-					event_version: '2',
-				});
-				return;
-			}
-
-			this.telemetry.track(TELEMETRY_EVENT.AGENTS.MCP_MODIFIED_AGENT, {
-				...properties,
-				event_version: '2',
-			});
+			const entry = {
+				builder: TELEMETRY_EVENT.AGENTS.BUILDER_MODIFIED_AGENT,
+				mcp: TELEMETRY_EVENT.AGENTS.MCP_MODIFIED_AGENT,
+			}[by];
+			this.telemetry.track(entry, { ...properties, event_version: '2' });
 		} catch {
 			// Telemetry must never fail a write that already succeeded.
 		}
@@ -298,7 +287,7 @@ export class AgentModificationTelemetryService {
 			!event.config?.model?.trim() &&
 			!event.config?.instructions?.trim() &&
 			capabilityCount === 0 &&
-			!changedParts?.some((part) => part !== 'name' && part !== 'description')
+			!changedParts?.some((part) => part !== 'name')
 		) {
 			return;
 		}
@@ -324,7 +313,6 @@ export class AgentModificationTelemetryService {
 			case 'builder':
 				this.telemetry.track(TELEMETRY_EVENT.AGENTS.BUILDER_CREATED_AGENT, {
 					...properties,
-					...builderTelemetrySessionProperties(),
 					event_version: '3',
 				});
 				return;

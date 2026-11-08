@@ -1,5 +1,5 @@
 import { onScopeDispose, type Ref } from 'vue';
-import type { PushMessage, PushPayload } from '@n8n/api-types';
+import type { PushMessage } from '@n8n/api-types';
 
 import { usePushConnectionStore } from '@/app/stores/pushConnection.store';
 
@@ -11,8 +11,8 @@ interface AgentExecutionUpdatesTarget {
 }
 
 /**
- * Refresh saved execution data after a push. Apply live usage in
- * `onInvalidate` before the refresh.
+ * Call `onUpdate` when the backend records a turn for this agent. The push is an
+ * invalidation signal, not the data, so the callback has to re-read.
  *
  * Connects the shared push client but never disconnects it — the editor has one
  * connection, and tearing it down here would cut off everything else on it.
@@ -20,13 +20,11 @@ interface AgentExecutionUpdatesTarget {
 export function useAgentExecutionUpdates(
 	target: AgentExecutionUpdatesTarget,
 	onUpdate: () => void | Promise<void>,
-	onInvalidate?: (update: PushPayload<'agentExecutionUpdated'>) => void,
+	onInvalidate?: () => void,
 ): () => void {
 	const pushStore = usePushConnectionStore();
 
-	function matches(
-		event: PushMessage,
-	): event is Extract<PushMessage, { type: 'agentExecutionUpdated' }> {
+	function matches(event: PushMessage): boolean {
 		if (event.type !== 'agentExecutionUpdated') return false;
 		if (event.data.projectId !== target.projectId.value) return false;
 		if (event.data.agentId !== target.agentId.value) return false;
@@ -62,7 +60,7 @@ export function useAgentExecutionUpdates(
 
 	const removeListener = pushStore.addEventListener((event) => {
 		if (matches(event)) {
-			onInvalidate?.(event.data);
+			onInvalidate?.();
 			run();
 		}
 	});

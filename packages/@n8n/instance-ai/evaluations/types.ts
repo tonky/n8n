@@ -417,6 +417,7 @@ export const USER_TURN_EVENT = 'eval-user-turn';
 export type TranscriptStep = ToolInteraction | { kind: 'agent-text'; text: string };
 
 export type ToolInteraction =
+	| { kind: 'plan'; tasks: PlanTask[] }
 	| { kind: 'ask-user'; questions: AskUserQuestion[]; answers?: AskUserAnswer[] }
 	| {
 			kind: 'setup-card';
@@ -442,7 +443,7 @@ export type ToolInteraction =
 			approved?: boolean;
 			/** Prompt the agent showed when requesting confirmation. */
 			message?: string;
-			/** Free-text the user sent with their decision. */
+			/** Free-text the user sent with their decision (e.g. plan-review feedback). */
 			feedback?: string;
 	  }
 	| {
@@ -454,6 +455,11 @@ export type ToolInteraction =
 			result?: unknown;
 			error?: string;
 	  };
+
+export interface PlanTask {
+	title?: string;
+	description?: string;
+}
 
 export interface AskUserQuestion {
 	id: string;

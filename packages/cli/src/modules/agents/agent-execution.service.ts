@@ -6,7 +6,6 @@ import type {
 	AgentSessionPreviewAccess,
 	AgentSessionQueryFilters,
 	AgentSessionStatus,
-	AgentTokenUsage,
 } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
 import type { StorageLocation } from '@n8n/blob-storage';
@@ -383,26 +382,6 @@ export class AgentExecutionService {
 		return this.executionControllers.get(executionId)?.signal ?? AbortSignal.abort();
 	}
 
-	reportUsage(
-		context: AgentExecutionLogRef & { projectId: string },
-		usage: AgentTokenUsage,
-		duration: number,
-	): void {
-		this.executionUpdateBroadcaster.notify({
-			projectId: context.projectId,
-			agentId: context.agentId,
-			threadId: context.threadId,
-			executionId: context.executionId,
-			duration,
-			usage: {
-				promptTokens: usage.promptTokens,
-				completionTokens: usage.completionTokens,
-				totalTokens: usage.totalTokens,
-				...(usage.cost !== undefined && { cost: usage.cost }),
-			},
-		});
-	}
-
 	recordTimelineSnapshot({ executionId, ...snapshot }: TimelineSnapshotParams): void {
 		if (!this.heartbeatTimers.has(executionId)) return;
 		this.pendingTimelineSnapshots.set(executionId, snapshot);
@@ -445,16 +424,14 @@ export class AgentExecutionService {
 
 			// Save the terminal row first. A rejected finalization must not replace a stored blob.
 			await this.moveFinalTimelineToBlob(executionId, settled, storedAt);
-			await this.completeRecordedExecution(settled, executionId, status);
 
 			this.executionUpdateBroadcaster.notify({
 				projectId: params.projectId,
 				agentId: params.agentId,
 				threadId: params.threadId,
 				executionId,
-				duration: record.duration,
-				complete: true,
 			});
+			await this.completeRecordedExecution(settled, executionId, status);
 			return executionId;
 		} catch (error) {
 			this.errorReporter.error(error);
@@ -743,18 +720,6 @@ export class AgentExecutionService {
 					storedAt: r.storedAt,
 				})),
 			);
-		}
-	}
-
-	/**
-	 * Delete the SDK-memory threads of an agent's sessions. Call before the agent
-	 * is removed: the cascade then deletes the execution threads that list them.
-	 */
-	async deleteMemoryThreadsForAgent(agentId: string): Promise<void> {
-		const memory = this.n8nMemory.getImplementation(agentId);
-		const threadIds = await this.agentExecutionThreadRepository.findIdsByAgentId(agentId);
-		for (const batch of chunk(threadIds, AgentExecutionService.logDeletionBatchSize)) {
-			await memory.deleteThreads(batch);
 		}
 	}
 

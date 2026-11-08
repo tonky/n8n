@@ -3,7 +3,6 @@ import {
 	REMOVED_BUILDER_TOOL_NAMES,
 	SHARED_BUILDER_TOOL_NAMES,
 	WORKFLOW_BUILDER_TOOL_NAMES,
-	resolveBuilderToolName,
 } from '@n8n/api-types';
 import type { InstanceAiAgentNode, InstanceAiToolCallState } from '@n8n/api-types';
 import { isRecord } from '@n8n/utils/is-record';
@@ -280,8 +279,8 @@ export function isAgentEditingWorkflow(
 			getLatestWorkflowUpdateResult(node)?.workflowId === workflowId ||
 			node.toolCalls.some(
 				(call) =>
-					resolveBuilderToolName(call.toolName, call.args?.action) ===
-						SHARED_BUILDER_TOOL_NAMES.SETUP_CREDENTIALS &&
+					call.toolName === WORKFLOW_BUILDER_TOOL_NAMES.CREDENTIALS &&
+					call.args?.action === 'setup' &&
 					isRecord(call.result) &&
 					call.result.announced === true &&
 					call.result.preBuild === true &&

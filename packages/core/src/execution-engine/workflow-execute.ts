@@ -1146,10 +1146,7 @@ export class WorkflowExecute {
 		let closingError: Error | undefined;
 
 		try {
-			const evalMockOutput = await additionalData.evalNodeMockHandler?.(context);
-			if (evalMockOutput) {
-				data = evalMockOutput;
-			} else if (customOperation) {
+			if (customOperation) {
 				data = await customOperation.call(context);
 			} else if (nodeType.execute) {
 				data = isNodeClassInstance(nodeType)
@@ -3114,27 +3111,19 @@ export class WorkflowExecute {
 
 						const sourceData = executionData.source[NodeConnectionTypes.Main][pairedItemInputIndex];
 
-						let pairedInputItem: INodeExecutionData | null = null;
-						try {
-							pairedInputItem = dataProxy.$getPairedItem(
-								sourceData!.previousNode,
-								sourceData,
-								pairedItemData,
-							);
-						} catch (error) {
-							Logger.debug('Could not resolve the input item of an error item', {
-								node: executionData.node.name,
-								error: error instanceof Error ? error.message : String(error),
-							});
-						}
+						const constPairedItem = dataProxy.$getPairedItem(
+							sourceData!.previousNode,
+							sourceData,
+							pairedItemData,
+						);
 
-						if (!pairedInputItem) {
+						if (constPairedItem === null) {
 							errorItems.push(item);
 						} else {
 							errorItems.push({
 								...item,
 								json: {
-									...pairedInputItem.json,
+									...constPairedItem.json,
 									...item.json,
 								},
 							});
@@ -3175,10 +3164,6 @@ export class WorkflowExecute {
 		executionData: IExecuteData,
 	) {
 		if (nodeSuccessData?.length) {
-			// Some nodes (e.g. Execute Sub-workflow < v1.3 with "Continue" on error)
-			// return sparse output arrays. Fill the empty slots so later steps can iterate them.
-			nodeSuccessData = Array.from(nodeSuccessData, (output) => output ?? []);
-
 			// Check if the output data contains pairedItem data and if not try
 			// to automatically fix it
 
@@ -3198,6 +3183,9 @@ export class WorkflowExecute {
 				(executionData.data.main[0]?.length ?? 0) > 1;
 
 			checkOutputData: for (const outputData of nodeSuccessData) {
+				if (outputData === null) {
+					continue;
+				}
 				for (const [index, item] of outputData.entries()) {
 					if (item.pairedItem === undefined) {
 						// The pairedItem data is missing, so check if it can get automatically fixed

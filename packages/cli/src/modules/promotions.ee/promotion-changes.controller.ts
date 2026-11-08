@@ -35,8 +35,8 @@ export class PromotionChangesController {
 	) {}
 
 	@Get('/:projectId/changes/:direction')
-	@GlobalScope('promotions:read')
-	@Licensed(LICENSE_FEATURES.PROMOTIONS)
+	@GlobalScope('gitConnection:read')
+	@Licensed(LICENSE_FEATURES.GIT_CONNECTIONS)
 	async getChanges(
 		req: AuthenticatedRequest,
 		_res: Response,
@@ -52,10 +52,10 @@ export class PromotionChangesController {
 		);
 	}
 
-	// The Apply check uses the same scope as Apply.
+	// Apply needs the pull scope, so its check does too.
 	@Get('/:projectId/changes/apply/blockers')
-	@GlobalScope('promotions:apply')
-	@Licensed(LICENSE_FEATURES.PROMOTIONS)
+	@GlobalScope('gitConnection:pull')
+	@Licensed(LICENSE_FEATURES.GIT_CONNECTIONS)
 	async getApplyBlockers(
 		_req: AuthenticatedRequest,
 		_res: Response,
@@ -66,8 +66,8 @@ export class PromotionChangesController {
 	}
 
 	@Post('/:projectId/changes/:direction/details')
-	@GlobalScope('promotions:read')
-	@Licensed(LICENSE_FEATURES.PROMOTIONS)
+	@GlobalScope('gitConnection:read')
+	@Licensed(LICENSE_FEATURES.GIT_CONNECTIONS)
 	async getDetails(
 		req: AuthenticatedRequest,
 		_res: Response,

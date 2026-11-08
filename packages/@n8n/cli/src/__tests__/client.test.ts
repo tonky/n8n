@@ -310,13 +310,10 @@ describe('N8nClient packages', () => {
 	});
 
 	describe('exportPackage', () => {
-		it('posts Agent and workflow IDs as JSON and returns the archive bytes', async () => {
+		it('posts the workflow IDs as JSON and returns the archive bytes', async () => {
 			fetchMock.mockResolvedValue(binaryResponse(200, new Uint8Array([1, 2, 3])));
 
-			const result = await client.exportPackage({
-				agentIds: ['agent-1', 'agent-2'],
-				workflowIds: ['a', 'b'],
-			});
+			const result = await client.exportPackage({ workflowIds: ['a', 'b'] });
 
 			expect(Buffer.isBuffer(result.archive)).toBe(true);
 			expect(result.archive.equals(Buffer.from([1, 2, 3]))).toBe(true);
@@ -325,9 +322,7 @@ describe('N8nClient packages', () => {
 
 			const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 			expect(url).toBe('https://n8n.example.com/api/v1/n8n-packages/export');
-			expect(init.body).toBe(
-				JSON.stringify({ agentIds: ['agent-1', 'agent-2'], workflowIds: ['a', 'b'] }),
-			);
+			expect(init.body).toBe(JSON.stringify({ workflowIds: ['a', 'b'] }));
 		});
 
 		it('posts the project IDs as JSON and returns the archive bytes', async () => {
@@ -344,14 +339,7 @@ describe('N8nClient packages', () => {
 		});
 
 		it('parses the X-N8n-Export-Counts header into counts when the server sends it', async () => {
-			const counts = {
-				agents: 3,
-				workflows: 2,
-				folders: 1,
-				credentials: 0,
-				dataTables: 0,
-				variables: 0,
-			};
+			const counts = { workflows: 2, folders: 1, credentials: 0, dataTables: 0, variables: 0 };
 			const response = binaryResponse(200, new Uint8Array([1, 2, 3]));
 			response.headers.set('X-N8n-Export-Counts', JSON.stringify(counts));
 			fetchMock.mockResolvedValue(response);
@@ -490,8 +478,8 @@ describe('N8nClient packages', () => {
 					selectedProjectId: 'project-1',
 					selectedWorkflowIds: ['workflow-1', 'workflow-2'],
 					deletedWorkflowIds: ['workflow-3', 'workflow-4'],
-					conflictPolicy: 'skip',
-					idPolicy: 'source',
+					workflowConflictPolicy: 'skip',
+					workflowIdPolicy: 'new',
 					overwriteDeletionPolicy: 'hard-delete',
 				},
 			);
@@ -506,8 +494,8 @@ describe('N8nClient packages', () => {
 			expect(form.get('selectedProjectId')).toBe('project-1');
 			expect(form.get('selectedWorkflowIds')).toBe('["workflow-1","workflow-2"]');
 			expect(form.get('deletedWorkflowIds')).toBe('["workflow-3","workflow-4"]');
-			expect(form.get('conflictPolicy')).toBe('skip');
-			expect(form.get('idPolicy')).toBe('source');
+			expect(form.get('workflowConflictPolicy')).toBe('skip');
+			expect(form.get('workflowIdPolicy')).toBe('new');
 			expect(form.get('overwriteDeletionPolicy')).toBe('hard-delete');
 
 			const pkg = form.get('package') as File;
@@ -530,8 +518,8 @@ describe('N8nClient packages', () => {
 			expect(form.get('selectedProjectId')).toBe('project-1');
 			expect(form.get('selectedWorkflowIds')).toBe('[]');
 			expect(form.has('deletedWorkflowIds')).toBe(false);
-			expect(form.has('conflictPolicy')).toBe(false);
-			expect(form.has('idPolicy')).toBe(false);
+			expect(form.has('workflowConflictPolicy')).toBe(false);
+			expect(form.has('workflowIdPolicy')).toBe(false);
 			expect(form.has('overwriteDeletionPolicy')).toBe(false);
 		});
 
@@ -560,12 +548,10 @@ describe('N8nClient packages', () => {
 			await client.importPackage(
 				{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
 				{
-					conflictPolicy: 'fail',
+					workflowConflictPolicy: 'fail',
 					projectId: 'proj-1',
 					folderId: '',
-					idPolicy: 'source',
-					publishingPolicy: 'match-source',
-					bindings: '{"credentials":{"source":"target"}}',
+					workflowIdPolicy: 'new',
 					credentialMatchingMode: undefined,
 					missingNodeTypeMode: undefined,
 				},
@@ -576,20 +562,9 @@ describe('N8nClient packages', () => {
 			expect(init.body).toBeInstanceOf(FormData);
 
 			const form = init.body as FormData;
-			expect(form.get('conflictPolicy')).toBe('fail');
+			expect(form.get('workflowConflictPolicy')).toBe('fail');
 			expect(form.get('projectId')).toBe('proj-1');
-			expect(form.get('idPolicy')).toBe('source');
-			expect(form.get('publishingPolicy')).toBe('match-source');
-			expect(form.get('bindings')).toBe('{"credentials":{"source":"target"}}');
-			for (const oldField of [
-				'workflowConflictPolicy',
-				'workflowIdPolicy',
-				'agentIdPolicy',
-				'workflowPublishingPolicy',
-				'agentPublishingPolicy',
-			]) {
-				expect(form.has(oldField)).toBe(false);
-			}
+			expect(form.get('workflowIdPolicy')).toBe('new');
 			// Empty/undefined fields are omitted entirely (an omitted CLI flag
 			// means the instance default decides).
 			expect(form.has('folderId')).toBe(false);
@@ -617,34 +592,13 @@ describe('N8nClient packages', () => {
 			await client.importPackage(
 				{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
 				{
-					conflictPolicy: 'fail',
+					workflowConflictPolicy: 'fail',
 					credentialMissingMode: 'create-stub',
 				},
 			);
 
 			const form = (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
 			expect(form.get('credentialMissingMode')).toBe('create-stub');
-		});
-
-		it('sends credentialConflictPolicy when provided', async () => {
-			fetchMock.mockResolvedValue(
-				jsonResponse(200, {
-					workflows: [],
-					bindings: {},
-					credentials: { matched: [], stubbed: [], updated: [] },
-				}),
-			);
-
-			await client.importPackage(
-				{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
-				{
-					conflictPolicy: 'fail',
-					credentialConflictPolicy: 'overwrite',
-				},
-			);
-
-			const form = (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
-			expect(form.get('credentialConflictPolicy')).toBe('overwrite');
 		});
 
 		it('sends missingNodeTypeMode when provided', async () => {
@@ -659,7 +613,7 @@ describe('N8nClient packages', () => {
 			await client.importPackage(
 				{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
 				{
-					conflictPolicy: 'fail',
+					workflowConflictPolicy: 'fail',
 					missingNodeTypeMode: 'import-anyway',
 				},
 			);
@@ -680,7 +634,7 @@ describe('N8nClient packages', () => {
 			await client.importPackage(
 				{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
 				{
-					conflictPolicy: 'fail',
+					workflowConflictPolicy: 'fail',
 					dataTableMatchingMode: 'by-id',
 					dataTableMissingMode: 'do-nothing',
 					dataTableSchemaConflictPolicy: 'fail',
@@ -694,7 +648,7 @@ describe('N8nClient packages', () => {
 		});
 
 		describe('variableMissingMode', () => {
-			it.each(['do-nothing', 'must-preexist', 'create-stub', 'create-with-value'] as const)(
+			it.each(['do-nothing', 'must-preexist', 'create-stub', 'create-with-value'])(
 				'sends %s when provided',
 				async (policy) => {
 					fetchMock.mockResolvedValue(
@@ -709,7 +663,7 @@ describe('N8nClient packages', () => {
 					await client.importPackage(
 						{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
 						{
-							conflictPolicy: 'fail',
+							workflowConflictPolicy: 'fail',
 							variableMissingMode: policy,
 						},
 					);
@@ -721,34 +675,31 @@ describe('N8nClient packages', () => {
 		});
 
 		describe('variableConflictPolicy', () => {
-			it.each(['keep-existing', 'overwrite', 'fail'] as const)(
-				'sends %s when provided',
-				async (policy) => {
-					fetchMock.mockResolvedValue(
-						jsonResponse(200, {
-							workflows: [],
-							bindings: {},
-							credentials: { matched: [], stubbed: [] },
-							variables: { matched: [], missing: [], created: [], stubbed: [], updated: [] },
-						}),
-					);
+			it.each(['keep-existing', 'overwrite', 'fail'])('sends %s when provided', async (policy) => {
+				fetchMock.mockResolvedValue(
+					jsonResponse(200, {
+						workflows: [],
+						bindings: {},
+						credentials: { matched: [], stubbed: [] },
+						variables: { matched: [], missing: [], created: [], stubbed: [], updated: [] },
+					}),
+				);
 
-					await client.importPackage(
-						{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
-						{
-							conflictPolicy: 'fail',
-							variableConflictPolicy: policy,
-						},
-					);
+				await client.importPackage(
+					{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
+					{
+						workflowConflictPolicy: 'fail',
+						variableConflictPolicy: policy,
+					},
+				);
 
-					const form = (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
-					expect(form.get('variableConflictPolicy')).toBe(policy);
-				},
-			);
+				const form = (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
+				expect(form.get('variableConflictPolicy')).toBe(policy);
+			});
 		});
 
 		describe('variableParentPolicy', () => {
-			it.each(['project', 'global'] as const)('sends %s when provided', async (policy) => {
+			it.each(['project', 'global'])('sends %s when provided', async (policy) => {
 				fetchMock.mockResolvedValue(
 					jsonResponse(200, {
 						workflows: [],
@@ -761,7 +712,7 @@ describe('N8nClient packages', () => {
 				await client.importPackage(
 					{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
 					{
-						conflictPolicy: 'fail',
+						workflowConflictPolicy: 'fail',
 						variableParentPolicy: policy,
 					},
 				);
@@ -783,7 +734,7 @@ describe('N8nClient packages', () => {
 			const bindings = '{"credentials":{"source-cred":"target-cred"}}';
 			await client.importPackage(
 				{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
-				{ conflictPolicy: 'fail', bindings },
+				{ workflowConflictPolicy: 'fail', bindings },
 			);
 
 			const form = (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
@@ -801,12 +752,11 @@ describe('N8nClient packages', () => {
 
 			await client.importPackage(
 				{ buffer: Buffer.from('package-bytes'), filename: 'export.n8np' },
-				{ conflictPolicy: 'fail' },
+				{ workflowConflictPolicy: 'fail' },
 			);
 
 			const form = (fetchMock.mock.calls[0] as [string, RequestInit])[1].body as FormData;
 			expect(form.has('credentialMissingMode')).toBe(false);
-			expect(form.has('credentialConflictPolicy')).toBe(false);
 		});
 
 		it('throws an ApiError that preserves the blocking-issue details', async () => {
@@ -824,7 +774,10 @@ describe('N8nClient packages', () => {
 			fetchMock.mockResolvedValue(jsonResponse(409, body));
 
 			const error = await client
-				.importPackage({ buffer: Buffer.from('p'), filename: 'x.n8np' }, { conflictPolicy: 'fail' })
+				.importPackage(
+					{ buffer: Buffer.from('p'), filename: 'x.n8np' },
+					{ workflowConflictPolicy: 'fail' },
+				)
 				.catch((e: unknown) => e);
 
 			expect(error).toBeInstanceOf(ApiError);

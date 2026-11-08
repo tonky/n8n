@@ -100,14 +100,14 @@ describe('buildTranscriptFromEvents', () => {
 					RUN_START,
 					evt('tool-call', {
 						payload: {
-							toolName: 'credentials',
+							toolName: 'workflow_builder_credentials',
 							toolCallId: 'tc2',
 							args: { name: 'slack' },
 						},
 					}),
 					evt('tool-result', {
 						payload: {
-							toolName: 'credentials',
+							toolName: 'workflow_builder_credentials',
 							toolCallId: 'tc2',
 							result: { id: 'c1', token: 'secret-token' },
 						},
@@ -287,6 +287,26 @@ describe('buildTranscriptFromEvents', () => {
 		});
 	});
 
+	describe('plan routing', () => {
+		it('renders plan from tool-call args', () => {
+			const turns = buildTranscriptFromEvents({
+				events: [
+					RUN_START,
+					evt('tool-call', {
+						payload: {
+							toolName: 'workflow_builder_create_tasks',
+							args: { tasks: [{ title: 'Fetch posts', description: 'GET /posts' }] },
+						},
+					}),
+				],
+			});
+			expect(turns[0].steps[0]).toMatchObject({
+				kind: 'plan',
+				tasks: [{ title: 'Fetch posts', description: 'GET /posts' }],
+			});
+		});
+	});
+
 	describe('setup wizard routing', () => {
 		it('renders the setup-card ask and the setup-wizard outcome', () => {
 			const turns = buildTranscriptFromEvents({
@@ -380,14 +400,14 @@ describe('buildTranscriptFromEvents', () => {
 				events: [
 					RUN_START,
 					evt('confirmation-request', {
-						payload: { requestId: 'r1', toolName: 'workflow_builder_build_workflow' },
+						payload: { requestId: 'r1', toolName: 'workflow_builder_create_tasks' },
 					}),
 				],
 				proxyResponses: new Map([['r1', { kind: 'approval' as const, approved: false }]]),
 			});
 			expect(turns[0].steps[0]).toMatchObject({
 				kind: 'confirmation',
-				toolName: 'workflow_builder_build_workflow',
+				toolName: 'workflow_builder_create_tasks',
 				resumeReason: 'approval',
 				approved: false,
 			});
@@ -425,9 +445,9 @@ describe('buildTranscriptFromEvents', () => {
 			const turns = buildTranscriptFromEvents({
 				events: [
 					RUN_START,
-					evt('tool-call', { payload: { toolName: 'credentials', args: {} } }),
-					evt('tool-call', { payload: { toolName: 'credentials', args: {} } }),
-					evt('tool-call', { payload: { toolName: 'credentials', args: {} } }),
+					evt('tool-call', { payload: { toolName: 'workflow_builder_credentials', args: {} } }),
+					evt('tool-call', { payload: { toolName: 'workflow_builder_credentials', args: {} } }),
+					evt('tool-call', { payload: { toolName: 'workflow_builder_credentials', args: {} } }),
 				],
 			});
 			const calls = turns[0].steps.filter((i) => i.kind === 'tool-call');

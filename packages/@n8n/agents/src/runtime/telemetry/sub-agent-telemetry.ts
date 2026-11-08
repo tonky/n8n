@@ -18,11 +18,10 @@ export function deriveSubAgentTelemetry(
 	parentTelemetry: BuiltTelemetry | undefined,
 ): BuiltTelemetry | undefined {
 	if (!parentTelemetry) return undefined;
-	const { agent_id: _parentAgentId, ...metadata } = parentTelemetry.metadata ?? {};
 	return {
 		...parentTelemetry,
 		functionId: undefined,
-		metadata: { ...metadata, source: 'sub-agent' },
+		metadata: { ...parentTelemetry.metadata, source: 'sub-agent' },
 		rootAnchored: false,
 	};
 }

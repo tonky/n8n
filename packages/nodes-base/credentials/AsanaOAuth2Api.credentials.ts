@@ -33,9 +33,8 @@ export class AsanaOAuth2Api implements ICredentialType {
 		{
 			displayName: 'Scope',
 			name: 'scope',
-			type: 'string',
+			type: 'hidden',
 			default: '',
-			description: 'Space-separated list of OAuth2 scopes to request',
 		},
 		{
 			displayName: 'Auth URI Query Parameters',

@@ -32,11 +32,7 @@ import type {
 import { hasViolations, PolicyViolationError } from './policy-violation.error';
 
 /** Fresh each time — `violations` is mutable. */
-export const emptyDecision = (): PolicyDecision => ({ violations: [] });
-
-/** An `evaluate` result that a failed check left incomplete. */
-export const hasCheckErrors = (decision: PolicyDecision): boolean =>
-	(decision.checkErrors?.length ?? 0) > 0;
+const emptyDecision = (): PolicyDecision => ({ violations: [] });
 
 /** What the checks see. The clearance binds to the host's own subject, never the added nodes. */
 function expanded(workflow: PolicedWorkflow): PolicedWorkflow {

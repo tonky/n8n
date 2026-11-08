@@ -223,12 +223,7 @@ export class LmChatAzureOpenAi implements INodeType {
 					maxTokens: options.maxTokens && options.maxTokens > 0 ? options.maxTokens : undefined,
 					maxRetries: options.maxRetries ?? 2,
 					invocationKwargs: extraBodyKwargs,
-					callbacks: [
-						new N8nLlmTracing(this, {
-							tokensUsageParser: anthropicTokensUsageParser,
-							genAiProviderName: 'anthropic',
-						}),
-					],
+					callbacks: [new N8nLlmTracing(this, { tokensUsageParser: anthropicTokensUsageParser })],
 					onFailedAttempt: makeN8nLlmFailedAttemptHandler(
 						this,
 						makeAzureFoundryFailedAttemptHandler(modelName, false, 'anthropic'),

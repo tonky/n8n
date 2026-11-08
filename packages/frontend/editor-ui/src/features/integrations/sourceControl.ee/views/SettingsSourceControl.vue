@@ -6,8 +6,6 @@ import { useMessage } from '@/app/composables/useMessage';
 import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
 import { useToast } from '@n8n/composables/useToast';
 import { MODAL_CONFIRM } from '@/app/constants';
-import { useEnvironmentsVersionSwitch } from '@/features/shared/promotions/useEnvironmentsVersionSwitch';
-import { usePromotionsEnabled } from '@/features/shared/promotions/usePromotionsEnabled';
 import { useSourceControlStore } from '../sourceControl.store';
 import {
 	SOURCE_CONTROL_HTTPS_REPO_URL_REGEX,
@@ -27,11 +25,9 @@ import {
 	N8nCallout,
 	N8nCheckbox,
 	N8nColorPicker,
-	N8nExternalLink,
 	N8nFormInput,
 	N8nHeading,
 	N8nNotice,
-	N8nText,
 	N8nTooltip,
 } from '@n8n/design-system';
 const locale = useI18n();
@@ -41,15 +37,6 @@ const toast = useToast();
 const message = useMessage();
 const documentTitle = useDocumentTitle();
 const loadingService = useLoadingService();
-const { isAvailable: isPromotionsAvailable } = usePromotionsEnabled();
-const { busy: switchBusy, switchTo: switchEnvironmentsVersion } = useEnvironmentsVersionSwitch();
-const title = computed(() =>
-	locale.baseText(
-		isPromotionsAvailable.value
-			? 'settings.sourceControl.title.classic'
-			: 'settings.sourceControl.title',
-	),
-);
 
 const isInitializing = ref(true);
 const isConnected = ref(false);
@@ -168,7 +155,7 @@ const initialize = async () => {
 };
 
 onMounted(async () => {
-	documentTitle.set(title.value);
+	documentTitle.set(locale.baseText('settings.sourceControl.title'));
 	if (!sourceControlStore.isEnterpriseSourceControlEnabled) {
 		isInitializing.value = false;
 		return;
@@ -289,43 +276,22 @@ watch(connectionType, () => {
 
 <template>
 	<div>
-		<N8nHeading size="2xlarge" tag="h1">{{ title }}</N8nHeading>
+		<N8nHeading size="2xlarge" tag="h1">{{
+			locale.baseText('settings.sourceControl.title')
+		}}</N8nHeading>
 		<div
 			v-if="sourceControlStore.isEnterpriseSourceControlEnabled"
 			data-test-id="source-control-content-licensed"
 		>
-			<N8nCallout v-if="isPromotionsAvailable" theme="info" iconless class="mt-l">
-				<I18nT keypath="settings.sourceControl.switch.callout" tag="span" scope="global">
-					<template #link>
-						<!-- FIXME: link to the environments docs page once it exists. -->
-						<N8nExternalLink inline size="small" href="#">{{
-							locale.baseText('settings.sourceControl.switch.link')
-						}}</N8nExternalLink>
-					</template>
-				</I18nT>
-				<template #trailingContent>
-					<N8nButton
-						variant="outline"
-						size="small"
-						:label="locale.baseText('settings.sourceControl.switch.button')"
-						:loading="switchBusy"
-						data-test-id="source-control-switch-to-v2"
-						@click="switchEnvironmentsVersion('v2')"
-					/>
-				</template>
-			</N8nCallout>
-			<N8nText tag="p" size="small" color="text-base" class="mt-l mb-l">
+			<N8nCallout theme="secondary" icon="info" class="mt-2xl mb-l">
 				<I18nT keypath="settings.sourceControl.description" tag="span" scope="global">
 					<template #link>
-						<N8nExternalLink
-							inline
-							size="small"
-							:href="locale.baseText('settings.sourceControl.docs.url')"
-							>{{ locale.baseText('settings.sourceControl.description.link') }}</N8nExternalLink
-						>
+						<a :href="locale.baseText('settings.sourceControl.docs.url')" target="_blank">
+							{{ locale.baseText('settings.sourceControl.description.link') }}
+						</a>
 					</template>
 				</I18nT>
-			</N8nText>
+			</N8nCallout>
 			<N8nHeading size="xlarge" tag="h2" class="mb-s">{{
 				locale.baseText('settings.sourceControl.gitConfig')
 			}}</N8nHeading>

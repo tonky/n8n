@@ -603,11 +603,11 @@ export class LdapService implements IPasswordAuthHandler<User> {
 				}
 			}
 
-			const emailPerson = await getUserByEmail(emailAttributeValue);
+			const emailUser = await getUserByEmail(emailAttributeValue);
 
 			// check if there is an email user with the same email as the authenticated LDAP user trying to log-in
-			if (emailPerson && emailPerson.email === emailAttributeValue) {
-				const identity = await createLdapAuthIdentity(emailPerson, ldapId);
+			if (emailUser && emailUser.email === emailAttributeValue) {
+				const identity = await createLdapAuthIdentity(emailUser, ldapId);
 				await updateLdapUserOnLocalDb(identity, ldapAttributesValues);
 			} else {
 				const user = await createLdapUserOnLocalDb(ldapAttributesValues, ldapId);

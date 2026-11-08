@@ -4,7 +4,6 @@ import {
 	REMOVED_BUILDER_TOOL_NAMES,
 	SHARED_BUILDER_TOOL_NAMES,
 	WORKFLOW_BUILDER_TOOL_NAMES,
-	resolveBuilderToolName,
 } from '@n8n/api-types';
 import type {
 	InstanceAiMessage,
@@ -166,8 +165,7 @@ const ARTIFACT_TOOLS = new Set<string>([
 	REMOVED_BUILDER_TOOL_NAMES.SUBMIT_WORKFLOW,
 	WORKFLOW_BUILDER_TOOL_NAMES.APPLY_WORKFLOW_CREDENTIALS,
 	WORKFLOW_BUILDER_TOOL_NAMES.WORKFLOWS,
-	SHARED_BUILDER_TOOL_NAMES.LIST_CREDENTIALS,
-	SHARED_BUILDER_TOOL_NAMES.SETUP_CREDENTIALS,
+	WORKFLOW_BUILDER_TOOL_NAMES.CREDENTIALS,
 	SHARED_BUILDER_TOOL_NAMES.DATA_TABLES,
 	'insert-data-table-rows',
 	'update-data-table-rows',
@@ -241,7 +239,7 @@ function extractFromAgentBuilderResult(tc: InstanceAiToolCallState, col: Collect
 
 function extractFromToolCall(tc: InstanceAiToolCallState, col: Collections): void {
 	extractFromAgentBuilderResult(tc, col);
-	if (!ARTIFACT_TOOLS.has(resolveBuilderToolName(tc.toolName, tc.args?.action))) return;
+	if (!ARTIFACT_TOOLS.has(tc.toolName)) return;
 	if (!tc.result || typeof tc.result !== 'object') return;
 	const result = tc.result as Record<string, unknown>;
 

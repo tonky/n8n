@@ -5,7 +5,6 @@ import { hasPermission } from '@/app/utils/rbac/permissions';
 import { getResourcePermissions } from '@n8n/permissions';
 import { useSourceControlStore } from '@/features/integrations/sourceControl.ee/sourceControl.store';
 import { useProjectsStore } from '@/features/collaboration/projects/projects.store';
-import { usePromotionsEnabled } from '@/features/shared/promotions/usePromotionsEnabled';
 import { useRoute, useRouter } from 'vue-router';
 
 import { N8nButton, N8nIcon, N8nText, N8nTooltip } from '@n8n/design-system';
@@ -15,7 +14,6 @@ defineProps<{
 
 const sourceControlStore = useSourceControlStore();
 const projectStore = useProjectsStore();
-const { isEnabled: isPromotionsEnabled } = usePromotionsEnabled();
 const i18n = useI18n();
 const route = useRoute();
 const router = useRouter();
@@ -43,7 +41,6 @@ const hasPullPermission = computed(() => {
 const sourceControlAvailable = computed(
 	() =>
 		sourceControlStore.isEnterpriseSourceControlEnabled &&
-		!isPromotionsEnabled.value &&
 		(hasPullPermission.value || hasPushPermission.value),
 );
 
