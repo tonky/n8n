@@ -164,6 +164,13 @@ DISCOVERY_ARGS=(--exclude '**/.turbo' --exclude '**/.turbo/**' --exclude '**/dis
 RUNNER_ARGS=()
 [ -z "${VITEST_RUNNER_ARGS:-}" ] || read -ra RUNNER_ARGS <<<"$VITEST_RUNNER_ARGS"
 
+INTEGRATION_CONFIG=""
+if [ -f vitest.config.integration.ts ]; then
+  INTEGRATION_CONFIG=vitest.config.integration.ts
+elif [ -z "${VITEST_RUNNER_ARGS:-}" ] && [ -f vitest.integration.config.ts ] && [ "$PWD" != "$REPO_ROOT/packages/nodes-base" ]; then
+  INTEGRATION_CONFIG=vitest.integration.config.ts
+fi
+
 UNITS=()
 INTEGRATIONS=()
 MIGRATIONS=()
@@ -171,9 +178,9 @@ MIGRATIONS=()
 for target in "${OWN[@]}"; do
   clean_target="${target%%::*}"
   # Targets are relative to the package (`test/integration/...`) or to the repository.
-  # Only a package with an integration config (cli) runs them on PostgreSQL: core's run
+  # Only a package with an integration config runs them on PostgreSQL: core's run
   # under its one config, nodes-base's own config leaves them out (its integration job's).
-  if [ -f vitest.config.integration.ts ] && { [[ "$clean_target" == *".integration.test.ts" ]] || [[ "/$clean_target" == *"/test/integration/"* ]]; }; then
+  if [ -n "$INTEGRATION_CONFIG" ] && { [[ "$clean_target" == *".integration.test.ts" ]] || [[ "/$clean_target" == *"/test/integration/"* ]]; }; then
     INTEGRATIONS+=("$clean_target")
   elif [ -f vitest.config.migration.ts ] && { [ "${VITEST_MIGRATION:-}" = 1 ] || [[ "/$clean_target" == *"/test/migration/"* ]]; }; then
     MIGRATIONS+=("$clean_target")
@@ -208,7 +215,7 @@ if [ ${#TARGETS[@]} -gt 0 ] && [ -z "${VITEST_RUNNER_LISTED:-}" ]; then
     while IFS= read -r t; do missing+=("$t"); done < <(unrun -- "${UNITS[@]}")
   fi
   if [ ${#INTEGRATIONS[@]} -gt 0 ]; then
-    while IFS= read -r t; do missing+=("$t"); done < <(unrun --config vitest.config.integration.ts -- "${INTEGRATIONS[@]}")
+    while IFS= read -r t; do missing+=("$t"); done < <(unrun --config "$INTEGRATION_CONFIG" -- "${INTEGRATIONS[@]}")
   fi
   if [ ${#MIGRATIONS[@]} -gt 0 ]; then
     while IFS= read -r t; do missing+=("$t"); done < <(unrun --config vitest.config.migration.ts -- "${MIGRATIONS[@]}")
@@ -285,6 +292,20 @@ run_integration() (
   fi
   export N8N_LOG_LEVEL=silent DB_TYPE=postgresdb DB_POSTGRESDB_USER=postgres PGUSER=postgres \
     DB_POSTGRESDB_DATABASE=n8n DB_POSTGRESDB_SCHEMA=alt_schema DB_TABLE_PREFIX=test_
+  TC_SHIM=""
+  for candidate in \
+    "$SCRIPT_DIR/trace/testcontainers-enve-shim.mjs" \
+    "$REPO_ROOT/../../../crates/enact-runner/recorders/js/testcontainers-enve-shim.mjs" \
+    "$REPO_ROOT/../../crates/enact-runner/recorders/js/testcontainers-enve-shim.mjs" \
+    "${ENACT_RECORDERS_DIR:+$ENACT_RECORDERS_DIR/js/testcontainers-enve-shim.mjs}"; do
+    if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+      TC_SHIM="$(realpath "$candidate")"
+      break
+    fi
+  done
+  if [ -n "$TC_SHIM" ] && [[ "${NODE_OPTIONS:-}" != *"testcontainers-enve-shim.mjs"* ]]; then
+    export NODE_OPTIONS="${NODE_OPTIONS:-} --import $TC_SHIM"
+  fi
   if [ "${N8N_TEST_DISABLE_TEMPLATE_DB:-}" != 1 ] && [ -z "${N8N_TEST_TEMPLATE_DB:-}" ] &&
     [ -e node_modules/@n8n/backend-test-utils ]; then
     # Unique per run, and outside the prefix of the test databases the suite's teardown drops.
@@ -292,7 +313,7 @@ run_integration() (
     trap drop_template EXIT
     node "$SCRIPT_DIR/n8n-template-db.cjs" "$N8N_TEST_TEMPLATE_DB" >&2 || exit
   fi
-  run_vitest run "${CACHE_OPTS[@]}" --maxWorkers "$MAX_WORKERS" --config vitest.config.integration.ts "$@"
+  run_vitest run "${CACHE_OPTS[@]}" --maxWorkers "$MAX_WORKERS" --config "$INTEGRATION_CONFIG" "$@"
 )
 
 # run_migration <vitest args...>: cli's migration config, sequentially against PostgreSQL
@@ -335,7 +356,7 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
   echo "🎯 [enact] No targets specified, running unit test suite ${SHARD_OPTS[*]:-}"
   status=0
   N8N_LOG_LEVEL=silent DB_SQLITE_POOL_SIZE=4 DB_TYPE=sqlite run_vitest run "${CACHE_OPTS[@]}" "${SHARD_OPTS[@]}" "${EMPTY_SHARD[@]}" || status=$?
-  if [ -f vitest.config.integration.ts ]; then
+  if [ -n "$INTEGRATION_CONFIG" ]; then
     echo "🎯 [enact] Running integration test suite against PostgreSQL ${SHARD_OPTS[*]:-}"
     run_integration "${SHARD_OPTS[@]}" "${EMPTY_SHARD[@]}" || status=$?
   fi

@@ -89,14 +89,15 @@ pipeline: schema.#Pipeline & {
 	analysis: recorders: {"e2e-footprint.mjs": "1", "n8n-services": "1"}
 
 	analysis: derived: [
-		for _, p in _packages if p.built {
+		for n, p in _packages if p.built {
+			let Bundles = [if n != "@n8n/mcp-apps" for b in p.bundles {b}]
 			outputs: [p.dir + "/dist/**", p.dir + "/.turbo/**"]
-			inputs:  [p.dir + "/**", for b in p.bundles {b + "/**"}]
+			inputs:  [p.dir + "/**", for b in Bundles {b + "/**"}]
 			exclude: [
-				for d in [p.dir, for b in p.bundles {b}] for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e},
+				for d in [p.dir, for b in Bundles {b}] for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/*.stories.*", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e},
 				for db in ["sqlite", "postgresdb"] {"packages/@n8n/db/src/migrations/" + db + "/index.ts"},
 			]
-			mapped: [for d in [p.dir, for b in p.bundles {b}] {d + "/src/**"}]
+			mapped: [for d in [p.dir, for b in Bundles {b}] {d + "/src/**"}]
 		},
 		{outputs: ["packages/cli/test-exports-*/**"], inputs: ["packages/cli/test/integration/environments/source-control-export.service.test.ts"]},
 		{
@@ -198,6 +199,28 @@ pipeline: schema.#Pipeline & {
 		frontend: jobs: test: tasks: [{name: "Run Tests", command: _vitest, timeout: _wholeSuiteTimeout}]
 
 		"@n8n/expression-runtime": jobs: test: tasks: [{name: "Run Tests", command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}]
+
+		"@n8n/mcp-apps": {
+			let P = _packages["@n8n/mcp-apps"]
+			// Its server entrypoint (`@n8n/mcp-apps/server`, imported by cli) is pure backend TS;
+			// its single-file UI preview imports primitives from @n8n/design-system source (staged
+			// via workspace_scope.include) without making cli depend on @n8n/design-system.
+			depends_on:      ["root", for d in P.deps if d != "@n8n/design-system" {d}]
+			workspace_scope: include: [P.dir, for b in P.bundles {b}]
+		}
+
+		for n in ["@n8n/engine", "@n8n/node-engine-compatibility"] {
+			(n): {
+				let Services = [n8n.services.postgres]
+				services:    Services
+				recorded_by: ["enact-node"]
+				jobs: test: tasks: [{
+					name:    "Run Tests"
+					command: _vitest
+					env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
+				}]
+			}
+		}
 
 		"@n8n/efficiency": {
 			browsers: _chromiumBrowsers
