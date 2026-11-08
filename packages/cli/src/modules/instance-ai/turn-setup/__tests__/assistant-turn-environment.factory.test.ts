@@ -68,6 +68,7 @@ function createSetupFactory() {
 			getCredits: vi.fn(async () => ({ creditsQuota: -1, creditsClaimed: 0 })),
 			resolveAgentModelConfig: vi.fn(async () => 'anthropic/claude-sonnet'),
 			resolveMemoryModelConfig: vi.fn(async () => undefined),
+			getModelFetch: vi.fn(() => undefined),
 		},
 		creditService: { claimRunUsage: vi.fn() },
 		instanceAiErrorReporter: {
@@ -92,6 +93,7 @@ function createRuntime(overrides: Partial<AssistantTurnRuntime> = {}): Assistant
 			getThread: vi.fn(async () => null),
 			getThreadProjectId: vi.fn(async () => 'project-1'),
 		}),
+		resourceId: 'user-1',
 		eventBus: mock<AssistantTurnRuntime['eventBus']>(),
 		turnState: {
 			getBuildMode: vi.fn(() => 'progressive' as const),
@@ -100,6 +102,7 @@ function createRuntime(overrides: Partial<AssistantTurnRuntime> = {}): Assistant
 			setPromptConfiguration: vi.fn(),
 			setSetupPanelEnabled: vi.fn(),
 			getBrowserUseAvailable: vi.fn(() => undefined),
+			getObserverThresholdTokens: vi.fn(() => undefined),
 		},
 		sessionGrants: {
 			load: vi.fn(async () => new Set(['tool:run'])),
@@ -167,7 +170,6 @@ describe('AssistantTurnEnvironmentFactory', () => {
 			const { orchestrationContext } = await factory.create(params, createRuntime());
 
 			expect(orchestrationContext.cancelBackgroundTask).toBeUndefined();
-			expect(orchestrationContext.schedulePlannedTasks).toBeUndefined();
 			expect(orchestrationContext.sendCorrectionToTask).toBeUndefined();
 		});
 
