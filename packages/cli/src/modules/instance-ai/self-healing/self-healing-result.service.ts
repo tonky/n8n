@@ -8,7 +8,6 @@ import {
 	type SelfHealingResultActionResponse,
 	type WorkflowSuggestionActionResult,
 	type WorkflowSuggestionAppliedVersion,
-	type WorkflowSuggestionBaseline,
 	type WorkflowSuggestionProposalDetail,
 } from '@n8n/api-types';
 import { RoleService } from '@n8n/backend-services';
@@ -21,7 +20,7 @@ import {
 } from '@n8n/db';
 import { Service } from '@n8n/di';
 import type { SelfHealingOutput } from '@n8n/instance-ai';
-import { ConflictError, ForbiddenError, NotFoundError, UnexpectedError } from '@n8n/errors';
+import { ConflictError, ForbiddenError, NotFoundError } from '@n8n/errors';
 import type { Scope } from '@n8n/permissions';
 import isEqual from 'lodash/isEqual';
 
@@ -49,12 +48,10 @@ export type SelfHealingResultInput = {
 };
 
 export function getSelfHealingReviewState(
-	result: Pick<SelfHealingResult, 'dismissedAt' | 'outcome'>,
+	result: Pick<SelfHealingResult, 'dismissedAt'>,
 	suggestion: Pick<WorkflowSuggestionProposalDetail, 'closedReason'> | null,
 ): SelfHealingResultDetail['reviewState'] {
-	if (result.dismissedAt) return 'dismissed';
-	if (result.outcome === 'could_not_fix') return 'closed';
-	return suggestion?.closedReason ?? 'open';
+	return result.dismissedAt ? 'dismissed' : (suggestion?.closedReason ?? 'open');
 }
 
 @Service()
@@ -106,34 +103,21 @@ export class SelfHealingResultService {
 
 	async complete({
 		investigationId,
-		baseline,
 		signal,
 		...input
-	}: SelfHealingResultInput & {
-		investigationId: string;
-		baseline: WorkflowSuggestionBaseline;
-		signal?: AbortSignal;
-	}) {
+	}: SelfHealingResultInput & { investigationId: string; signal?: AbortSignal }) {
 		signal?.throwIfAborted();
 		const investigation = await this.investigations.findInvestigation(investigationId);
 		if (!investigation) return null;
 		if (investigation.resultId) {
 			return await this.results.getResult(investigation.resultId, investigation);
 		}
-		if (
-			baseline.workflowId !== investigation.workflowId ||
-			baseline.projectId !== investigation.projectId ||
-			baseline.backgroundUserId !== investigation.backgroundUserId ||
-			baseline.expectedBaseline.publishedVersionId !== investigation.publishedVersionId
-		) {
-			throw new UnexpectedError('The baseline does not belong to the investigation.');
-		}
 
 		const {
 			content,
 			completedAt,
 			suggestion: prepared,
-		} = await this.prepareResult(investigation, baseline, input);
+		} = await this.prepareResult(investigation, input);
 		signal?.throwIfAborted();
 
 		return await this.txRunner.run({}, async (ctx) => {
@@ -164,7 +148,7 @@ export class SelfHealingResultService {
 			}
 
 			await this.suggestions.readWorkflowTargetForApply(investigation.workflowId, ctx);
-			await this.suggestions.requireCurrentBaseline(baseline, ctx);
+			await this.suggestions.requireCurrentBaseline(current.baseline, ctx);
 			signal?.throwIfAborted();
 
 			let suggestionId: string | null = null;
@@ -196,13 +180,13 @@ export class SelfHealingResultService {
 
 	private async prepareResult(
 		investigation: SelfHealingInvestigation,
-		baseline: WorkflowSuggestionBaseline,
 		input: SelfHealingResultInput,
 	) {
 		if (investigation.finishedAt) {
 			throw new ConflictError('The self-healing investigation has already finished.');
 		}
 
+		const { baseline } = investigation;
 		const { output, candidate } = input;
 
 		const content = selfHealingResultContentSchema.parse({
@@ -384,7 +368,7 @@ export class SelfHealingResultService {
 				await this.requireCurrentProject(workflowId, projectId, ctx);
 			}
 
-			if (result.outcome === 'needs_you') {
+			if (result.outcome !== 'fix_ready') {
 				await this.results.dismissResult(result.id, user.id, ctx);
 			}
 			return true;

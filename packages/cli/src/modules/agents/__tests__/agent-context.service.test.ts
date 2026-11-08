@@ -170,7 +170,7 @@ describe('AgentContextService', () => {
 				useNodeToolWhen: ['The agent creates Linear tickets'],
 			},
 		];
-		agentIntegrationService.listBuilderChatIntegrations.mockResolvedValue(channels);
+		agentIntegrationService.listChatIntegrations.mockReturnValue(channels);
 		mcpRegistryService.search.mockResolvedValue([]);
 		agentsToolsService.searchAgentToolNodes.mockResolvedValue({
 			results: '',
@@ -179,7 +179,6 @@ describe('AgentContextService', () => {
 		const reader = service.createReader(user, 'project-1');
 
 		expect(await reader.lookup({ type: 'integrations' })).toEqual({ channels });
-		expect(agentIntegrationService.listBuilderChatIntegrations).toHaveBeenCalledWith(user);
 		expect(await reader.lookup({ type: 'integrations', queries: ['linear'] })).toEqual({
 			kind: 'node',
 			results: '',

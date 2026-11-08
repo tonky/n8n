@@ -91,9 +91,7 @@ describe('agent_builder_select_agent', () => {
 
 		const result = await executeTool(tool, { name: 'Support Triage' });
 
-		expect(delegate.createAgent).toHaveBeenCalledWith('Support Triage', {
-			session: { threadId: 'thread-1', runId: 'run-1' },
-		});
+		expect(delegate.createAgent).toHaveBeenCalledWith('Support Triage', undefined);
 		expect(result).toEqual({
 			ok: true,
 			agentId: 'agent-9',
@@ -168,9 +166,7 @@ describe('agent_builder_select_agent', () => {
 
 		const result = await executeTool(tool, { name: 'Ticket Router', createNew: true });
 
-		expect(delegate.createAgent).toHaveBeenCalledWith('Ticket Router', {
-			session: { threadId: 'thread-1', runId: 'run-1' },
-		});
+		expect(delegate.createAgent).toHaveBeenCalledWith('Ticket Router', undefined);
 		expect(result).toMatchObject({ ok: true, agentId: 'agent-2', agentChange: 'created' });
 	});
 

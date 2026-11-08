@@ -13,7 +13,6 @@ import {
 	type PromotionBindingConflict,
 	type PromotionCheckoutPublicDto,
 	type PromotionDirection,
-	type PromotionRunContents,
 } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
 import { ProjectRepository, SharedWorkflowRepository, type User } from '@n8n/db';
@@ -257,7 +256,6 @@ export class PromotionsService {
 				promotionBranchName: targetBranchName,
 				commitSha: pushed.commitSha,
 				title: request.commitMessage,
-				promotionRunContents: { projectIds },
 			})),
 		};
 	}
@@ -266,18 +264,11 @@ export class PromotionsService {
 	private async openReview(
 		input: PromotionOperationInput,
 		actor: User,
-		push: {
-			promotionBranchName: string | undefined;
-			commitSha: string;
-			title: string;
-			promotionRunContents: PromotionRunContents;
-		},
+		push: { promotionBranchName: string | undefined; commitSha: string; title: string },
 	): Promise<Pick<PromotePackageResultDto, 'review' | 'warnings'>> {
 		const recorded = await this.recordPromoteRun(input, actor, {
 			branchName: push.promotionBranchName ?? checkoutBranchName(input.config),
 			commitSha: push.commitSha,
-			// Only a promotion branch has a review, and the review gate reads the project list.
-			...(push.promotionBranchName && { promotionRunContents: push.promotionRunContents }),
 		});
 		// A review without a run cannot be rendered: the branch and commit live on the run.
 		if (!recorded.runId) {
@@ -326,7 +317,7 @@ export class PromotionsService {
 	private async recordPromoteRun(
 		input: PromotionOperationInput,
 		actor: User,
-		git: { branchName: string; commitSha: string; promotionRunContents?: PromotionRunContents },
+		git: { branchName: string; commitSha: string },
 	): Promise<{ runId?: string }> {
 		try {
 			const type = promotionRunTypeSchema.parse('git');
@@ -339,7 +330,6 @@ export class PromotionsService {
 					schemaVersion: 1,
 					branchName: git.branchName,
 					commitSha: git.commitSha,
-					...(git.promotionRunContents && { contents: git.promotionRunContents }),
 				}),
 				reviewId: null,
 			});
@@ -505,7 +495,6 @@ export class PromotionsService {
 				promotionBranchName: targetBranchName,
 				commitSha: pushed.commitSha,
 				title: request.commitMessage,
-				promotionRunContents: { projectIds: [selection.projectId] },
 			})),
 		};
 	}

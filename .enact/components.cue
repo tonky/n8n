@@ -484,9 +484,10 @@ pipeline: schema.#Pipeline & {
 				lint:      _browserCheck
 				typecheck: _browserCheck
 				dev_server_smoke: {
-					name:     "Dev-Server Boot Smoke"
-					needs:    ["build", "@n8n/db:build"]
-					recorder: "trace"
+					name:             "Dev-Server Boot Smoke"
+					needs:            ["build", "@n8n/db:build"]
+					recorder:         "trace"
+					record_resources: {cpus: 4.0, memory_mb: 11264}
 					target_scope: _target_scope & {
 						#dir:   P.dir
 						#tests: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]

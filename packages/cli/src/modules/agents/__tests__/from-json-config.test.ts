@@ -12,12 +12,12 @@ import { UserError } from 'n8n-workflow';
 
 import { buildFromJson, buildProviderToolsForModel } from '../json-config/from-json-config';
 import type { ToolExecutor } from '../json-config/from-json-config';
-import { buildVectorStore } from '@/modules/knowledge/vector-stores/factory';
+import { buildVectorStore } from '../json-config/vector-store-factory';
 
 const { getCachedCatalog } = vi.hoisted(() => ({ getCachedCatalog: vi.fn() }));
 vi.mock('@n8n/agents/catalog', () => ({ getCachedCatalog }));
 
-vi.mock('@/modules/knowledge/vector-stores/factory', () => ({
+vi.mock('../json-config/vector-store-factory', () => ({
 	buildVectorStore: vi.fn(),
 }));
 

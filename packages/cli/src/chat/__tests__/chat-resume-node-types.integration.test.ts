@@ -170,10 +170,7 @@ describe('chat resume — real node-type onMessage mapping', () => {
 
 			await manager.cancelExecution('1');
 
-			expect(executionRepository.update).toHaveBeenCalledWith(
-				{ id: '1' },
-				{ status: 'canceled', stoppedAt: expect.any(Date) },
-			);
+			expect(executionRepository.update).toHaveBeenCalledWith({ id: '1' }, { status: 'canceled' });
 		});
 
 		it('does not cancel a Telegram Send-and-Wait execution the socket does not drive', async () => {

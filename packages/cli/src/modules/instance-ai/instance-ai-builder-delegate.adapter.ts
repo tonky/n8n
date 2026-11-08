@@ -10,7 +10,6 @@ import {
 import { AgentContextService } from '@/modules/agents/agent-context.service';
 import { AgentDraftService } from '@/modules/agents/agent-draft.service';
 import { AgentsBuilderService } from '@/modules/agents/builder/agents-builder.service';
-import { runInBuilderTelemetrySession } from '@/modules/agents/builder/builder-session';
 import { Telemetry } from '@/telemetry';
 
 @Service()
@@ -30,15 +29,11 @@ export class InstanceAiBuilderDelegateAdapterService {
 		options: { useEvalModelCatalog?: boolean } = {},
 	): InstanceAiBuilderDelegate {
 		return {
-			createAgent: async (name, { session, ...createOptions } = {}) =>
-				await runInBuilderTelemetrySession(
-					session,
-					async () =>
-						await this.drafts.createDraft(user, projectId, name, {
-							...createOptions,
-							createdBy: 'builder',
-						}),
-				),
+			createAgent: async (name, createOptions) =>
+				await this.drafts.createDraft(user, projectId, name, {
+					...createOptions,
+					createdBy: 'builder',
+				}),
 			getBuilderTools: (resolveTargetAgentId, session) =>
 				this.builder.getTools(
 					user,
@@ -48,7 +43,6 @@ export class InstanceAiBuilderDelegateAdapterService {
 					credentialService,
 					{
 						...(options.useEvalModelCatalog ? { useEvalModelCatalog: true } : {}),
-						session,
 						track: (entry, properties) =>
 							this.telemetry.track(entry, {
 								thread_id: session.threadId,

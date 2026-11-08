@@ -1,9 +1,10 @@
 import { mockInstance, mockLogger } from '@n8n/backend-test-utils';
 import { RedisClientService } from '@n8n/backend-services';
 import { ExecutionsConfig, GlobalConfig, InstanceAiConfig } from '@n8n/config';
-import { SharedWorkflowRepository } from '@n8n/db';
+import { SharedWorkflowRepository, type Project } from '@n8n/db';
 import { PubSubMetadata } from '@n8n/decorators';
 import { Container } from '@n8n/di';
+import { createDeferredPromise } from '@n8n/utils/promise/deferred-promise';
 import type { InstanceSettings } from 'n8n-core';
 import { Redis } from 'ioredis';
 import { mock } from 'vitest-mock-extended';
@@ -37,7 +38,6 @@ describe.skipIf(!host || !port)('self-healing failure relay (real Redis)', () =>
 	let publisher: Publisher;
 	let subscriber: Subscriber;
 	let workerTrigger: SelfHealingTriggerService;
-	let mainTrigger: SelfHealingTriggerService;
 	let bus: PubSubEventBus;
 
 	beforeAll(async () => {
@@ -46,12 +46,13 @@ describe.skipIf(!host || !port)('self-healing failure relay (real Redis)', () =>
 		bus = new PubSubEventBus();
 		subscriber = new Subscriber(logger, main, bus, redis, executionsConfig, globalConfig);
 
-		mainTrigger = new SelfHealingTriggerService(config, main, publisher, ownership, logger);
+		const mainTrigger = new SelfHealingTriggerService(config, main, publisher, ownership, logger);
 		Container.set(SelfHealingTriggerService, mainTrigger);
 		const registry = new PubSubRegistry(logger, main, Container.get(PubSubMetadata), bus);
 		registry.init();
 
 		workerTrigger = new SelfHealingTriggerService(config, worker, publisher, ownership, logger);
+		ownership.getWorkflowOwningProject.mockResolvedValue(mock<Project>({ id: 'project' }));
 
 		await subscriber.subscribe(subscriber.getCommandChannel());
 	});
@@ -63,24 +64,27 @@ describe.skipIf(!host || !port)('self-healing failure relay (real Redis)', () =>
 	});
 
 	it('delivers consecutive failures to main without debounce or a worker-side start', async () => {
-		// Test the Redis relay here. Unit tests cover investigation admission on main.
-		const handleFailure = vi.spyOn(mainTrigger, 'handleFailure').mockResolvedValue();
+		const delivered = createDeferredPromise();
+		investigations.start.mockResolvedValueOnce(null).mockImplementationOnce(async () => {
+			delivered.resolve();
+			return null;
+		});
 
-		await Promise.all([
-			workerTrigger.handleFailure({ workflowId: 'workflow-1', executionId: '1' }),
-			workerTrigger.handleFailure({ workflowId: 'workflow-2', executionId: '2' }),
-		]);
+		await workerTrigger.handleFailure({ workflowId: 'workflow-1', executionId: '1' });
+		await workerTrigger.handleFailure({ workflowId: 'workflow-2', executionId: '2' });
 
-		await vi.waitFor(() => expect(handleFailure).toHaveBeenCalledTimes(2), { timeout: 5000 });
-		expect(handleFailure).toHaveBeenNthCalledWith(1, {
+		// Use the test timeout for Redis delivery instead of a one-second polling limit.
+		await delivered.promise;
+		expect(investigations.start).toHaveBeenCalledTimes(2);
+		expect(investigations.start).toHaveBeenCalledWith({
 			workflowId: 'workflow-1',
 			executionId: '1',
+			projectId: 'project',
 		});
-		expect(handleFailure).toHaveBeenNthCalledWith(2, {
+		expect(investigations.start).toHaveBeenCalledWith({
 			workflowId: 'workflow-2',
 			executionId: '2',
+			projectId: 'project',
 		});
-		expect(ownership.getWorkflowOwningProject).not.toHaveBeenCalled();
-		expect(investigations.start).not.toHaveBeenCalled();
 	});
 });

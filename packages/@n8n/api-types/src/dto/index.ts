@@ -835,11 +835,9 @@ export {
 export {
 	parsePromotionRunDetails,
 	promotionGitRunDetailsSchema,
-	promotionRunContentsSchema,
 	promotionRunDetailsSchemas,
 	promotionRunTypeSchema,
 	type PromotionGitRunDetails,
-	type PromotionRunContents,
 	type PromotionRunDetails,
 	type PromotionRunType,
 } from './promotions/promotion-run.dto';

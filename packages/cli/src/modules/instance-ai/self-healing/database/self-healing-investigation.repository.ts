@@ -48,15 +48,13 @@ export class SelfHealingInvestigationRepository extends BaseRepository<SelfHeali
 		},
 		ctx: OperationContext,
 	) {
-		const { baseline, ...fields } = input;
 		const manager = this.managerFor(ctx);
 		return await manager.save(
 			manager.create(SelfHealingInvestigation, {
-				...fields,
-				workflowId: baseline.workflowId,
-				projectId: baseline.projectId,
-				backgroundUserId: baseline.backgroundUserId,
-				publishedVersionId: baseline.expectedBaseline.publishedVersionId,
+				...input,
+				workflowId: input.baseline.workflowId,
+				projectId: input.baseline.projectId,
+				backgroundUserId: input.baseline.backgroundUserId,
 				resultId: null,
 				finishedAt: null,
 			}),

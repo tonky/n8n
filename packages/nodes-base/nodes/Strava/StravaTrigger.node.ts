@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import type {
 	IHookFunctions,
 	IWebhookFunctions,
@@ -146,7 +147,7 @@ export class StravaTrigger implements INodeType {
 
 				const body = {
 					callback_url: webhookUrl,
-					verify_token: this.getNode().id,
+					verify_token: randomBytes(20).toString('hex'),
 				};
 
 				let responseData;
@@ -177,7 +178,17 @@ export class StravaTrigger implements INodeType {
 									);
 
 									// now there is room create a subscription with the n8n data
-									responseData = await stravaApiRequest.call(this, 'POST', endpoint, body);
+									const requestBody = {
+										callback_url: webhookUrl,
+										verify_token: randomBytes(20).toString('hex'),
+									};
+
+									responseData = await stravaApiRequest.call(
+										this,
+										'POST',
+										'/push_subscriptions',
+										requestBody,
+									);
 								} else {
 									error.message = `A subscription already exists [${webhooks[0].callback_url}]. If you want to delete this subscription and create a new one with the current parameters please go to options and set delete if exist to true`;
 									throw error;
@@ -243,24 +254,12 @@ export class StravaTrigger implements INodeType {
 		if (this.getWebhookName() === 'setup') {
 			if (query['hub.challenge']) {
 				// Is a create webhook confirmation request
-				if (query['hub.verify_token'] !== this.getNode().id) {
-					return {};
-				}
-
 				const res = this.getResponseObject();
 				res.status(200).json({ 'hub.challenge': query['hub.challenge'] }).end();
 				return {
 					noWebhookResponse: true,
 				};
 			}
-		}
-
-		const webhookData = this.getWorkflowStaticData('node');
-		if (
-			webhookData.webhookId === undefined ||
-			String(body.subscription_id) !== String(webhookData.webhookId)
-		) {
-			return {};
 		}
 
 		if (object !== '*' && !objectType.includes(body.object_type as string)) {

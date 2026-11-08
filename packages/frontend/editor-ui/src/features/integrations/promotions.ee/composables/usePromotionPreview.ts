@@ -16,8 +16,6 @@ type PromotionPreviewState =
 	/** The instance has no environment for this direction. */
 	| 'disconnected'
 	| 'error'
-	/** An open review holds the changes, so the preview lists none. */
-	| 'blocked'
 	| 'empty'
 	| 'ready';
 
@@ -82,7 +80,7 @@ export function usePromotionPreview(projectId: Ref<string>, direction: Ref<Promo
 			preview.value = result;
 			check.value = blockers;
 			lastRefreshedAt.value = new Date();
-			state.value = result.blocker ? 'blocked' : result.resources.length === 0 ? 'empty' : 'ready';
+			state.value = result.resources.length === 0 ? 'empty' : 'ready';
 		} catch {
 			if (!isLatest()) return;
 			// Only the changes view shows the refresh warning. Other states show the error.

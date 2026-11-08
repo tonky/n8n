@@ -35,13 +35,12 @@ describe('ScimApiKeyRepository', () => {
 		});
 	});
 
-	it('scopes a lookup by key to the SCIM audience and loads the user role', async () => {
+	it('scopes a lookup by key to the SCIM audience', async () => {
 		await repository.findByKey('a-token', ctx);
 
-		// The role is needed to check `scim:manage` on each request.
 		expect(manager.findOne).toHaveBeenCalledWith(ApiKey, {
 			where: { apiKey: 'a-token', audience: SCIM },
-			relations: { user: { role: true } },
+			relations: ['user'],
 		});
 	});
 

@@ -38,17 +38,7 @@ export type SelfHealingExecutionReference =
 	| { status: 'available'; id: string }
 	| { status: 'unavailable' };
 
-/**
- * `closed` marks a Could not fix result that closed automatically.
- * Only a user dismissal returns `dismissed`.
- */
-export type SelfHealingReviewState =
-	| 'open'
-	| 'applied'
-	| 'discarded'
-	| 'outdated'
-	| 'dismissed'
-	| 'closed';
+export type SelfHealingReviewState = 'open' | 'applied' | 'discarded' | 'outdated' | 'dismissed';
 
 export type SelfHealingResultDetail = SelfHealingResultContent & {
 	resultId: string;

@@ -82,8 +82,6 @@ const workflowSettingsWritePublicSchema = z
 			.enum(['separate', 'combined'])
 			.optional()
 			.openapi(workflowSettingsFieldDocs.binaryMode),
-		// Accepted but ignored: a stored workflow can hold any value here, so a GET-then-PUT must not fail on it
-		engineType: z.string().nullable().optional().openapi(workflowSettingsFieldDocs.engineType),
 		callerPolicy: z
 			.enum(['any', 'none', 'workflowsFromAList', 'workflowsFromSameOwner'])
 			.optional()
@@ -114,12 +112,7 @@ const workflowSettingsWritePublicSchema = z
 	})
 	.strict()
 	.transform(
-		({
-			binaryMode: _binaryMode,
-			engineType: _engineType,
-			credentialResolverId: _resolverId,
-			...settings
-		}) => settings,
+		({ binaryMode: _binaryMode, credentialResolverId: _resolverId, ...settings }) => settings,
 	);
 
 const sharedWorkflowWritePublicSchema = z

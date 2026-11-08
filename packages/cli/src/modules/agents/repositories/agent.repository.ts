@@ -188,10 +188,7 @@ export class AgentRepository extends BaseRepository<Agent> {
 			query.andWhere('agent.projectId IN (:...projectIds)', { projectIds });
 		}
 		if (options.query) {
-			// `%` and `_` in the search match themselves, as in the skill search.
-			query.andWhere(`LOWER(agent.name) LIKE :query ${LIKE_ESCAPE_CLAUSE}`, {
-				query: `%${escapeLike(options.query.toLowerCase())}%`,
-			});
+			query.andWhere('LOWER(agent.name) LIKE LOWER(:query)', { query: `%${options.query}%` });
 		}
 		if (options.publishedOnly) {
 			query.andWhere('agent.activeVersionId IS NOT NULL');

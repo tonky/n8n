@@ -6,7 +6,6 @@ export {
 	type RestrictedTypeKind,
 } from './type-availability-policies.constants';
 export {
-	describeAgentToolRestriction,
 	describeNodeTypeRestriction,
 	describeRestrictedNodeTypes,
 	getNodeTypeRestriction,

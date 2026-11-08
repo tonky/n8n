@@ -44,8 +44,6 @@ import { DuplicateExecutionError } from '../errors/duplicate-execution.error';
 
 type DeletionTarget = ExecutionRef & { storedAt: ExecutionDataStorageLocation };
 
-type InFlightExecutionOutcome = Pick<IExecutionResponse, 'status' | 'finished' | 'stoppedAt'>;
-
 type FoundExecution = IExecutionFlattedDb | IExecutionResponse | IExecutionBase;
 
 type UpdatableEntityColumns = Omit<
@@ -633,27 +631,16 @@ export class ExecutionPersistence {
 	/**
 	 * Delete an in-flight execution that is not meant to be saved.
 	 *
-	 * - When pruning is enabled, writes the final state and soft-deletes with a
-	 * backdated `deletedAt` so the execution is immediately eligible for the
-	 * next pruning hard-delete batch. A canceled execution keeps its status.
+	 * - When pruning is enabled, soft-deletes with a backdated `deletedAt` so the
+	 * execution is immediately eligible for the next pruning hard-delete batch.
 	 * - When pruning is disabled, hard-deletes immediately so the execution
 	 * is not persisted indefinitely.
 	 */
-	async deleteInFlightExecution(target: DeletionTarget, outcome: InFlightExecutionOutcome) {
+	async deleteInFlightExecution(target: DeletionTarget) {
 		if (this.executionsConfig.pruneData) {
 			const bufferMs = this.executionsConfig.pruneDataHardDeleteBuffer * Time.hours.toMilliseconds;
 			const deletedAt = new Date(Date.now() - bufferMs);
-			const { affected } = await this.executionRepository.update(
-				this.buildEntityWhereCondition(target.executionId, { requireNotCanceled: true }),
-				{
-					deletedAt,
-					status: outcome.status,
-					// oxlint-disable-next-line typescript/no-deprecated
-					finished: outcome.finished,
-					stoppedAt: outcome.stoppedAt,
-				},
-			);
-			if (!affected) await this.executionRepository.update(target.executionId, { deletedAt });
+			await this.executionRepository.update(target.executionId, { deletedAt });
 		} else {
 			await this.hardDelete(target);
 		}
