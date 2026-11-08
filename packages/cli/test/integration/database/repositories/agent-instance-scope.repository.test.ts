@@ -96,7 +96,10 @@ describe('AgentRepository instance scope', () => {
 				false,
 			);
 			expect(
-				await agentRepo.setActiveVersionFenced(instanceAgentId, before.publicationRevision, null),
+				await agentRepo.setActiveVersionFenced(instanceAgentId, before.revision, {
+					activeVersionId: null,
+					versionId: uuid(),
+				}),
 			).toBe(false);
 			expect(await agentRepo.updateIntegrations(instanceAgentId, [], before, uuid())).toBe(false);
 			expect(await agentRepo.claimSetupCompleted(instanceAgentId, new Date())).toBe(false);

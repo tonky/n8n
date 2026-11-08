@@ -330,8 +330,8 @@ function onAddToChat() {
 	}
 }
 
-.canvasNodeToolbar.forceVisible .canvasNodeToolbarItems {
-	opacity: 1;
+.forceVisible {
+	opacity: 1 !important;
 }
 
 .statusIcons {

@@ -135,12 +135,11 @@ const globalStubs = {
 			'projectId',
 			'agentId',
 			'isSaving',
-			'showPublishTimeline',
 			'beforeRevertToPublished',
 			'configValidationStatus',
 			'beforePublish',
 		],
-		emits: ['publish-ready', 'published', 'unpublished', 'reverted', 'open-publish-timeline'],
+		emits: ['publish-ready', 'published', 'unpublished', 'reverted'],
 	},
 };
 
@@ -197,14 +196,6 @@ describe('AgentBuilderHeader', () => {
 		expect(wrapper.find('[data-testid="agent-header-actions"]').exists()).toBe(true);
 	});
 
-	it('connects the publish menu timeline action to the builder', () => {
-		const wrapper = mountHeader();
-		const publish = wrapper.getComponent({ name: 'AgentPublishButton' });
-		expect(publish.props('showPublishTimeline')).toBe(true);
-		publish.vm.$emit('open-publish-timeline');
-		expect(wrapper.emitted('open-publish-timeline')).toEqual([[]]);
-	});
-
 	it('links the help trigger and card to the Agent documentation', () => {
 		const wrapper = mountHeader();
 		for (const testId of ['agent-documentation-help', 'agent-documentation-link']) {
@@ -234,9 +225,7 @@ describe('AgentBuilderHeader', () => {
 			headerActions: [{ id: 'delete', label: 'Delete' }],
 		});
 
-		expect(wrapper.getComponent({ name: 'AgentPublishButton' }).props('showPublishTimeline')).toBe(
-			false,
-		);
+		expect(wrapper.find('[data-testid="agent-header-version-history-btn"]').exists()).toBe(false);
 		expect(wrapper.find('[data-testid="agent-header-actions"]').exists()).toBe(false);
 	});
 

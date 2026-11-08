@@ -21,7 +21,6 @@ import {
 	type WorkflowPublishingOutcome,
 } from './workflow-publishing-policy.types';
 import type { PackageWorkflowRequirement } from '../../spec/requirements.schema';
-import { blockedPublishingOutcome } from '../publishing';
 
 export interface WorkflowPublishingResult {
 	workflow: WorkflowEntity;
@@ -177,9 +176,21 @@ export class WorkflowPublisher {
 		}
 
 		if (action === 'publish' && blockedReason) {
+			// A prior published version may still be active after an update; report
+			// that the live publish state is unchanged rather than "blocked".
+			if (workflow.activeVersionId) {
+				return {
+					workflow,
+					publishing: {
+						state: 'unchanged',
+						skippedPublishReason: blockedReason,
+					},
+				};
+			}
+
 			return {
 				workflow,
-				publishing: blockedPublishingOutcome(blockedReason, Boolean(workflow.activeVersionId)),
+				publishing: { state: 'blocked', blockedReason },
 			};
 		}
 

@@ -51,14 +51,10 @@ export interface SkillAgentsProvider {
 
 	/**
 	 * In the save transaction: the agents that follow the skill run the new version, so each
-	 * one gets a saved Agent version. Returns the
+	 * one that was in sync with its published version shows unpublished changes. Returns the
 	 * ids of the following agents.
 	 */
-	markFollowersChanged(
-		skillId: string,
-		ctx: OperationContext,
-		userId?: string | null,
-	): Promise<string[]>;
+	markFollowersChanged(skillId: string, ctx: OperationContext): Promise<string[]>;
 
 	/** After a save commits: the agents reload, except the tab of `excludePushRef`. */
 	refreshAgents(agentIds: string[], excludePushRef?: string): Promise<void>;
@@ -133,9 +129,9 @@ export class SkillAgentsProxy implements SkillAgentsProvider {
 		await this.provider?.assertRenameKeepsNamesApart(skillId, oldName, newName, ctx);
 	}
 
-	async markFollowersChanged(skillId: string, ctx: OperationContext = {}, userId?: string | null) {
+	async markFollowersChanged(skillId: string, ctx: OperationContext = {}) {
 		if (!this.provider) return [];
-		return await this.provider.markFollowersChanged(skillId, ctx, userId);
+		return await this.provider.markFollowersChanged(skillId, ctx);
 	}
 
 	async refreshAgents(agentIds: string[], excludePushRef?: string) {

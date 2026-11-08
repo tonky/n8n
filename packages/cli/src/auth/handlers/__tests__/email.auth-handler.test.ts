@@ -1,6 +1,6 @@
 import type { EventService } from '@n8n/backend-services';
 import type { GlobalConfig } from '@n8n/config';
-import type { AuthIdentity, PersonRepository, User } from '@n8n/db';
+import type { AuthIdentity, User, UserRepository } from '@n8n/db';
 import { mock } from 'vitest-mock-extended';
 
 import { AuthError } from '@n8n/errors';
@@ -9,7 +9,7 @@ import type { PasswordUtility } from '@/services/password.utility';
 import { EmailAuthHandler } from '../email.auth-handler';
 
 describe('EmailAuthHandler', () => {
-	const personRepository = mock<PersonRepository>();
+	const userRepository = mock<UserRepository>();
 	const passwordUtility = mock<PasswordUtility>();
 	const eventService = mock<EventService>();
 	const globalConfig = mock<GlobalConfig>({
@@ -24,7 +24,7 @@ describe('EmailAuthHandler', () => {
 
 	beforeEach(() => {
 		vi.resetAllMocks();
-		handler = new EmailAuthHandler(personRepository, passwordUtility, eventService, globalConfig);
+		handler = new EmailAuthHandler(userRepository, passwordUtility, eventService, globalConfig);
 	});
 
 	describe('metadata', () => {
@@ -46,18 +46,21 @@ describe('EmailAuthHandler', () => {
 				password: 'hashedPassword',
 			});
 
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(user);
+			userRepository.findOne.mockResolvedValue(user);
 			passwordUtility.compare.mockResolvedValue(true);
 
 			const result = await handler.handleLogin(email, password);
 
 			expect(result).toBe(user);
-			expect(personRepository.findByEmailWithAuthIdentities).toHaveBeenCalledWith(email);
+			expect(userRepository.findOne).toHaveBeenCalledWith({
+				where: { email },
+				relations: ['authIdentities', 'role'],
+			});
 			expect(passwordUtility.compare).toHaveBeenCalledWith(password, user.password);
 		});
 
 		it('should return undefined when user is not found', async () => {
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(null);
+			userRepository.findOne.mockResolvedValue(null);
 
 			const result = await handler.handleLogin(email, password);
 
@@ -72,7 +75,7 @@ describe('EmailAuthHandler', () => {
 				authIdentities: [],
 			});
 
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(user);
+			userRepository.findOne.mockResolvedValue(user);
 			passwordUtility.compare.mockResolvedValue(false);
 
 			const result = await handler.handleLogin(email, password);
@@ -87,7 +90,7 @@ describe('EmailAuthHandler', () => {
 				authIdentities: [],
 			});
 
-			personRepository.findByEmailWithAuthIdentities.mockResolvedValue(user);
+			userRepository.findOne.mockResolvedValue(user);
 
 			const result = await handler.handleLogin(email, password);
 
@@ -107,7 +110,7 @@ describe('EmailAuthHandler', () => {
 					authIdentities: [ldapIdentity],
 				});
 
-				personRepository.findByEmailWithAuthIdentities.mockResolvedValue(user);
+				userRepository.findOne.mockResolvedValue(user);
 				globalConfig.sso.ldap.loginEnabled = false;
 
 				const promise = handler.handleLogin(email, password);
@@ -132,7 +135,7 @@ describe('EmailAuthHandler', () => {
 					authIdentities: [ldapIdentity],
 				});
 
-				personRepository.findByEmailWithAuthIdentities.mockResolvedValue(user);
+				userRepository.findOne.mockResolvedValue(user);
 				globalConfig.sso.ldap.loginEnabled = true;
 
 				const result = await handler.handleLogin(email, password);
@@ -148,7 +151,7 @@ describe('EmailAuthHandler', () => {
 					authIdentities: [],
 				});
 
-				personRepository.findByEmailWithAuthIdentities.mockResolvedValue(user);
+				userRepository.findOne.mockResolvedValue(user);
 
 				const result = await handler.handleLogin(email, password);
 

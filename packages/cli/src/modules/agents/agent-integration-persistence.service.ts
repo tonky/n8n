@@ -1,4 +1,3 @@
-import { TransactionRunner } from '@n8n/db';
 import {
 	AgentIntegrationConfigSchema,
 	N8N_CHAT_INTEGRATION_TYPE,
@@ -19,7 +18,6 @@ import {
 	diffAgentConfigParts,
 	type AgentActor,
 } from './agent-modification-telemetry.service';
-import { AgentDefinitionService } from './agent-definition.service';
 import { AgentRuntimeCacheService } from './agent-runtime-cache.service';
 import { AgentSetupCompletionService } from './agent-setup-completion.service';
 import { AgentSkillRefsService } from './agent-skill-refs.service';
@@ -126,8 +124,6 @@ export class AgentIntegrationPersistenceService {
 		private readonly setupCompletionService: AgentSetupCompletionService,
 		private readonly agentSkillRefs: AgentSkillRefsService,
 		private readonly n8nChatFlag: N8nChatFlagService,
-		private readonly definitionService: AgentDefinitionService,
-		private readonly transactionRunner: TransactionRunner,
 	) {}
 
 	/**
@@ -292,26 +288,20 @@ export class AgentIntegrationPersistenceService {
 			context.user,
 		);
 
-		const written = await this.transactionRunner.run({}, async (ctx) => {
-			const saved = await this.agentRepository.updateIntegrations(
-				agent.id,
-				integrations,
-				{
-					revision: state.revision,
-					versionId: state.versionId,
-					activeVersionId: state.activeVersionId,
-				},
-				versionId,
-				ctx,
-			);
-			if (!saved) return false;
-			agent.versionId = versionId;
-			agent.revision = state.revision + 1;
-			await this.definitionService.captureVersion(agent, context.user, ctx, context.modifiedBy);
-			return true;
-		});
+		const written = await this.agentRepository.updateIntegrations(
+			agent.id,
+			integrations,
+			{
+				revision: state.revision,
+				versionId: state.versionId,
+				activeVersionId: state.activeVersionId,
+			},
+			versionId,
+		);
 		if (!written) return undefined;
 
+		agent.versionId = versionId;
+		agent.revision = state.revision + 1;
 		return { emitSetupCompleted };
 	}
 }

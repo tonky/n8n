@@ -32,9 +32,7 @@ export const MCP_TELEMETRY = defineTelemetryEvents({
 			eligible_at: z
 				.number()
 				.optional()
-				.describe(
-					'The user first login plus the configured delay. Eligibility can be saved later.',
-				),
+				.describe('The user first login plus 30 minutes. Eligibility can be saved later.'),
 			concurrent_experiments: z.record(z.string(), z.string()),
 		}),
 	},

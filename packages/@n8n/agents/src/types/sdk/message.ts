@@ -143,8 +143,6 @@ export type ContentToolCall = ContentMetadata & {
 	 * back to the system prompt. Metadata only — never sent to the model.
 	 */
 	activatedSkillIds?: string[];
-	/** Versions delivered by this activation. Used by skills with append updates. */
-	activatedSkillVersions?: Record<string, string>;
 } & (
 		| { state: 'pending'; suspension?: ToolCallSuspensionInfo }
 		| { state: 'resolved'; output: JSONValue; canceled?: boolean }
@@ -235,17 +233,7 @@ export interface AgentMessageBase {
  */
 export interface CustomAgentMessages {
 	___dummyCustomMessage: { dummy: string };
-	runtimeSkillUpdate: {
-		type: 'n8n:runtime-skill-update';
-		skillUpdate: {
-			skillId: string;
-			version: string | null;
-			content: string;
-			name?: string;
-			change?: 'updated' | 'restored' | 'unavailable';
-		};
-	};
-	// Apps can add message types through declaration merging.
+	// Empty by default - apps extend via declaration merging
 }
 
 export type CustomAgentMessage = {

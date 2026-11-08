@@ -38,15 +38,13 @@ import { z } from 'zod';
 
 import { isTriggerNodeType } from './workflow-json-utils';
 import type { Logger } from '../../logger';
-import type { AnthropicThinkingEffort, FetchFn } from '@n8n/agents';
+import type { FetchFn } from '@n8n/agents';
 
 import type { ModelConfig } from '../../types';
+import { SONNET_MODEL } from '../../utils/eval-agents';
 import { generateValidatedJson } from '../../utils/generate-validated-json';
 import { itemsForNode } from '../../utils/node-keyed-items';
 import type { NodeSimulationVerdict } from '../../workflow-loop/workflow-loop-state';
-
-export const SIMULATION_FIXTURES_MODEL = 'anthropic/claude-sonnet-5-5';
-export const SIMULATION_FIXTURES_EFFORT: AnthropicThinkingEffort = 'low';
 
 /**
  * Fixture items per node name, stored UNWRAPPED (plain objects, not n8n's
@@ -452,8 +450,7 @@ export async function generateSimulationFixtures(
 	].join('\n');
 
 	const result = await generateValidatedJson('verification-simulation-fixtures', {
-		model: SIMULATION_FIXTURES_MODEL,
-		effort: SIMULATION_FIXTURES_EFFORT,
+		model: SONNET_MODEL,
 		instructions: SYSTEM_INSTRUCTIONS,
 		userText,
 		schema: FixturesResponseSchema,

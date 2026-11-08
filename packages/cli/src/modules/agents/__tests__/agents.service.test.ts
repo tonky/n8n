@@ -1,4 +1,3 @@
-import type { AgentDefinitionService } from '@/modules/agents/agent-definition.service';
 /* eslint-disable @typescript-eslint/require-await, @typescript-eslint/unbound-method -- async mock stubs, unbound-method references and short `cb` names are acceptable test idioms */
 
 import { DEFAULT_AGENT_PERSONALISATION, N8N_CHAT_INTEGRATION_TYPE } from '@n8n/api-types';
@@ -162,7 +161,6 @@ function makeService() {
 		saveCompletion,
 		setupCompletion,
 		n8nChatFlag,
-		mock<AgentDefinitionService>(),
 	);
 
 	return {

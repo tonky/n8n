@@ -21,7 +21,6 @@ import {
 	GIT_READ_CONCURRENCY,
 	PROMOTION_KEY_COMMENT,
 } from './constants';
-import { PromotionReviewCommitsMissingError } from './promotion-review-commits-missing.error';
 import { buildHttpsGitConfig, buildSshCommand, generateSshKeyPair } from './promotions-git.utils';
 import type { PromotionGitCredentials } from './promotions.types';
 
@@ -664,7 +663,9 @@ export class PromotionsGitService {
 			throw new UnexpectedError('The commit SHA is not a Git object name');
 		}
 		if (baseline.targetBranchName) await this.validateBranchName(baseline.targetBranchName);
-		const missingCommits = new PromotionReviewCommitsMissingError();
+		const missingCommits = new BadRequestError(
+			'The remote no longer has the commits of this review. Open the review on the Git host.',
+		);
 		try {
 			return await this.lockCheckout(paths.repositoryFolder, async () => {
 				const git = simpleGit({ ...BASE_GIT_OPTIONS, baseDir: paths.repositoryFolder });

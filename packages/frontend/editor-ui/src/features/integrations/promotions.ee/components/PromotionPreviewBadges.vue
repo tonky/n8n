@@ -27,8 +27,8 @@ const isTeamProject = computed(() => projectsStore.currentProject?.type === Proj
 const projectPermissions = computed(
 	() => getResourcePermissions(projectsStore.currentProject?.scopes).project,
 );
-const promotionsPermissions = computed(
-	() => getResourcePermissions(usersStore.currentUser?.globalScopes).promotions,
+const gitConnectionPermissions = computed(
+	() => getResourcePermissions(usersStore.currentUser?.globalScopes).gitConnection,
 );
 
 // Each direction needs its configuration on the instance connection, so a source never
@@ -41,15 +41,15 @@ const canPreviewChanges = computed(
 		isPromotionsEnabled.value &&
 		!!projectPermissions.value.export &&
 		// `list` loads the connection. `read` loads the preview, as on the preview page.
-		!!promotionsPermissions.value.list &&
-		!!promotionsPermissions.value.read &&
-		(!!promotionsPermissions.value.promote || !!promotionsPermissions.value.apply),
+		!!gitConnectionPermissions.value.list &&
+		!!gitConnectionPermissions.value.read &&
+		(!!gitConnectionPermissions.value.push || !!gitConnectionPermissions.value.pull),
 );
 const showPromote = computed(
-	() => canPreviewChanges.value && hasPromoteConfig.value && !!promotionsPermissions.value.promote,
+	() => canPreviewChanges.value && hasPromoteConfig.value && !!gitConnectionPermissions.value.push,
 );
 const showApply = computed(
-	() => canPreviewChanges.value && hasApplyConfig.value && !!promotionsPermissions.value.apply,
+	() => canPreviewChanges.value && hasApplyConfig.value && !!gitConnectionPermissions.value.pull,
 );
 
 watch(

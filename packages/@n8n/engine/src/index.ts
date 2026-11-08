@@ -4,8 +4,8 @@ export type { EngineRuntime, EngineRuntimeOptions } from './runtime';
 export type { EngineLogger } from './logging';
 
 export {
-	ACTION_TOKEN_SPEC,
-	IDENTITY_TOKEN_SPEC,
+	ACTION_TOKEN,
+	IDENTITY_TOKEN,
 	InvalidActionTokenError,
 	InvalidIdentityTokenError,
 	mintActionToken,
@@ -27,10 +27,6 @@ export type {
 	SearchExecutionsRequest,
 	SearchExecutionsResponse,
 	ExecutionListItem,
-	ResolveStepRequest,
-	ResolveStepResponse,
-	ResumeTargetRequest,
-	ResumeTargetResponse,
 } from './server';
 
 // The publisher stays internal: no host constructs or swaps one.

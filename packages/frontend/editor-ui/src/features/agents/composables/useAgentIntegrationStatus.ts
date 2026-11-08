@@ -5,7 +5,6 @@ import {
 	type AgentChannelRuntimeStatus,
 	type AgentDisconnectIntegrationResponse,
 	type AgentIntegrationConnectResponse,
-	type AgentIntegrationDraftEntry,
 	type AgentIntegrationStatusEntry,
 	type AgentIntegrationSettings,
 } from '@n8n/api-types';
@@ -104,7 +103,6 @@ function applyStatus(
 	integrationTypes: readonly string[],
 	integrations: AgentIntegrationStatusEntry[],
 	source: 'server' | 'config',
-	drafts: AgentIntegrationDraftEntry[] = [],
 ): void {
 	const fromServer = source === 'server';
 	const previousStatuses = { ...state.statuses.value };
@@ -122,10 +120,6 @@ function applyStatus(
 		state.integrationSettings.value[type] = undefined;
 		state.integrationApproval.value[type] = undefined;
 		state.runtimeErrors.value[type] = '';
-	}
-	// A draft stays unconfigured, but its setup form starts from its settings.
-	for (const draft of drafts) {
-		state.integrationSettings.value[draft.type] = draft.settings;
 	}
 	for (const integration of integrations) {
 		// Only `starting` is the seed guessing at runtime state, and only a guess
@@ -164,10 +158,9 @@ export function syncAgentIntegrationStatusCache(
 	agentId: string,
 	integrationTypes: readonly string[],
 	integrations: AgentIntegrationStatusEntry[],
-	drafts: AgentIntegrationDraftEntry[] = [],
 ): void {
 	// Seeded from the agent's own configuration, not from the status endpoint.
-	applyStatus(getOrCreate(projectId, agentId), integrationTypes, integrations, 'config', drafts);
+	applyStatus(getOrCreate(projectId, agentId), integrationTypes, integrations, 'config');
 }
 
 export function useAgentIntegrationStatus(projectId: string, agentId: string) {
@@ -191,7 +184,7 @@ export function useAgentIntegrationStatus(projectId: string, agentId: string) {
 						integration.type !== N8N_CHAT_INTEGRATION_TYPE ||
 						result.n8nChat?.draftEnabled !== false,
 				);
-				applyStatus(state, integrationTypes, integrations, 'server', result.drafts ?? []);
+				applyStatus(state, integrationTypes, integrations, 'server');
 			} catch {
 				// Mark only types the server hasn't answered for as `unknown` — a
 				// transient network failure shouldn't claim that a channel the server

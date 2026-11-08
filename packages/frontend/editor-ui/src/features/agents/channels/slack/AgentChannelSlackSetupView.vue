@@ -107,7 +107,6 @@ defineExpose({ currentSettings, validationError, loading });
 			:error-is-conflict="errorIsConflict"
 			:force-new-credential="forceNewCredential"
 			:setup-mode="simpleSetup ? 'simple' : 'advanced'"
-			:saved-settings="savedSettings"
 			@create="emit('create')"
 			@edit="emit('edit')"
 			@connect="emit('connect')"

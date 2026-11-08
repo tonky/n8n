@@ -8,7 +8,7 @@ import {
 	type DropdownMenuItemProps,
 } from '@n8n/design-system';
 import type { FilterOption } from '../session-timeline.types';
-import { timelineColors } from '../session-timeline.styles';
+import { swatchBackground } from '../session-timeline.styles';
 
 const props = defineProps<{
 	available: FilterOption[];
@@ -73,9 +73,14 @@ function toMenuItem(option: FilterOption): FilterMenuItem {
 function optionColor(option: FilterOption): string {
 	if (option.presentation === 'swatch') return option.color;
 
-	return timelineColors(
-		option.key === 'approved' || option.key === 'error' ? option.key : 'declined',
-	).chart;
+	switch (option.key) {
+		case 'approved':
+			return 'var(--color--green-600)';
+		case 'error':
+			return 'var(--color--red-600)';
+		default:
+			return 'var(--color--neutral-600)';
+	}
 }
 
 function handleSelect(key: string): void {
@@ -102,7 +107,6 @@ function handleSelect(key: string): void {
 				<N8nButton
 					variant="outline"
 					icon="funnel"
-					size="large"
 					icon-only
 					:aria-label="i18n.baseText('agentSessions.timeline.events')"
 					:class="$style.trigger"
@@ -117,7 +121,7 @@ function handleSelect(key: string): void {
 			<span
 				v-if="item.data?.option"
 				:class="[$style.swatch, ui.class]"
-				:style="{ backgroundColor: optionColor(item.data.option) }"
+				:style="{ backgroundColor: swatchBackground(optionColor(item.data.option)) }"
 			/>
 		</template>
 

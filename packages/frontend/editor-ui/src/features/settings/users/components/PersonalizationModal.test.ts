@@ -18,7 +18,6 @@ import {
 	DEVOPS_AUTOMATION_GOAL_OTHER_KEY,
 	DEVOPS_AUTOMATION_GOAL_KEY,
 	REPORTED_SOURCE_KEY,
-	PERSONALIZATION_MODAL_KEY,
 } from '../users.constants';
 
 vi.mock('vue-router', () => ({
@@ -34,17 +33,15 @@ vi.mock('vue-router', () => ({
 const renderModal = createComponentRenderer(PersonalizationModal, {
 	global: {
 		stubs: {
-			Dialog: {
-				props: ['header'],
+			Modal: {
 				template: `
-					<div role="dialog">
-						<h2>{{ header }}</h2>
-						<slot />
+					<div>
+						<slot name="header" />
+						<slot name="title" />
+						<slot name="content" />
+						<slot name="footer" />
 					</div>
 				`,
-			},
-			DialogDescription: {
-				template: '<p><slot /></p>',
 			},
 		},
 	},
@@ -52,9 +49,8 @@ const renderModal = createComponentRenderer(PersonalizationModal, {
 
 describe('PersonalizationModal', () => {
 	it('mounts', () => {
-		const { getByRole, getByText } = renderModal({ pinia: createTestingPinia() });
-		expect(getByRole('heading', { name: 'Customize n8n to you' })).toBeInTheDocument();
-		expect(getByText('These questions help us tailor n8n to you')).toBeInTheDocument();
+		const { getByTitle } = renderModal({ pinia: createTestingPinia() });
+		expect(getByTitle('Customize n8n to you')).toBeInTheDocument();
 	});
 
 	describe('Company field', () => {
@@ -172,9 +168,6 @@ describe('PersonalizationModal', () => {
 			};
 			vi.spyOn(usersStore, 'submitPersonalizationSurvey').mockResolvedValue(undefined);
 			const openModalWithData = vi.spyOn(uiStore, 'openModalWithData');
-			// The dialog closes through the store. The survey is rendered on its own
-			// here, so mark the modal open before submit.
-			uiStore.openModal(PERSONALIZATION_MODAL_KEY);
 
 			const { getByTestId, getByText } = renderModal({ pinia });
 

@@ -1,7 +1,6 @@
 import type { IExpressionEvaluator, ObservabilityProvider } from '@n8n/expression-runtime';
 import {
 	classifyExpressionError,
-	EXPRESSION_METRICS,
 	MemoryLimitError,
 	SecurityViolationError,
 	TimeoutError,
@@ -15,7 +14,6 @@ import { evaluateExpression, setErrorHandler } from './expression-evaluator-prox
 import { expressionSandboxHooks, sanitizer, sanitizerName } from './expression-sandboxing';
 import { isExpression } from './expressions/expression-helpers';
 import { evaluateNatively } from './expressions/native-evaluation';
-import type { NativeFallbackReason } from './expressions/native-evaluation/evaluator';
 import {
 	canVerifyNatively,
 	NativeVerifier,
@@ -302,8 +300,6 @@ export class Expression {
 
 	private static nativeVerifier?: NativeVerifier;
 
-	private static observability?: ObservabilityProvider;
-
 	private static shadowRunner?: ExpressionShadowRunner;
 
 	constructor(private readonly timezone: string) {}
@@ -364,7 +360,6 @@ export class Expression {
 		canReportNativeVerifyMismatch?: () => boolean;
 	}): Promise<void> {
 		this.nativeEvaluation = options.nativeEvaluation ?? false;
-		this.observability = options.observability;
 		const verifySample = options.nativeEvaluationVerifySample ?? 0;
 		this.nativeVerifier = options.reportNativeVerifyMismatch
 			? new NativeVerifier(
@@ -591,35 +586,6 @@ export class Expression {
 			this.nativeVerifier?.isSampled() === true &&
 			canVerifyNatively(expression)
 		);
-	}
-
-	private static evaluateNative(expression: string, data: IWorkflowDataProxyData) {
-		let native: ReturnType<typeof evaluateNatively>;
-		try {
-			native = evaluateNatively(expression, data);
-		} catch (error) {
-			// The error is the expression's result: the engine does not run.
-			this.countNativeResult('handled');
-			throw error;
-		}
-		if (native.handled) {
-			this.countNativeResult('handled');
-		} else if (native.fallbackReason) {
-			this.countNativeResult('fallback', native.fallbackReason);
-		} else {
-			this.countNativeResult('declined');
-		}
-		return native;
-	}
-
-	private static countNativeResult(
-		result: 'handled' | 'declined' | 'fallback',
-		reason: NativeFallbackReason | 'none' = 'none',
-	) {
-		this.observability?.metrics.counter(EXPRESSION_METRICS.nativeEvaluations.name, 1, {
-			result,
-			reason,
-		});
 	}
 
 	static initializeGlobalContext(data: IDataObject) {
@@ -861,7 +827,7 @@ export class Expression {
 				nativeResult = { ok: false, error, errorClass: errorClassOf(error) };
 			}
 		} else if (Expression.nativeEvaluation) {
-			const native = Expression.evaluateNative(parameterValue, data);
+			const native = evaluateNatively(parameterValue, data);
 			if (native.handled) return this.finalizeResolvedValue(native.value, returnObjectAsString);
 		}
 

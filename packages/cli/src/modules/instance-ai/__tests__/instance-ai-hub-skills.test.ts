@@ -76,18 +76,7 @@ describe('Assistant Hub runtime skills', () => {
 		const provider = providerFor([content()]);
 		if (flag === 'unavailable') provider.isEnabled.mockRejectedValue(new Error('Unavailable'));
 		else provider.isEnabled.mockResolvedValue(false);
-		const { source, availabilityNotice } = await load(provider, builtIns);
-		expect(source.registry).toEqual(builtIns.registry);
-		expect(source.shouldAppendSkillUpdates?.('hub-previously-loaded')).toBe(true);
-		expect(source.shouldAppendSkillUpdates?.(builtIn.id)).toBe(false);
-		expect(await source.loadSkill('hub-previously-loaded')).toBeNull();
-		if (flag === 'unavailable') {
-			expect(availabilityNotice).toContain('temporarily unavailable');
-			expect(source.getLoadError?.('hub-previously-loaded')?.retryable).toBe(true);
-		} else {
-			expect(availabilityNotice).toBeUndefined();
-			expect(source.getLoadError?.('hub-previously-loaded')).toBeUndefined();
-		}
+		expect(await load(provider, builtIns)).toEqual({ source: builtIns });
 		expect(provider.listSkills).not.toHaveBeenCalled();
 		expect(provider.readSkill).not.toHaveBeenCalled();
 	});
@@ -122,16 +111,15 @@ describe('Assistant Hub runtime skills', () => {
 			agentId: call.agentId,
 			payload: { toolCallId: 'load-1', result: activation },
 		};
-		const originalEvent = structuredClone(event);
 		expect(mapSkillEventForDisplay?.(event)).toMatchObject({
 			payload: { result: { content: expect.stringContaining(saved.instructions) } },
 		});
 		expect(activation).toMatchObject({
 			success: true,
-			content: expect.stringContaining(saved.instructions),
+			content: 'The skill instructions are active. Follow them for this task.',
 			linkedFiles: { references: saved.files.map(({ path }) => ({ path })) },
 		});
-		expect(event).toEqual(originalEvent);
+		expect(JSON.stringify(event)).not.toContain(saved.instructions);
 		expect(JSON.stringify(activation)).not.toContain('Detailed guide.');
 		expect(provider.readFile).not.toHaveBeenCalled();
 		expect(
@@ -331,40 +319,6 @@ describe('Assistant Hub runtime skills', () => {
 			});
 		},
 	);
-
-	it('rejects saved reference paths after access is revoked and the turn source is rebuilt', async () => {
-		const filePath = 'references/guide.md';
-		const saved = content({ files: [{ path: filePath, content: 'Guide.' }] });
-		const provider = providerFor([saved]);
-		const { source } = await load(provider);
-		const [entry] = hubEntries(source);
-		const tool = createSkillLoadTool(source);
-		await tool.handler?.({ skillId: entry.id }, {});
-		const referenceInput = { skillId: entry.id, filePath };
-		expect(await tool.handler?.(referenceInput, {})).toMatchObject({
-			success: true,
-			content: 'Guide.',
-		});
-
-		provider.readFile.mockResolvedValue(null);
-		provider.readSkill.mockResolvedValue(null);
-		provider.listSkills.mockResolvedValue([]);
-		expect(await tool.handler?.(referenceInput, {})).toMatchObject({ success: false });
-		expect(provider.readFile).toHaveBeenCalledTimes(2);
-
-		// Each resumed turn builds a new source, including after history compaction.
-		const next = await load(provider);
-		const nextTool = createSkillLoadTool(next.source);
-		for (const oldPath of [filePath, `${entry.directory}/${filePath}`, entry.path]) {
-			expect(await nextTool.handler?.({ skillId: entry.id, filePath: oldPath }, {})).toMatchObject({
-				success: false,
-				error: expect.stringContaining('Unknown skill'),
-			});
-		}
-		expect(await next.source.loadFile?.(entry.id, filePath)).toBeNull();
-		expect(provider.readFile).toHaveBeenCalledTimes(2);
-		expect(provider.readSkill).toHaveBeenCalledTimes(1);
-	});
 
 	it('retries reference failures without discarding loaded instructions', async () => {
 		const provider = providerFor([

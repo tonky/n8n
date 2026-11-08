@@ -10,6 +10,7 @@ import type {
 	PromotionResourceDetailsRequestDto,
 	PromotionResourceType,
 	PromotionVariableScope,
+	SerializedWorkflow,
 } from '@n8n/api-types';
 import {
 	serializedCredentialSchema,
@@ -60,7 +61,6 @@ import {
 	packageManifestSchema,
 	type ManifestEntry,
 	type PackageManifest,
-	type WorkflowManifestEntry,
 } from '@/modules/n8n-packages/spec/manifest.schema';
 import { getWorkflowConsumerIds } from '@/modules/n8n-packages/spec/requirement-consumers';
 import type { PackageRequirements } from '@/modules/n8n-packages/spec/requirements.schema';
@@ -96,9 +96,9 @@ const DEPENDENCY_COLLECTIONS = {
 	ManifestEntityCollection | null
 >;
 
-const PROMOTION_SCOPES = {
-	promote: 'promotions:promote',
-	apply: 'promotions:apply',
+const GIT_SCOPES = {
+	promote: 'gitConnection:push',
+	apply: 'gitConnection:pull',
 } as const satisfies Record<PromotionDirection, Scope>;
 
 type DesiredPackage = {
@@ -107,6 +107,7 @@ type DesiredPackage = {
 };
 
 type InstancePackage = DesiredPackage & {
+	archiveState: ReadonlyMap<string, boolean>;
 	/** File content by package path, for the files that the caller asked to keep. */
 	contents: ReadonlyMap<string, string>;
 };
@@ -117,6 +118,7 @@ type ProjectComparison = {
 	branchManifest: PackageManifest | null;
 	instance: InstancePackage;
 	destinationVariables: readonly VariableKeyScope[] | null;
+	archiveState: ReadonlyMap<string, boolean>;
 	rows: PromotableResource[];
 };
 
@@ -131,7 +133,9 @@ type PackageDiff = {
 	renamedIds: Set<string>;
 	modifiedIds: Set<string>;
 	dependencyCounts: Map<string, number>;
-	desiredWorkflows: Map<string, WorkflowManifestEntry>;
+	desiredWorkflows: Map<string, ManifestEntry>;
+	desiredWorkflowPaths: Map<string, string>;
+	archiveCheckPaths: string[];
 };
 
 @Service()
@@ -204,7 +208,7 @@ export class PromotionChangeService {
 			}
 		}
 		const comparison = await this.compareProject(user, projectId, direction);
-		const { branch, instance } = comparison;
+		const { branch, instance, archiveState } = comparison;
 		// Promote compares with the branch manifest to see renames and moves. The manifest can list
 		// other projects while this project has no files on the branch yet, and the move markers
 		// still need it.
@@ -237,6 +241,7 @@ export class PromotionChangeService {
 			projectIds: [projectId],
 			base: direction === 'promote' ? branchSide : instanceSide,
 			desired: direction === 'promote' ? instanceSide : branchSide,
+			isArchived: (path) => archiveState.get(path) ?? false,
 		});
 		return {
 			...toChanges(comparison, query),
@@ -413,28 +418,34 @@ export class PromotionChangeService {
 				? { base: branch.files, desired: instance }
 				: { base: instance.files, desired: branchDesired };
 		const diff = this.diffPackages({ projectId, direction, base, desired, destinationVariables });
+		// Archive state separates "archived" from "modified", so the branch is read only for those rows.
+		const archiveState =
+			direction === 'promote'
+				? instance.archiveState
+				: await readBranchArchiveState(branch, diff.archiveCheckPaths);
 		// A deleted row in apply is a local workflow, so its name and version come from the database.
 		const metadata = await this.workflowRepository.findByIds(
 			[...diff.changedIds].filter((id) => direction === 'apply' || diff.desiredWorkflows.has(id)),
 			{ fields: ['name', 'updatedAt', 'versionCounter'] },
 		);
-		const rows = buildPromotableResources({ ...diff, base, metadata });
+		const rows = buildPromotableResources({ ...diff, base, archiveState, metadata });
 
 		return {
 			branch,
 			branchManifest: branchDesired?.manifest ?? null,
 			instance,
 			destinationVariables,
+			archiveState,
 			rows,
 		};
 	}
 
 	/** One route serves both directions, so the per-direction scope is checked here, not on the decorator. */
 	private assertCanPreview(user: User, direction: PromotionDirection) {
-		const scope = PROMOTION_SCOPES[direction];
-		if (!hasGlobalScope(user, scope)) {
+		if (!hasGlobalScope(user, GIT_SCOPES[direction])) {
+			const operation = direction === 'promote' ? 'push' : 'pull';
 			throw new ForbiddenError(
-				`Change preview requires the ${scope} scope. Ask an administrator for access.`,
+				`Change preview requires the promotion ${operation} permission. Ask an administrator for access.`,
 			);
 		}
 	}
@@ -498,7 +509,29 @@ export class PromotionChangeService {
 			fileChangeCount: changes.length,
 			workflowIds: [...changedIds],
 		});
-		return { changedIds, renamedIds, modifiedIds, dependencyCounts, desiredWorkflows };
+		const baseWorkflowIds = new Set(
+			base.filter(({ type }) => type === 'workflow').map(({ entityId }) => entityId),
+		);
+		const desiredWorkflowPaths = new Map(
+			desired.files
+				.filter(({ type }) => type === 'workflow')
+				.map(({ entityId, path }) => [entityId, path]),
+		);
+		const archiveCheckPaths = [...changedIds].flatMap((id) => {
+			const path = desiredWorkflowPaths.get(id);
+			return path !== undefined && desiredWorkflows.has(id) && baseWorkflowIds.has(id)
+				? [path]
+				: [];
+		});
+		return {
+			changedIds,
+			renamedIds,
+			modifiedIds,
+			dependencyCounts,
+			desiredWorkflows,
+			desiredWorkflowPaths,
+			archiveCheckPaths,
+		};
 	}
 
 	private async exportInstancePackage(
@@ -507,6 +540,7 @@ export class PromotionChangeService {
 		{ keepContent }: { keepContent?: (path: string) => boolean } = {},
 	): Promise<InstancePackage> {
 		const writer = new HashingPackageWriter();
+		const archiveState = new Map<string, boolean>();
 		const contents = new Map<string, string>();
 		const { manifest } = await this.packagesService.exportPackageToWriter(
 			{
@@ -524,6 +558,10 @@ export class PromotionChangeService {
 				writeFile(path, content) {
 					writer.writeFile(path, content);
 					const packagePath = `${PACKAGE_SUBFOLDER}/${path}`;
+					if (path.endsWith(`/${PACKAGE_ENTITY_LAYOUT.workflows.fileName}`)) {
+						const workflow = jsonParse<SerializedWorkflow>(String(content));
+						archiveState.set(packagePath, workflow.isArchived);
+					}
 					if (keepContent?.(packagePath)) contents.set(packagePath, String(content));
 				},
 			},
@@ -535,7 +573,7 @@ export class PromotionChangeService {
 			})),
 			{ exportRoot: PACKAGE_SUBFOLDER, projectId },
 		);
-		return { files, manifest, contents };
+		return { files, manifest, archiveState, contents };
 	}
 
 	private async readBranchDesired(
@@ -724,6 +762,19 @@ export function toDetail({
 	}
 }
 
+async function readBranchArchiveState(
+	branch: BranchPackage,
+	paths: readonly string[],
+): Promise<Map<string, boolean>> {
+	const files = await branch.readFiles(paths);
+	return new Map(
+		[...files].map(([path, raw]) => [
+			path,
+			parseBranchJson<SerializedWorkflow>(raw)?.isArchived ?? false,
+		]),
+	);
+}
+
 function applyQuery(
 	changes: PromotableResource[],
 	query: Pick<PromotionChangesQueryDto, 'search' | 'sort' | 'order'>,
@@ -859,6 +910,8 @@ function variableKey(name: string, scope: PromotionVariableScope['kind']): strin
 function buildPromotableResources({
 	base,
 	desiredWorkflows,
+	desiredWorkflowPaths,
+	archiveState,
 	changedIds,
 	renamedIds,
 	modifiedIds,
@@ -866,7 +919,9 @@ function buildPromotableResources({
 	dependencyCounts,
 }: {
 	base: readonly PackageFile[];
-	desiredWorkflows: ReadonlyMap<string, WorkflowManifestEntry>;
+	desiredWorkflows: ReadonlyMap<string, ManifestEntry>;
+	desiredWorkflowPaths: ReadonlyMap<string, string>;
+	archiveState: ReadonlyMap<string, boolean>;
 	changedIds: ReadonlySet<string>;
 	renamedIds: ReadonlySet<string>;
 	modifiedIds: ReadonlySet<string>;
@@ -880,11 +935,11 @@ function buildPromotableResources({
 	return [...changedIds].map((id) => {
 		const entry = desiredWorkflows.get(id);
 		const workflow = metadataById.get(id);
+		const path = desiredWorkflowPaths.get(id);
 		let status: PromotableResource['status'] = 'modified';
 		if (!entry) status = 'deleted';
 		else if (!baseWorkflowSlugs.has(id)) status = 'new';
-		// A package from before the flag has no value, so its archived workflows list as modified.
-		else if (entry.isArchived) status = 'archived';
+		else if (path !== undefined && archiveState.get(path)) status = 'archived';
 		else if (renamedIds.has(id)) {
 			status = modifiedIds.has(id) ? 'renamed-and-modified' : 'renamed';
 		}

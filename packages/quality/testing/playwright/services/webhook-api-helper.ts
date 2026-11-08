@@ -8,8 +8,6 @@ interface TriggerOptions {
 	method?: HttpMethod;
 	headers?: Record<string, string>;
 	data?: unknown;
-	/** Sends the body as `multipart/form-data`, as a browser form does. */
-	multipart?: Record<string, string>;
 	/** Max retries for 404 (webhook not yet registered). Default: 3 */
 	maxNotFoundRetries?: number;
 	/** Delay between 404 retries in ms. Default: 250 */
@@ -33,7 +31,6 @@ export class WebhookApiHelper {
 				method: options?.method ?? 'GET',
 				headers: options?.headers,
 				data: options?.data,
-				multipart: options?.multipart,
 				maxRedirects: options?.maxRedirects,
 				maxRetries: 3, // Playwright retry for connection errors
 			});

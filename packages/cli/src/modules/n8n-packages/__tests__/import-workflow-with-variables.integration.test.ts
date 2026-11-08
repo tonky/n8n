@@ -80,9 +80,7 @@ async function exportWorkflowPackage(
 		workflowIds: [workflowId],
 		includeVariableValues,
 	});
-	const packageBuffer = await streamToBuffer(stream);
-	await workflowRepository.delete(workflowId);
-	return packageBuffer;
+	return await streamToBuffer(stream);
 }
 
 async function variablesInProject(projectId: string) {
@@ -154,9 +152,9 @@ describe('variable error consumers', () => {
 				conflictPolicy: 'fail',
 			},
 			options: {
-				conflictPolicy: 'fail',
-				publishingPolicy: 'preserve-published-state',
-				idPolicy: 'source',
+				workflowConflictPolicy: 'fail',
+				workflowPublishingPolicy: 'preserve-published-state',
+				workflowIdPolicy: 'new',
 				missingNodeTypeMode: 'fail',
 				folderConflictPolicy: 'merge',
 				overwriteDeletionPolicy: 'archive',
@@ -237,7 +235,7 @@ describe('workflow package import — with variables', () => {
 			});
 			expect(await variablesRepository.count()).toBe(variablesBefore);
 			expect(await variablesInProject(targetProject.id)).toEqual([]);
-			expect(await workflowRepository.count()).toBe(1);
+			expect(await workflowRepository.count()).toBe(2);
 		});
 
 		it('matches a variable that already exists in the target project', async () => {

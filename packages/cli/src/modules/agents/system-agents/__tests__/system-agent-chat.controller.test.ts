@@ -33,7 +33,6 @@ function setup() {
 	const attachments = mock<AgentChatAttachmentService>();
 	const checkpointStorage = mock<N8NCheckpointStorage>();
 	systemAgents.getUsableThread.mockResolvedValue(thread);
-	systemAgents.findUsableThread.mockResolvedValue(thread);
 	systemAgents.resourceIdFor.mockImplementation(({ id }) => `system-chat:${id}`);
 	systemAgents.getThread.mockResolvedValue(thread);
 	const controller = new SystemAgentChatController(
@@ -135,7 +134,7 @@ describe('SystemAgentChatController', () => {
 
 		await controller.getQueuedMessages(request({ agentId: AGENT_ID, threadId: 'thread-1' }));
 
-		expect(systemAgents.findUsableThread).toHaveBeenCalledWith(AGENT_ID, user, 'thread-1');
+		expect(systemAgents.getUsableThread).toHaveBeenCalledWith(AGENT_ID, user, 'thread-1');
 		expect(messageQueue.listPending).toHaveBeenCalledWith({
 			projectId: 'project-1',
 			agentId: AGENT_ID,
@@ -143,16 +142,6 @@ describe('SystemAgentChatController', () => {
 			userId: 'user-1',
 			kind: 'system',
 		});
-	});
-
-	it('lists an empty queue for a new session that has no thread yet', async () => {
-		const { controller, systemAgents, messageQueue } = setup();
-		systemAgents.findUsableThread.mockResolvedValue(null);
-
-		await expect(
-			controller.getQueuedMessages(request({ agentId: AGENT_ID, threadId: 'new-thread' })),
-		).resolves.toEqual({ items: [], steerableExecutionId: null });
-		expect(messageQueue.listPending).not.toHaveBeenCalled();
 	});
 
 	it('steers a queued system message after the floor check', async () => {
@@ -265,38 +254,6 @@ describe('SystemAgentChatController', () => {
 			await expect(controller.listThreads(request({ agentId: 'unknown' }))).rejects.toThrow(
 				NotFoundError,
 			);
-		});
-	});
-
-	describe('getThread', () => {
-		it('returns a usable thread of the user as a summary', async () => {
-			const { controller, systemAgents } = setup();
-			systemAgents.getUsableThread.mockResolvedValue({
-				...thread,
-				title: 'First chat',
-				updatedAt: new Date('2026-10-19T10:00:00.000Z'),
-			} as AgentExecutionThread);
-
-			const result = await controller.getThread(
-				request({ agentId: AGENT_ID, threadId: 'thread-1' }),
-			);
-
-			expect(systemAgents.getUsableThread).toHaveBeenCalledWith(AGENT_ID, user, 'thread-1');
-			expect(result).toEqual({
-				id: 'thread-1',
-				title: 'First chat',
-				updatedAt: '2026-10-19T10:00:00.000Z',
-				projectId: 'project-1',
-			});
-		});
-
-		it('refuses a thread that the user cannot use', async () => {
-			const { controller, systemAgents } = setup();
-			systemAgents.getUsableThread.mockRejectedValue(new NotFoundError('Session not found'));
-
-			await expect(
-				controller.getThread(request({ agentId: AGENT_ID, threadId: 'other' })),
-			).rejects.toThrow(NotFoundError);
 		});
 	});
 

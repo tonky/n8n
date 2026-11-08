@@ -1,26 +1,17 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import { useToast } from '@n8n/composables/useToast';
+import Modal from '@/app/components/Modal.vue';
 import ProjectSharing from '@/features/collaboration/projects/components/ProjectSharing.vue';
 import { useUsersStore } from '@n8n/stores/users.store';
-import { useUIStore } from '@/app/stores/ui.store';
+import { createEventBus } from '@n8n/utils/event-bus';
 import type { ProjectSharingData } from '@/features/collaboration/projects/projects.types';
 import type { ProjectListItem } from '@/features/collaboration/projects/projects.types';
 import { useRemoteProjectSearch } from '@/features/collaboration/projects/projects.utils';
 import { useI18n } from '@n8n/i18n';
 
 import { ElRadio } from 'element-plus';
-import {
-	N8nButton,
-	N8nDialog,
-	N8nDialogBody,
-	N8nDialogFooter,
-	N8nInput,
-	N8nInputLabel,
-	N8nText,
-} from '@n8n/design-system';
-
-defineOptions({ inheritAttrs: false });
+import { N8nButton, N8nInput, N8nInputLabel, N8nText } from '@n8n/design-system';
 const props = defineProps<{
 	modalName: string;
 	data: {
@@ -29,8 +20,7 @@ const props = defineProps<{
 	};
 }>();
 
-const uiStore = useUIStore();
-const modalOpen = computed(() => uiStore.modalsById[props.modalName]?.open === true);
+const modalBus = createEventBus();
 const loading = ref(false);
 const operation = ref('');
 const deleteConfirmText = ref('');
@@ -79,7 +69,7 @@ const filterFn = (project: ProjectListItem) =>
 const { showMessage, showError } = useToast();
 
 async function onSubmit() {
-	if (loading.value || !enabled.value) {
+	if (!enabled.value) {
 		return;
 	}
 
@@ -107,27 +97,26 @@ async function onSubmit() {
 		});
 
 		await props.data.afterDelete?.();
-		closeDialog();
+		modalBus.emit('close');
 	} catch (error) {
 		showError(error, i18n.baseText('settings.users.userDeletedError'));
 	} finally {
 		loading.value = false;
 	}
 }
-
-async function closeDialog() {
-	uiStore.closeModal(props.modalName);
-}
-
-function onDialogOpenUpdate(open: boolean) {
-	if (!open) void closeDialog();
-}
 </script>
 
 <template>
-	<N8nDialog :open="modalOpen" size="medium" :header="title" @update:open="onDialogOpenUpdate">
-		<N8nDialogBody>
-			<form id="delete-user-form" data-test-id="delete-user-modal" @submit.prevent="onSubmit">
+	<Modal
+		:name="modalName"
+		:title="title"
+		:center="true"
+		width="520"
+		:event-bus="modalBus"
+		@enter="onSubmit"
+	>
+		<template #content>
+			<div>
 				<div v-if="isPending">
 					<N8nText color="text-base">{{
 						i18n.baseText('settings.users.confirmUserDeletion')
@@ -180,34 +169,26 @@ function onDialogOpenUpdate(open: boolean) {
 						</N8nInputLabel>
 					</div>
 				</div>
-			</form>
-		</N8nDialogBody>
-		<N8nDialogFooter>
+			</div>
+		</template>
+		<template #footer>
 			<N8nButton
-				type="submit"
-				form="delete-user-form"
-				variant="destructive"
 				:loading="loading"
 				:disabled="!enabled"
 				:label="i18n.baseText('settings.users.delete')"
+				float="right"
 				data-test-id="confirm-delete-user-button"
+				@click="onSubmit"
 			/>
-		</N8nDialogFooter>
-	</N8nDialog>
+		</template>
+	</Modal>
 </template>
 
 <style lang="scss" module>
 .content {
-	> *:not(:last-child) {
+	padding-bottom: var(--spacing--2xs);
+	> * {
 		margin-bottom: var(--spacing--sm);
-	}
-
-	// Element Plus keeps the radio label on one line. Remove this override
-	// when the radio selection uses the Reka UI design-system component.
-	:global(.el-radio) {
-		max-width: 100%;
-		margin-right: 0;
-		white-space: normal;
 	}
 }
 

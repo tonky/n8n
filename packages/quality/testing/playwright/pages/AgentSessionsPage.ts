@@ -23,7 +23,6 @@ interface AgentSessionMock {
 	threadId: string;
 	sessionTitle?: string;
 	nodeTool: ToolCallMock;
-	nodeToolCount?: number;
 	workflowTool: WorkflowToolCallMock;
 }
 
@@ -43,7 +42,6 @@ export class AgentSessionsPage extends BasePage {
 		threadId,
 		sessionTitle = 'Tool input and output',
 		nodeTool,
-		nodeToolCount = 1,
 		workflowTool,
 	}: AgentSessionMock): Promise<void> {
 		const createdAt = '2026-01-01T12:00:00.000Z';
@@ -86,21 +84,21 @@ export class AgentSessionsPage extends BasePage {
 			totalTokens: 15,
 			cost: 0,
 			timeline: [
-				...Array.from({ length: nodeToolCount }, (_, index) => ({
+				{
 					type: 'tool-call',
 					kind: 'node',
-					name: index === 0 ? nodeTool.name : `${nodeTool.name} ${index}`,
-					toolCallId: `node-tool-call-e2e-${index}`,
+					name: nodeTool.name,
+					toolCallId: 'node-tool-call-e2e',
 					input: nodeTool.input,
 					output: nodeTool.output,
-					startTime: startedAtMs + 500 + index,
-					endTime: startedAtMs + 1_000 + index,
+					startTime: startedAtMs + 500,
+					endTime: startedAtMs + 1_000,
 					success: true,
 					nodeType: 'n8n-nodes-base.set',
 					nodeTypeVersion: 3.4,
-					nodeDisplayName: index === 0 ? nodeTool.name : `${nodeTool.name} ${index}`,
+					nodeDisplayName: nodeTool.name,
 					nodeParameters: nodeTool.input,
-				})),
+				},
 				{
 					type: 'tool-call',
 					kind: 'workflow',
@@ -196,51 +194,27 @@ export class AgentSessionsPage extends BasePage {
 		return this.page.getByTestId('timeline-row');
 	}
 
-	getTimelineToolTrigger(name: string): Locator {
-		return this.getTimelineRows().getByRole('button', { name, exact: true });
+	async openTimelineItem(name: string): Promise<void> {
+		await this.getTimelineRows().filter({ hasText: name }).click();
 	}
 
-	getTimelineScroller(): Locator {
-		return this.page
-			.getByRole('grid', { name: 'Events', exact: true })
-			.locator('.recycle-scroller-wrapper');
+	getInputRunData(): Locator {
+		return this.page.getByTestId('agent-session-run-data-input');
 	}
 
-	async getTimelineGeometry() {
-		return await this.getTimelineScroller().evaluate(async (container) => {
-			/** Let layout and ResizeObserver updates finish before reading geometry. */
-			await new Promise<void>((resolve) =>
-				requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-			);
-			const scroller = container.querySelector('.recycle-scroller');
-			const rows = container.querySelectorAll('[data-test-id="timeline-row"]');
-			if (!scroller || !rows[0] || !rows[1]) {
-				throw new Error('Expected the real virtual scroller and its first two rows');
-			}
-			const first = rows[0].getBoundingClientRect();
-			const second = rows[1].getBoundingClientRect();
-			return {
-				rowHeight: first.height,
-				nextRowOffset: second.top - first.top,
-				virtualHeight: scroller.getBoundingClientRect().height,
-				scrollHeight: container.scrollHeight,
-				viewportHeight: container.clientHeight,
-				renderedRows: rows.length,
-			};
-		});
+	getOutputRunData(): Locator {
+		return this.page.getByTestId('agent-session-run-data-output');
 	}
 
-	getTimelineToolInput(name: string): Locator {
-		return this.getTimelineToolRow(name).getByTestId('timeline-tool-input');
+	getWorkflowInput(): Locator {
+		return this.page.getByTestId('workflow-input');
 	}
 
-	getTimelineToolOutput(name: string): Locator {
-		return this.getTimelineToolRow(name).getByTestId('timeline-tool-output');
+	getWorkflowOutput(): Locator {
+		return this.page.getByTestId('workflow-output');
 	}
 
-	private getTimelineToolRow(name: string): Locator {
-		return this.getTimelineRows().filter({
-			has: this.page.getByRole('button', { name, exact: true }),
-		});
+	getOpenFullExecution(): Locator {
+		return this.page.getByTestId('open-full-execution');
 	}
 }

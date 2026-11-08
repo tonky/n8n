@@ -1,5 +1,3 @@
-import type { AgentDefinitionService } from '@/modules/agents/agent-definition.service';
-import { TransactionRunner } from '@n8n/db';
 import { mockLogger } from '@n8n/backend-test-utils';
 import type { AgentJsonConfig } from '@n8n/api-types';
 import { mock } from 'vitest-mock-extended';
@@ -32,13 +30,7 @@ function makeService() {
 
 	agentRepository.saveDraftFenced.mockResolvedValue(true);
 
-	const service = new SubAgentCleanupService(
-		mockLogger(),
-		agentRepository,
-		runtimeCacheService,
-		historyTransactionRunner(),
-		mock<AgentDefinitionService>(),
-	);
+	const service = new SubAgentCleanupService(mockLogger(), agentRepository, runtimeCacheService);
 
 	return { service, agentRepository, runtimeCacheService };
 }
@@ -78,7 +70,7 @@ describe('SubAgentCleanupService', () => {
 		expect(parent.schema?.subAgents?.maxChildren).toBe(5);
 		// markAgentDraftDirty bumps versionId away from the published version.
 		expect(parent.versionId).not.toBe('v1');
-		expect(agentRepository.saveDraftFenced).toHaveBeenCalledWith(parent, {});
+		expect(agentRepository.saveDraftFenced).toHaveBeenCalledWith(parent);
 		expect(runtimeCacheService.clearRuntimes).toHaveBeenCalledWith('parent-1');
 	});
 
@@ -200,9 +192,3 @@ describe('SubAgentCleanupService', () => {
 		expect(runtimeCacheService.clearRuntimes).toHaveBeenCalledWith('parent-b');
 	});
 });
-
-function historyTransactionRunner() {
-	const runner = mock<TransactionRunner>();
-	runner.run.mockImplementation(async (ctx, fn) => await fn(ctx));
-	return runner;
-}

@@ -12,7 +12,6 @@ import {
 	orchestratorAgentId,
 	resolveAgentPreviewSession,
 	type InstanceAiContext,
-	type InstanceAiMemoryConfig,
 	type McpServerConfig,
 	type ModelConfig,
 	type InstanceAiTraceContext,
@@ -20,13 +19,13 @@ import {
 import { getErrorMessage } from '@n8n/utils/errors/get-error-message';
 import { ErrorReporter } from 'n8n-core';
 
-import { formatPreviewSessionContext } from '@/modules/agents/format-agent-session-context';
 import { userHasScopes } from '@/permissions.ee/check-access';
 import { Push } from '@/push';
 import { Telemetry } from '@/telemetry';
 
 import { canAccessAgentPreviewHandoff } from '../agent-preview-handoff';
 import { getAgentContextService, isAgentsAccessEnabled } from '../agents-access';
+import { formatPreviewSessionContext } from '../format-agent-session-context';
 import { InstanceAiAgentContextAdapterService } from '../instance-ai-agent-context.adapter';
 import { InstanceAiCreditService } from '../instance-ai-credit.service';
 import {
@@ -53,11 +52,6 @@ export interface AssistantAgentParams {
 	threadId: string;
 	runId: string;
 	tracing?: InstanceAiTraceContext;
-	/**
-	 * Lets the agent runtime title a thread that has none. The caller bills the
-	 * title call from the run's side-call usage reports.
-	 */
-	generateTitle?: boolean;
 }
 
 /**
@@ -111,7 +105,7 @@ export class AssistantAgentFactory {
 		runtime: AssistantAgentRuntime,
 		params: AssistantAgentParams,
 	): Promise<InstanceAgent> {
-		const { user, threadId, runId, tracing, generateTitle } = params;
+		const { user, threadId, runId, tracing } = params;
 		if (tracing) {
 			environment.orchestrationContext.tracing = tracing;
 		}
@@ -136,7 +130,6 @@ export class AssistantAgentFactory {
 				runId,
 				environment.memoryModelId,
 				runtime.turnState.getObserverThresholdTokens(),
-				generateTitle,
 			),
 			memory: environment.memory,
 			checkpointStore: runtime.checkpointStore,
@@ -267,20 +260,8 @@ export class AssistantAgentFactory {
 		runId: string,
 		memoryModelId: ModelConfig | undefined,
 		observerThresholdTokens: number | undefined,
-		generateTitle = false,
-	): InstanceAiMemoryConfig {
+	) {
 		return {
-			// Titles run on the memory model, like the observer and the reflector.
-			...(generateTitle
-				? {
-						titleGeneration: {
-							...(memoryModelId ? { model: memoryModelId } : {}),
-							// The host copies the title to the thread list when the run ends, so the
-							// title must be saved by then to show after the first turn.
-							sync: true,
-						},
-					}
-				: {}),
 			observationalMemory: {
 				model: memoryModelId,
 				observerThresholdTokens:

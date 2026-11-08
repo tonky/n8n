@@ -80,7 +80,6 @@ import { TestCaseExecution } from './test-case-execution.ee';
 import { TestRun } from './test-run.ee';
 import { Person } from './person';
 import { ServiceAccount } from './service-account';
-import { ServiceAccountDetails } from './service-account-details';
 import { User, type UserKind } from './user';
 import { Variables } from './variables';
 import { WebhookEntity } from './webhook-entity';
@@ -122,7 +121,6 @@ import { WorkflowTagMapping } from './workflow-tag-mapping';
 export {
 	Person,
 	ServiceAccount,
-	ServiceAccountDetails,
 	type UserKind,
 	ActivityEvent,
 	activityEventCategories,
@@ -265,7 +263,6 @@ export const entities = {
 	User,
 	Person,
 	ServiceAccount,
-	ServiceAccountDetails,
 	WorkflowDependency,
 	WorkflowEntity,
 	WorkflowStatistics,

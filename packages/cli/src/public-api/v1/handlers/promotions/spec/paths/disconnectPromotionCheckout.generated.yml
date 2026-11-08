@@ -3,7 +3,7 @@ tags:
   - Promotions
 summary: Remove an environment's local checkout
 description: Removes the local checkout and keeps the environment, its credentials, and the trusted SSH host keys.
-x-required-scope: promotions:connect
+x-required-scope: gitConnection:clone
 parameters:
   - schema:
       type: string

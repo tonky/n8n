@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useToast } from '@n8n/composables/useToast';
+import Modal from '@/app/components/Modal.vue';
 import type { FormFieldValueUpdate, IFormInputs } from '@/Interface';
 import type { IInviteResponse } from '@n8n/stores/invitation.api';
 import type { InvitableRoleName } from '../users.types';
@@ -8,11 +9,11 @@ import { EnterpriseEditionFeature, VALID_EMAIL_REGEX } from '@/app/constants';
 import { INVITE_USER_MODAL_KEY } from '../users.constants';
 import { ROLE } from '@n8n/api-types';
 import { useUsersStore } from '@n8n/stores/users.store';
-import { useUIStore } from '@/app/stores/ui.store';
 import { copyInviteLink } from '../invite-link.utils';
 import { useSettingsStore } from '@n8n/stores/settings.store';
 import { useRolesStore } from '@n8n/stores/roles.store';
 import { createFormEventBus } from '@n8n/design-system';
+import { createEventBus } from '@n8n/utils/event-bus';
 import { useClipboard } from '@n8n/composables/useClipboard';
 import { useI18n } from '@n8n/i18n';
 import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
@@ -20,9 +21,6 @@ import { I18nT } from 'vue-i18n';
 
 import {
 	N8nButton,
-	N8nDialog,
-	N8nDialogBody,
-	N8nDialogFooter,
 	N8nFormInputs,
 	N8nIconButton,
 	N8nLink,
@@ -30,8 +28,6 @@ import {
 	N8nTooltip,
 	N8nUsersList,
 } from '@n8n/design-system';
-
-defineOptions({ inheritAttrs: false });
 const props = defineProps<{
 	modalName: string;
 	data: {
@@ -52,8 +48,7 @@ const i18n = useI18n();
 const { goToUpgrade } = usePageRedirectionHelper();
 
 const formBus = createFormEventBus();
-const uiStore = useUIStore();
-const modalOpen = computed(() => uiStore.modalsById[INVITE_USER_MODAL_KEY]?.open === true);
+const modalBus = createEventBus();
 const config = ref<IFormInputs | null>();
 const emails = ref('');
 const role = ref<InvitableRoleName>(props.data.initialRole ?? ROLE.Member);
@@ -218,7 +213,7 @@ async function onSubmit() {
 		if (successfulUrlInvites.length > 1) {
 			showInviteUrls.value = successfulUrlInvites;
 		} else {
-			closeDialog();
+			modalBus.emit('close');
 		}
 
 		await props.data.afterInvite?.();
@@ -251,14 +246,6 @@ function showCopyInviteLinkToast(successfulUrlInvites: IInviteResponse[]) {
 
 function onSubmitClick() {
 	formBus.emit('submit');
-}
-
-async function closeDialog() {
-	uiStore.closeModal(INVITE_USER_MODAL_KEY);
-}
-
-function onDialogOpenUpdate(open: boolean) {
-	if (!open) void closeDialog();
 }
 
 async function onCopyInviteLink(user: IInviteResponse['user']) {
@@ -347,56 +334,56 @@ onMounted(() => {
 </script>
 
 <template>
-	<N8nDialog
-		:open="modalOpen"
-		size="medium"
-		:header="
+	<Modal
+		:name="INVITE_USER_MODAL_KEY"
+		:title="
 			i18n.baseText(
 				showInviteUrls ? 'settings.users.copyInviteUrls' : 'settings.users.inviteNewUsers',
 			)
 		"
-		@update:open="onDialogOpenUpdate"
+		:center="true"
+		width="460px"
+		:event-bus="modalBus"
+		@enter="onSubmit"
 	>
-		<N8nDialogBody>
-			<div :data-test-id="`${INVITE_USER_MODAL_KEY}-modal`">
-				<N8nNotice v-if="!isAdvancedPermissionsEnabled">
-					<I18nT keypath="settings.users.advancedPermissions.warning" scope="global">
-						<template #link>
-							<N8nLink size="small" @click="goToUpgradeAdvancedPermissions">
-								{{ i18n.baseText('generic.upgrade') }}
-							</N8nLink>
-						</template>
-					</I18nT>
-				</N8nNotice>
-				<div v-if="showInviteUrls">
-					<N8nUsersList :users="invitedUsers">
-						<template #actions="{ user }">
-							<N8nTooltip>
-								<template #content>
-									{{ i18n.baseText('settings.users.actions.generateInviteLink') }}
-								</template>
-								<N8nIconButton
-									variant="outline"
-									icon="link"
-									:aria-label="i18n.baseText('settings.users.actions.generateInviteLink')"
-									data-test-id="generate-invite-link-button"
-									@click="onCopyInviteLink(user)"
-								></N8nIconButton>
-							</N8nTooltip>
-						</template>
-					</N8nUsersList>
-				</div>
-				<N8nFormInputs
-					v-else-if="config"
-					:inputs="config"
-					:event-bus="formBus"
-					:column-view="true"
-					@update="onInput"
-					@submit="onSubmit"
-				/>
+		<template #content>
+			<N8nNotice v-if="!isAdvancedPermissionsEnabled">
+				<I18nT keypath="settings.users.advancedPermissions.warning" scope="global">
+					<template #link>
+						<N8nLink size="small" @click="goToUpgradeAdvancedPermissions">
+							{{ i18n.baseText('generic.upgrade') }}
+						</N8nLink>
+					</template>
+				</I18nT>
+			</N8nNotice>
+			<div v-if="showInviteUrls">
+				<N8nUsersList :users="invitedUsers">
+					<template #actions="{ user }">
+						<N8nTooltip>
+							<template #content>
+								{{ i18n.baseText('settings.users.actions.generateInviteLink') }}
+							</template>
+							<N8nIconButton
+								variant="outline"
+								icon="link"
+								:aria-label="i18n.baseText('settings.users.actions.generateInviteLink')"
+								data-test-id="generate-invite-link-button"
+								@click="onCopyInviteLink(user)"
+							></N8nIconButton>
+						</N8nTooltip>
+					</template>
+				</N8nUsersList>
 			</div>
-		</N8nDialogBody>
-		<N8nDialogFooter v-if="!showInviteUrls">
+			<N8nFormInputs
+				v-else-if="config"
+				:inputs="config"
+				:event-bus="formBus"
+				:column-view="true"
+				@update="onInput"
+				@submit="onSubmit"
+			/>
+		</template>
+		<template v-if="!showInviteUrls" #footer>
 			<N8nButton
 				:loading="loading"
 				:disabled="!enabledButton"
@@ -404,6 +391,6 @@ onMounted(() => {
 				float="right"
 				@click="onSubmitClick"
 			/>
-		</N8nDialogFooter>
-	</N8nDialog>
+		</template>
+	</Modal>
 </template>

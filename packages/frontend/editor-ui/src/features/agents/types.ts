@@ -1,5 +1,4 @@
 import type { BaseResource } from '@/Interface';
-import type { IconName } from '@n8n/design-system';
 import type {
 	AgentJsonToolConfig,
 	AgentCreationState,
@@ -11,17 +10,6 @@ import type {
 import type { Agent, ToolDescriptor, CustomToolEntry } from './agent.types';
 
 export type { ToolDescriptor, CustomToolEntry, AgentSkill, AgentSkillReference };
-
-export interface SessionTimelineMetadata {
-	trigger: {
-		source: string | null;
-		icon: IconName;
-		label: string;
-	};
-	totalTokens: number;
-	totalCost: number | null;
-	durationLabel: string;
-}
 
 export interface AgentContinueLoadedEvent {
 	sessionId: string;

@@ -1,6 +1,6 @@
 import { EventService } from '@n8n/backend-services';
 import { InstanceSettingsLoaderConfig } from '@n8n/config';
-import { AuthenticatedRequest, PersonRepository } from '@n8n/db';
+import { AuthenticatedRequest, UserRepository } from '@n8n/db';
 import {
 	createUserKeyedRateLimiter,
 	Get,
@@ -11,7 +11,7 @@ import {
 import { Response } from 'express';
 
 import { AuthService } from '@/auth/auth.service';
-import { BadRequestError, ForbiddenError, NotFoundError } from '@n8n/errors';
+import { BadRequestError, ForbiddenError } from '@n8n/errors';
 import { ExternalHooks } from '@/external-hooks';
 import { MfaService } from '@/mfa/mfa.service';
 import { MFA } from '@/requests';
@@ -22,7 +22,7 @@ export class MFAController {
 		private mfaService: MfaService,
 		private externalHooks: ExternalHooks,
 		private authService: AuthService,
-		private personRepository: PersonRepository,
+		private userRepository: UserRepository,
 		private eventService: EventService,
 		private instanceSettingsLoaderConfig: InstanceSettingsLoaderConfig,
 	) {}
@@ -137,7 +137,7 @@ export class MFAController {
 		if (!verified)
 			throw new BadRequestError('MFA code expired. Close the modal and enable MFA again', 997);
 
-		const updatedPerson = await this.mfaService.enableMfa(id);
+		const updatedUser = await this.mfaService.enableMfa(id);
 
 		this.eventService.emit('user-mfa-enabled', {
 			user: {
@@ -149,7 +149,7 @@ export class MFAController {
 			},
 		});
 
-		this.authService.issueCookie(res, updatedPerson, verified, req.browserId);
+		this.authService.issueCookie(res, updatedUser, verified, req.browserId);
 	}
 
 	@Post('/disable', {
@@ -188,10 +188,12 @@ export class MFAController {
 			disableMethod: mfaCodeDefined ? 'mfaCode' : 'recoveryCode',
 		});
 
-		const updatedPerson = await this.personRepository.findByIdWithRole(userId);
-		if (!updatedPerson) throw new NotFoundError('User not found');
+		const updatedUser = await this.userRepository.findOneOrFail({
+			where: { id: userId },
+			relations: ['role'],
+		});
 
-		this.authService.issueCookie(res, updatedPerson, false, req.browserId);
+		this.authService.issueCookie(res, updatedUser, false, req.browserId);
 	}
 
 	@Post('/verify', {

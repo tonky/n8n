@@ -1,4 +1,3 @@
-import type { AgentDefinitionService } from '@/modules/agents/agent-definition.service';
 import type { Mock } from 'vitest';
 import type { Logger } from '@n8n/backend-common';
 import type { GlobalConfig } from '@n8n/config';
@@ -172,7 +171,6 @@ describe('AgentTaskService', () => {
 			settingsService,
 			transactionRunner,
 			createAgentSkillRefsService(),
-			mock<AgentDefinitionService>(),
 		);
 	}
 

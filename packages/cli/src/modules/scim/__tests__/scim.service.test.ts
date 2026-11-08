@@ -2,7 +2,7 @@ import type { ScimUserCreateDto } from '@n8n/api-types';
 import type { Logger } from '@n8n/backend-common';
 import type { GlobalConfig } from '@n8n/config';
 import type { Mocked } from 'vitest';
-import type { PersonRepository, Role, User, UserRepository } from '@n8n/db';
+import type { Role, User, UserRepository } from '@n8n/db';
 import { mock } from 'vitest-mock-extended';
 
 import type { EventService } from '@n8n/backend-services';
@@ -34,7 +34,6 @@ const createTestUser = (overrides: Partial<User> = {}): User =>
 
 describe('ScimService', () => {
 	let userRepository: Mocked<UserRepository>;
-	let personRepository: Mocked<PersonRepository>;
 	let urlService: Mocked<UrlService>;
 	let eventService: Mocked<EventService>;
 	let passwordUtility: Mocked<PasswordUtility>;
@@ -44,12 +43,6 @@ describe('ScimService', () => {
 
 	beforeEach(() => {
 		userRepository = mock<UserRepository>();
-		personRepository = mock<PersonRepository>();
-		// The service loads people through `PersonRepository` and checks emails through
-		// `UserRepository`. Both read one ordered mock, so a test sets one call sequence.
-		const findOne = async (id: string) => await userRepository.findOne({ where: { id } });
-		personRepository.findByIdWithRole.mockImplementation(findOne);
-		personRepository.findByIdWithAuthIdentities.mockImplementation(findOne);
 		scimUserRepository = mock<ScimUserRepository>();
 		urlService = mock<UrlService>();
 		eventService = mock<EventService>();
@@ -69,7 +62,6 @@ describe('ScimService', () => {
 			globalConfig,
 			passwordUtility,
 			eventService,
-			personRepository,
 		);
 	});
 
@@ -120,40 +112,6 @@ describe('ScimService', () => {
 			userRepository.findOne.mockResolvedValue(null);
 
 			expect(await service.getUserById('missing')).toBeNull();
-		});
-	});
-
-	describe('people only', () => {
-		// `UserRepository` would return the account. SCIM must read people through
-		// `PersonRepository`, which skips service accounts.
-		let serviceAccount: User;
-
-		beforeEach(() => {
-			serviceAccount = createTestUser({ id: 'sa-1', email: 'sa@example.com' });
-			userRepository.findOne.mockResolvedValue(serviceAccount);
-			personRepository.findByIdWithRole.mockResolvedValue(null);
-			personRepository.findByIdWithAuthIdentities.mockResolvedValue(null);
-		});
-
-		it('does not return a service account', async () => {
-			expect(await service.getUserById('sa-1')).toBeNull();
-			expect(personRepository.findByIdWithAuthIdentities).toHaveBeenCalledWith('sa-1');
-		});
-
-		it('does not change or delete a service account', async () => {
-			const patch = { schemas: [], Operations: [{ op: 'replace', path: 'active', value: false }] };
-
-			await expect(service.patchUser('sa-1', patch as never)).rejects.toThrow(
-				ScimResourceNotFoundError,
-			);
-			await expect(
-				service.updateUser('sa-1', { schemas: [], userName: 'sa@example.com' } as never),
-			).rejects.toThrow(ScimResourceNotFoundError);
-			await expect(service.deleteUser('sa-1')).rejects.toThrow(ScimResourceNotFoundError);
-			expect(personRepository.findByIdWithRole).toHaveBeenCalledTimes(3);
-			expect(serviceAccount).toEqual(createTestUser({ id: 'sa-1', email: 'sa@example.com' }));
-			expect(personRepository.save).not.toHaveBeenCalled();
-			expect(userRepository.save).not.toHaveBeenCalled();
 		});
 	});
 
@@ -398,7 +356,7 @@ describe('ScimService', () => {
 			);
 
 			expect(user.disabled).toBe(true);
-			expect(personRepository.save).toHaveBeenCalledWith(user);
+			expect(userRepository.save).toHaveBeenCalledWith(user);
 			expect(eventService.emit).toHaveBeenCalledWith('user-updated', {
 				user,
 				fieldsChanged: ['disabled'],
@@ -470,7 +428,7 @@ describe('ScimService', () => {
 
 			await service.patchUser('user-1', patchRequest([{ op: 'remove', path: 'phoneNumbers' }]));
 
-			expect(personRepository.save).not.toHaveBeenCalled();
+			expect(userRepository.save).not.toHaveBeenCalled();
 			expect(eventService.emit).not.toHaveBeenCalled();
 		});
 
@@ -487,7 +445,7 @@ describe('ScimService', () => {
 				]),
 			);
 
-			expect(personRepository.save).not.toHaveBeenCalled();
+			expect(userRepository.save).not.toHaveBeenCalled();
 			expect(eventService.emit).not.toHaveBeenCalled();
 		});
 
@@ -582,7 +540,7 @@ describe('ScimService', () => {
 			} as ScimUserCreateDto);
 
 			expect(user.role).toBe(memberRole);
-			expect(personRepository.save).not.toHaveBeenCalled();
+			expect(userRepository.save).not.toHaveBeenCalled();
 		});
 
 		it.each([
@@ -595,7 +553,7 @@ describe('ScimService', () => {
 			await service.patchUser('user-1', patchRequest(operations));
 
 			expect(user.role).toBe(memberRole);
-			expect(personRepository.save).not.toHaveBeenCalled();
+			expect(userRepository.save).not.toHaveBeenCalled();
 		});
 	});
 
@@ -628,7 +586,7 @@ describe('ScimService', () => {
 			await expect(service.patchUser('owner-1', patchRequest(operations))).rejects.toThrow(
 				ScimForbiddenError,
 			);
-			expect(personRepository.save).not.toHaveBeenCalled();
+			expect(userRepository.save).not.toHaveBeenCalled();
 		});
 
 		it.each([
@@ -638,7 +596,7 @@ describe('ScimService', () => {
 			userRepository.findOne.mockResolvedValue(createOwner());
 
 			await expect(service.updateUser('owner-1', body)).rejects.toThrow(ScimForbiddenError);
-			expect(personRepository.save).not.toHaveBeenCalled();
+			expect(userRepository.save).not.toHaveBeenCalled();
 		});
 
 		// The guard blocks a change. Repeating the stored state is not a change.
@@ -663,7 +621,7 @@ describe('ScimService', () => {
 
 			await request();
 
-			expect(personRepository.save).not.toHaveBeenCalled();
+			expect(userRepository.save).not.toHaveBeenCalled();
 			expect(eventService.emit).not.toHaveBeenCalled();
 		});
 
@@ -671,7 +629,7 @@ describe('ScimService', () => {
 			userRepository.findOne.mockResolvedValue(createOwner());
 
 			await expect(service.deleteUser('owner-1')).rejects.toThrow(ScimForbiddenError);
-			expect(personRepository.save).not.toHaveBeenCalled();
+			expect(userRepository.save).not.toHaveBeenCalled();
 		});
 
 		it('should allow a name change and an unchanged email on the owner', async () => {
@@ -690,7 +648,7 @@ describe('ScimService', () => {
 			expect(owner.firstName).toBe('Renamed');
 			expect(owner.email).toBe('owner@example.com');
 			expect(owner.disabled).toBe(false);
-			expect(personRepository.save).toHaveBeenCalledWith(owner);
+			expect(userRepository.save).toHaveBeenCalledWith(owner);
 		});
 	});
 
@@ -702,7 +660,7 @@ describe('ScimService', () => {
 			await service.deleteUser('user-1');
 
 			expect(user.disabled).toBe(true);
-			expect(personRepository.save).toHaveBeenCalledWith(user);
+			expect(userRepository.save).toHaveBeenCalledWith(user);
 			expect(eventService.emit).toHaveBeenCalledWith('user-updated', {
 				user,
 				fieldsChanged: ['disabled'],

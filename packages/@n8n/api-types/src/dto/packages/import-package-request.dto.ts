@@ -19,9 +19,9 @@ export const IMPORT_PACKAGE_REQUEST_FORM_FIELDS = [
 	'credentialMissingMode',
 	'credentialConflictPolicy',
 	'bindings',
-	'conflictPolicy',
-	'publishingPolicy',
-	'idPolicy',
+	'workflowConflictPolicy',
+	'workflowPublishingPolicy',
+	'workflowIdPolicy',
 	'missingNodeTypeMode',
 	'projectConflictPolicy',
 	'folderConflictPolicy',
@@ -120,14 +120,16 @@ export class ImportPackageRequestDto extends Z.class(
 		bindings: bindingsSchema.openapi(importPackageRequestFieldDocs.bindings),
 		// Required (unlike every other mode/policy field here), matching the legacy handler, which
 		// required it even though this schema alone would otherwise default it to `new-version`.
-		conflictPolicy: z
+		workflowConflictPolicy: z
 			.enum(['new-version', 'fail', 'skip'])
-			.openapi(importPackageRequestFieldDocs.conflictPolicy),
-		publishingPolicy: optionalEnum(
+			.openapi(importPackageRequestFieldDocs.workflowConflictPolicy),
+		workflowPublishingPolicy: optionalEnum(
 			['preserve-published-state', 'match-source', 'publish-all', 'unpublish-all'],
 			'preserve-published-state',
-		).openapi(importPackageRequestFieldDocs.publishingPolicy),
-		idPolicy: optionalEnum(['source'], 'source').openapi(importPackageRequestFieldDocs.idPolicy),
+		).openapi(importPackageRequestFieldDocs.workflowPublishingPolicy),
+		workflowIdPolicy: optionalEnum(['new', 'source'], 'source').openapi(
+			importPackageRequestFieldDocs.workflowIdPolicy,
+		),
 		missingNodeTypeMode: optionalEnum(['fail', 'import-anyway'], 'fail').openapi(
 			importPackageRequestFieldDocs.missingNodeTypeMode,
 		),
@@ -176,8 +178,8 @@ export const IMPORT_PACKAGE_SELECTION_REQUEST_FORM_FIELDS = [
 	'selectedProjectId',
 	'selectedWorkflowIds',
 	'deletedWorkflowIds',
-	'conflictPolicy',
-	'idPolicy',
+	'workflowConflictPolicy',
+	'workflowIdPolicy',
 	'overwriteDeletionPolicy',
 ] as const;
 
@@ -240,11 +242,11 @@ export class ImportPackageSelectionRequestDto extends Z.class(
 		deletedWorkflowIds: optionalJsonStringIdArray(DELETED_WORKFLOW_IDS_ERROR_MESSAGE).openapi(
 			importPackageSelectionRequestFieldDocs.deletedWorkflowIds,
 		),
-		conflictPolicy: optionalEnum(['new-version', 'fail', 'skip'], 'new-version').openapi(
-			importPackageSelectionRequestFieldDocs.conflictPolicy,
+		workflowConflictPolicy: optionalEnum(['new-version', 'fail', 'skip'], 'new-version').openapi(
+			importPackageSelectionRequestFieldDocs.workflowConflictPolicy,
 		),
-		idPolicy: optionalEnum(['source'], 'source').openapi(
-			importPackageSelectionRequestFieldDocs.idPolicy,
+		workflowIdPolicy: optionalEnum(['new', 'source'], 'source').openapi(
+			importPackageSelectionRequestFieldDocs.workflowIdPolicy,
 		),
 		overwriteDeletionPolicy: optionalEnum(['archive', 'hard-delete'], 'archive').openapi(
 			importPackageSelectionRequestFieldDocs.overwriteDeletionPolicy,

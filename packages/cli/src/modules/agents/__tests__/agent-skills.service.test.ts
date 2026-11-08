@@ -1,4 +1,3 @@
-import type { AgentDefinitionService } from '@/modules/agents/agent-definition.service';
 /* eslint-disable @typescript-eslint/require-await, @typescript-eslint/unbound-method -- async mock stubs and unbound-method references are acceptable test idioms */
 import type { AgentJsonSkillConfig, AgentSkill } from '@n8n/api-types';
 import type { EventService, ProjectScopeService } from '@n8n/backend-services';
@@ -122,7 +121,6 @@ describe('AgentSkillsService', () => {
 			transactionRunner,
 			skillsTelemetry,
 			projectScopeService,
-			mock<AgentDefinitionService>(),
 		);
 	});
 

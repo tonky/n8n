@@ -216,7 +216,7 @@ function buildApprovalTitle(item: PendingConfirmationItem): string {
 		});
 	}
 	if (item.toolCall.confirmation.targetApproval) {
-		return buildApprovalSubtitle(item);
+		return i18n.baseText('agents.chat.approval.title');
 	}
 	const { args } = item.toolCall;
 	const toolName = resolveBuilderToolName(item.toolCall.toolName, args?.action);
@@ -732,11 +732,7 @@ function handleQuestionsSubmit(conf: InstanceAiConfirmation, answers: QuestionAn
 				data-test-id="instance-ai-confirmation-panel"
 				:title="buildApprovalTitle(chunk.item)"
 				:labels="approvalLabels"
-				:description="
-					chunk.item.toolCall.confirmation.targetApproval
-						? undefined
-						: buildApprovalSubtitle(chunk.item)
-				"
+				:description="buildApprovalSubtitle(chunk.item)"
 				:args="chunk.item.toolCall.confirmation.targetApproval?.args"
 				:description-label="i18n.baseText('instanceAi.confirmation.details')"
 				:options="credentialDestinationOptions(chunk.item)"

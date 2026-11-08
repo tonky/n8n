@@ -22,7 +22,7 @@ const props = defineProps<{
 	environment: PromotionEnvironment;
 	busy?: 'retry' | 'remove';
 	connectError?: string;
-	canConnect: boolean;
+	canClone: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -51,7 +51,7 @@ const statusDotVariant: Record<typeof status.value, StatusDotVariant> = {
 };
 
 const canRun = computed(() =>
-	props.environment.direction === 'apply' ? !!permissions.value.apply : !!permissions.value.promote,
+	props.environment.direction === 'apply' ? !!permissions.value.pull : !!permissions.value.push,
 );
 
 const actions = computed(() => [
@@ -137,7 +137,7 @@ function onAction(action: 'edit' | 'remove') {
 			<template #action>
 				<div :class="$style.actions">
 					<N8nButton
-						v-if="status !== 'connected' && canConnect"
+						v-if="status !== 'connected' && canClone"
 						variant="outline"
 						size="small"
 						:loading="busy === 'retry'"

@@ -43,7 +43,6 @@ import type { PolicyActor } from '@/policy/policy-enforcement-backend';
 import { ConflictError } from '@n8n/errors';
 import { UnexpectedError, UserError } from 'n8n-workflow';
 
-import { AgentDefinitionService } from './agent-definition.service';
 import { getAgentOrThrow } from './utils/get-agent-or-throw';
 import { AgentConfigPreparationService } from './agent-config-preparation.service';
 import { AgentSaveCompletionService } from './agent-save-completion.service';
@@ -149,7 +148,6 @@ export class AgentsService {
 		private readonly saveCompletion: AgentSaveCompletionService,
 		private readonly setupCompletion: AgentSetupCompletionService,
 		private readonly n8nChatFlag: N8nChatFlagService,
-		private readonly definitionService: AgentDefinitionService,
 	) {}
 
 	/**
@@ -292,28 +290,15 @@ export class AgentsService {
 			await this.agentRepository.insertNew(agent, ctx);
 			if (options.config !== undefined) {
 				await this.agentSkillRefs.replaceDraftRefs(agent, skillRefs, ctx);
-				await this.definitionService.captureVersion(
-					agent,
-					options.user ?? options.skillCreator ?? 'Unknown',
-					ctx,
-					options.createdBy,
-				);
 				return await this.agentSkillRefs.refsForDraft(agent, ctx);
 			}
-			const refs = await this.agentSkillRefs.createDraftRefs(
+			return await this.agentSkillRefs.createDraftRefs(
 				agent,
 				skillRefs,
 				options.skills ?? {},
 				options.user ?? options.skillCreator ?? null,
 				ctx,
 			);
-			await this.definitionService.captureVersion(
-				agent,
-				options.user ?? options.skillCreator ?? 'Unknown',
-				ctx,
-				options.createdBy,
-			);
-			return refs;
 		});
 	}
 
@@ -432,7 +417,6 @@ export class AgentsService {
 				ctx,
 			);
 			await this.agentTaskRepository.replaceForAgent(id, definition.tasks, ctx);
-			await this.definitionService.captureVersion(agent, user, ctx);
 			return imported;
 		});
 		await Container.get(AgentSaveCompletionService).definitionSaved(

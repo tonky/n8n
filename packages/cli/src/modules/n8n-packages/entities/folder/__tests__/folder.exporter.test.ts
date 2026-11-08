@@ -82,14 +82,7 @@ describe('FolderExporter', () => {
 		const { exporter, workflowFinder, workflowExporter } = makeExporter([makeFolder()]);
 		workflowFinder.findWorkflowIdsByFolder.mockResolvedValue(new Map([['fld_1', ['w1']]]));
 		workflowExporter.export.mockResolvedValue({
-			entries: [
-				{
-					id: 'w1',
-					name: 'W1',
-					target: 'folders/toproduction-fld_1/workflows/w1',
-					isArchived: false,
-				},
-			],
+			entries: [{ id: 'w1', name: 'W1', target: 'folders/toproduction-fld_1/workflows/w1' }],
 			requirements: {
 				credentials: [
 					{
@@ -124,12 +117,7 @@ describe('FolderExporter', () => {
 			}),
 		);
 		expect(result.workflowEntries).toEqual([
-			{
-				id: 'w1',
-				name: 'W1',
-				target: 'folders/toproduction-fld_1/workflows/w1',
-				isArchived: false,
-			},
+			{ id: 'w1', name: 'W1', target: 'folders/toproduction-fld_1/workflows/w1' },
 		]);
 		expect(result.requirements.credentials).toEqual([
 			{
@@ -153,14 +141,7 @@ describe('FolderExporter', () => {
 			]),
 		);
 		workflowExporter.export.mockResolvedValue({
-			entries: [
-				{
-					id: 'w-n2',
-					name: 'N2',
-					target: 'folders/ops-ops_b/nested-nested/workflows/n2',
-					isArchived: false,
-				},
-			],
+			entries: [{ id: 'w-n2', name: 'N2', target: 'folders/ops-ops_b/nested-nested/workflows/n2' }],
 			requirements: { credentials: [], dataTables: [], variables: [], tags: [], nodeTypes: [] },
 		});
 		const writer = new CapturingWriter();
@@ -203,12 +184,7 @@ describe('FolderExporter', () => {
 		);
 		workflowExporter.export.mockResolvedValue({
 			entries: [
-				{
-					id: 'w-selected',
-					name: 'Selected',
-					target: 'folders/parent-parent/nested-nested/x',
-					isArchived: false,
-				},
+				{ id: 'w-selected', name: 'Selected', target: 'folders/parent-parent/nested-nested/x' },
 			],
 			requirements: { credentials: [], dataTables: [], variables: [], tags: [], nodeTypes: [] },
 		});

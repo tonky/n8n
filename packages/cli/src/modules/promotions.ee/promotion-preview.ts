@@ -10,11 +10,7 @@ import {
 	entityFilePath,
 	type ManifestEntityCollection,
 } from '@/modules/n8n-packages/io/manifest-entry';
-import type {
-	ManifestEntry,
-	PackageManifest,
-	WorkflowManifestEntry,
-} from '@/modules/n8n-packages/spec/manifest.schema';
+import type { ManifestEntry, PackageManifest } from '@/modules/n8n-packages/spec/manifest.schema';
 import { getWorkflowConsumerIds } from '@/modules/n8n-packages/spec/requirement-consumers';
 import type { PackageRequirementConsumer } from '@/modules/n8n-packages/spec/requirements.schema';
 
@@ -37,8 +33,6 @@ export type SideResource = {
 	/** Path of the resource file in the package, used to read its content. */
 	path: string;
 	blobSha: string | null;
-	/** Only a workflow entry carries the flag; every other resource is active. */
-	isArchived: boolean;
 };
 
 export type SideIndex = ReadonlyMap<string, SideResource>;
@@ -125,11 +119,7 @@ export function indexSide(side: PreviewSide, projectId: string): Map<string, Sid
 		...folders.map((folder): [string, string] => [folder.target, resourceKey('folder', folder.id)]),
 	]);
 
-	const add = (
-		collection: keyof typeof RESOURCE_TYPES,
-		entry: ManifestEntry | WorkflowManifestEntry,
-		key: string,
-	) => {
+	const add = (collection: keyof typeof RESOURCE_TYPES, entry: ManifestEntry, key: string) => {
 		const path = packagePath(collection, entry.target);
 		index.set(key, {
 			key,
@@ -140,7 +130,6 @@ export function indexSide(side: PreviewSide, projectId: string): Map<string, Sid
 			parentKey: containerKeys.get(containerTarget(collection, entry.target)) ?? null,
 			path,
 			blobSha: side.blobByPath.get(path) ?? null,
-			isArchived: 'isArchived' in entry && entry.isArchived,
 		});
 	};
 
@@ -336,12 +325,13 @@ function compareResource(
 	current: SideResource,
 	before: SideResource | undefined,
 	after: SideResource | undefined,
+	isArchived: (path: string) => boolean,
 ): PromotionResource {
 	let change: PromotionResource['change'] = 'unchanged';
 	if (!before) change = 'added';
 	else if (!after) change = 'deleted';
 	else if (before.blobSha !== after.blobSha) {
-		change = after.isArchived ? 'archived' : 'modified';
+		change = after.type === 'workflow' && isArchived(after.path) ? 'archived' : 'modified';
 	}
 	// The files hold no project, so a move between two project roots keeps the same file.
 	else if (before.parentKey !== after.parentKey) change = 'modified';
@@ -439,6 +429,7 @@ export function buildPreview({
 	projectIds,
 	base,
 	desired,
+	isArchived,
 }: {
 	/**
 	 * The operation whose rules decide what changes. `null` lists every difference between the
@@ -449,6 +440,7 @@ export function buildPreview({
 	projectIds: readonly string[];
 	base: PreviewSide;
 	desired: PreviewSide;
+	isArchived: (path: string) => boolean;
 }): { resources: PromotionResource[]; dependencies: PromotionResourceDependency[] } {
 	const baseIndex = indexProjects(base, projectIds);
 	const desiredIndex = indexProjects(desired, projectIds);
@@ -459,7 +451,7 @@ export function buildPreview({
 		const after = desiredIndex.get(key);
 		const current = after ?? before;
 		if (!current) continue;
-		const compared = compareResource(current, before, after);
+		const compared = compareResource(current, before, after, isArchived);
 		const resource = operation
 			? applyOperationRules(compared, { ...operation, before, after, desired: desiredIndex })
 			: compared;

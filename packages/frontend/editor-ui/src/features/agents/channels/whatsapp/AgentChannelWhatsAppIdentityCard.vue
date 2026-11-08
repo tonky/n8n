@@ -27,7 +27,7 @@ const props = withDefaults(
 	},
 );
 
-const emit = defineEmits<{ connect: []; openManager: [] }>();
+const emit = defineEmits<{ connect: [] }>();
 
 /** The profile is edited in Meta, not in n8n. */
 const WHATSAPP_MANAGER_URL = 'https://business.facebook.com/latest/whatsapp_manager/phone_numbers/';
@@ -97,7 +97,6 @@ const subtitle = computed(() => {
 			variant="outline"
 			size="medium"
 			data-testid="whatsapp-manager-link"
-			@click="emit('openManager')"
 		>
 			{{ i18n.baseText('agents.channels.whatsapp.settings.editInManager') }}
 			<N8nIcon icon="arrow-up-right" size="small" />

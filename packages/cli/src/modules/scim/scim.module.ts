@@ -1,4 +1,3 @@
-import type { FrontendModuleSettings } from '@n8n/api-types';
 import type { ModuleInterface } from '@n8n/decorators';
 import { BackendModule, OnShutdown } from '@n8n/decorators';
 import { Container } from '@n8n/di';
@@ -27,22 +26,12 @@ export class ScimModule implements ModuleInterface {
 
 	/**
 	 * Settings exposed to the frontend under `/rest/module-settings`.
-	 * The Users page shows SCIM indicators only while SCIM is enabled and a
-	 * token exists, so the token routes refresh these settings.
+	 * The response shape will be `{ scim: { scimEnabled: boolean } }`.
 	 */
 	async settings() {
 		const { ScimSettingsService } = await import('./scim-settings.service.js');
-		const { ScimTokenService } = await import('./scim-token.service.js');
 
-		const [scimEnabled, { hasToken }] = await Promise.all([
-			Container.get(ScimSettingsService).isEnabled(),
-			Container.get(ScimTokenService).getTokenInfo(),
-		]);
-
-		return {
-			scimEnabled,
-			hasToken,
-		} satisfies FrontendModuleSettings['scim'];
+		return { scimEnabled: await Container.get(ScimSettingsService).isEnabled() };
 	}
 
 	@OnShutdown()

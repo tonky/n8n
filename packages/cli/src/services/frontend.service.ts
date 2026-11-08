@@ -829,10 +829,6 @@ export class FrontendService {
 				overwrittenProperties.push(...Object.keys(credentialsOverwrites[credential.name]));
 			}
 
-			overwrittenProperties.push(
-				...this.credentialsOverwrites.getNewerAppProperties(credential.name),
-			);
-
 			if (overwrittenProperties.length) {
 				credential.__overwrittenProperties = uniq(overwrittenProperties);
 			}

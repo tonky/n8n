@@ -5,7 +5,8 @@ import { Container } from '@n8n/di';
 
 @BackendModule({
 	name: 'promotions',
-	licenseFlag: LICENSE_FEATURES.PROMOTIONS,
+	// The entitlement is unchanged; only the module name moved.
+	licenseFlag: LICENSE_FEATURES.GIT_CONNECTIONS,
 	instanceTypes: ['main'],
 })
 export class PromotionsModule implements ModuleInterface {

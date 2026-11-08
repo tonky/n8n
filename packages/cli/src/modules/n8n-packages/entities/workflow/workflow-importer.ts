@@ -95,14 +95,14 @@ export class WorkflowImporter {
 				continue;
 			}
 			const { action, blocked } = decideImportConflictAction(
-				options.conflictPolicy,
+				options.workflowConflictPolicy,
 				existing !== null,
 			);
 
-			const item = toPlanItem(workflow, existing, action, options.idPolicy);
+			const item = toPlanItem(workflow, existing, action, options.workflowIdPolicy);
 			items.push(item);
 
-			if (item.action === 'create' && !blocked) {
+			if (item.action === 'create' && options.workflowIdPolicy === 'source' && !blocked) {
 				sourceCreateIds.push(item.decidedId);
 			}
 

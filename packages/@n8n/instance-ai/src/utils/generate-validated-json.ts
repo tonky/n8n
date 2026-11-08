@@ -8,7 +8,7 @@
  * helper's own tests mock `eval-agents`.
  */
 
-import type { AnthropicThinkingEffort, FetchFn, ModelConfig } from '@n8n/agents';
+import type { FetchFn, ModelConfig } from '@n8n/agents';
 import { extractJsonCandidate } from '@n8n/ai-utilities/llm-output';
 import type { z } from 'zod';
 
@@ -26,8 +26,6 @@ export type ValidatedJsonResult<T> =
 
 export interface GenerateValidatedJsonOptions<T> {
 	model?: string;
-	/** Thinking effort for a pinned `model`. */
-	effort?: AnthropicThinkingEffort;
 	instructions: string;
 	userText: string;
 	schema: z.ZodType<T>;
@@ -57,7 +55,6 @@ export async function generateValidatedJson<T>(
 		const llm = createEvalAgent(agentName, {
 			telemetry,
 			model: options.model,
-			effort: options.effort,
 			instructions: options.instructions,
 			fallbackModelConfig: options.fallbackModelConfig,
 			modelFetch: options.modelFetch,

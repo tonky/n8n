@@ -130,7 +130,6 @@ describe('workflow package import — node groups', () => {
 
 		const { stream } = await service.exportPackage({ user: owner, workflowIds: [source.id] });
 		const packageBuffer = await streamToBuffer(stream);
-		await workflowRepository.delete(source.id);
 
 		const importer = await createOwner();
 		const result = await importPackage({ user: importer, packageBuffer });

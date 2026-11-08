@@ -21,7 +21,8 @@ import {
 import { tags } from '@lezer/highlight';
 import { parseMixed, type SyntaxNodeRef } from '@lezer/common';
 import { javascriptLanguage } from '@codemirror/lang-javascript';
-import { N8nButton, N8nDialog, N8nDialogBody } from '@n8n/design-system';
+import { ElDialog } from 'element-plus';
+import { N8nButton } from '@n8n/design-system';
 import { useI18n } from '@n8n/i18n';
 
 const props = withDefaults(
@@ -252,35 +253,24 @@ function createExpandedExtensions() {
 
 function openExpandedEditor() {
 	dialogVisible.value = true;
-}
+	void nextTick(() => {
+		if (!expandedEditorRef.value) return;
 
-async function mountExpandedEditor() {
-	await nextTick();
-	if (!expandedEditorRef.value) await nextTick();
-	if (!expandedEditorRef.value || expandedEditorView) return;
-
-	expandedEditorView = new EditorView({
-		state: EditorState.create({
-			doc: props.modelValue,
-			extensions: createExpandedExtensions(),
-		}),
-		parent: expandedEditorRef.value,
+		expandedEditorView = new EditorView({
+			state: EditorState.create({
+				doc: props.modelValue,
+				extensions: createExpandedExtensions(),
+			}),
+			parent: expandedEditorRef.value,
+		});
+		expandedEditorView.focus();
 	});
-	expandedEditorView.focus();
 }
-
-watch(dialogVisible, (open) => {
-	if (open) void mountExpandedEditor();
-});
 
 function closeExpandedEditor() {
 	dialogVisible.value = false;
 	expandedEditorView?.destroy();
 	expandedEditorView = null;
-}
-
-function onExpandedEditorOpenUpdate(open: boolean) {
-	if (!open) closeExpandedEditor();
 }
 
 onMounted(() => {
@@ -358,16 +348,16 @@ watch(
 				/>
 			</svg>
 		</N8nButton>
-		<N8nDialog
-			:open="dialogVisible"
-			size="xlarge"
-			:header="i18n.baseText('expressionEdit.editExpression')"
-			@update:open="onExpandedEditorOpenUpdate"
+		<ElDialog
+			:model-value="dialogVisible"
+			:title="i18n.baseText('expressionEdit.editExpression')"
+			width="620px"
+			:close-on-click-modal="true"
+			:append-to-body="true"
+			@close="closeExpandedEditor"
 		>
-			<N8nDialogBody>
-				<div ref="expandedEditorRef" :class="$style.expandedContainer" />
-			</N8nDialogBody>
-		</N8nDialog>
+			<div ref="expandedEditorRef" :class="$style.expandedContainer" />
+		</ElDialog>
 	</div>
 </template>
 <style lang="scss" module>

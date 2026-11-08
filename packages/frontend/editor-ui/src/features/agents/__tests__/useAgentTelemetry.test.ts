@@ -49,7 +49,6 @@ describe('useAgentTelemetry', () => {
 		'suspension',
 		'hitl-response',
 		'background-task-signal',
-		'background-task',
 	] as const)('tracks %s trace selection without trace content', (itemType) => {
 		useAgentTelemetry().trackClickedTraceItem({ agentId: 'ag-1', itemType });
 		expect(trackMock).toHaveBeenCalledExactlyOnceWith(

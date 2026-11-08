@@ -126,7 +126,7 @@ function gitlabWrites(
 describe('Promotion reviews in the Inbox', () => {
 	const testServer = setupTestServer({
 		endpointGroups: ['publicApi'],
-		enabledFeatures: ['feat:promotions'],
+		enabledFeatures: ['feat:gitConnections'],
 		modules: ['inbox', 'promotions'],
 	});
 	let owner: User;

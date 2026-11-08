@@ -289,8 +289,6 @@ export class AgentSkillRefsService {
 		const existing = new Map(
 			(await this.skillRepository.findByIds(ids, ctx)).map((skill) => [skill.id, skill]),
 		);
-		// Detach old refs to prevent partial Agent snapshots during skill saves.
-		await this.writeDependencies(agent.id, [], ctx);
 		for (const ref of refs ?? []) {
 			const skill = existing.get(ref.id);
 			if (skill) {
@@ -355,7 +353,7 @@ export class AgentSkillRefsService {
 	/**
 	 * The hub version id of each draft ref, keyed by skill id, in draft order. Pin
 	 * the versions once the `agent_history` row exists (see `pinVersion`). Call it in
-	 * the transaction that saves the draft.
+	 * the publish transaction: it takes the publish lock on the skills.
 	 */
 	async versionSnapshot(
 		agent: Pick<Agent, 'id' | 'schema'>,
@@ -364,15 +362,15 @@ export class AgentSkillRefsService {
 		if (!agent.schema) return new Map();
 		const refs = await this.refsForDraft(agent, ctx);
 		if (refs.length === 0) return new Map();
-		const versionByRef = await this.skillService.snapshotForSave(toServiceRefs(refs), ctx);
+		const versionByRef = await this.skillService.snapshotForPublish(toServiceRefs(refs), ctx);
 		const missing = refs.filter((ref) => !versionByRef.has(ref.id)).map((ref) => ref.id);
 		if (missing.length > 0) {
-			throw new UserError(`Cannot save agent with missing skills: ${missing.join(', ')}`);
+			throw new UserError(`Cannot publish agent with missing skills: ${missing.join(', ')}`);
 		}
 		return versionByRef;
 	}
 
-	/** Pin the resolved skills after the history row exists, in the same transaction. */
+	/** Publish, after the `agent_history` row exists: pin the versions of `versionSnapshot`. */
 	async pinVersion(
 		agentVersionId: string,
 		pins: Map<string, string>,
@@ -380,18 +378,6 @@ export class AgentSkillRefsService {
 	): Promise<void> {
 		if (pins.size === 0) return;
 		await this.agentSkillUsage.pinForPublish(agentVersionId, pins, ctx);
-	}
-
-	async assertVersionAccess(
-		agent: Pick<Agent, 'id' | 'projectId'>,
-		version: AgentHistory,
-		ctx: OperationContext,
-	): Promise<void> {
-		await this.agentSkillUsage.assertVersionAccess(
-			agent,
-			await this.refsForVersion(version, ctx),
-			ctx,
-		);
 	}
 
 	async availabilityOf(

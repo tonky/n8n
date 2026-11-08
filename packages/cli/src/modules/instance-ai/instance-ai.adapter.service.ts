@@ -253,7 +253,6 @@ import {
 	sdkPinDataToRuntime,
 } from './instance-ai-run-pin-data';
 import { InstanceAiSettingsService } from './instance-ai-settings.service';
-import type { TemporaryWorkflowMarkers } from './temporary-workflow-markers';
 import {
 	buildToolAgentRequest,
 	declaredToolArguments,
@@ -567,8 +566,6 @@ export class InstanceAiAdapterService {
 			 *  Falsy → `list` keeps the pre-feature shape: no folder fields, no
 			 *  folder attribution. */
 			folderExplorationEnabled?: boolean;
-			/** Keeps the temporary workflows of the thread. Absent → the temporary workflow table. */
-			temporaryWorkflowMarkers?: TemporaryWorkflowMarkers;
 			/** True while the thread runs the onboarding flow. Gates the `leave-onboarding` tool. */
 			onboardingThread?: boolean;
 			credentialDescriptionsEnabled?: boolean;
@@ -650,7 +647,6 @@ export class InstanceAiAdapterService {
 				folderExploration: folderExplorationEnabled === true,
 				setupPanelVariant,
 				allowSendingParameterValues,
-				temporaryWorkflowMarkers: options?.temporaryWorkflowMarkers,
 			}),
 			executionService: this.createExecutionAdapter(
 				user,
@@ -1162,7 +1158,6 @@ export class InstanceAiAdapterService {
 			folderExploration?: boolean;
 			setupPanelVariant?: 'control' | 'variant';
 			allowSendingParameterValues?: boolean;
-			temporaryWorkflowMarkers?: TemporaryWorkflowMarkers;
 		} = {},
 	): InstanceAiWorkflowService {
 		const setupExperimentProperties = options.setupPanelVariant
@@ -1171,17 +1166,6 @@ export class InstanceAiAdapterService {
 					[`$feature/${INSTANCE_AI_SETUP_PANEL_FLAG}`]: options.setupPanelVariant,
 				}
 			: {};
-		// The Assistant agent keeps its markers in its own thread state. The current
-		// runtime uses the temporary workflow table, written with the workflow.
-		const markers = options.temporaryWorkflowMarkers;
-		const isTemporary = async (workflowId: string) =>
-			markers
-				? await markers.has(workflowId)
-				: await this.aiBuilderTemporaryWorkflowRepository.existsForWorkflow(workflowId);
-		const unmarkTemporary = async (workflowId: string) =>
-			markers
-				? await markers.unmark(workflowId)
-				: await this.aiBuilderTemporaryWorkflowRepository.unmark(workflowId);
 		const foldersOn = options.folderExploration === true;
 		// Attribution reveals folder ids, names and paths on every row, so it needs
 		// the licence as well as the flag. Resolution stays on the flag alone so an
@@ -1661,9 +1645,9 @@ export class InstanceAiAdapterService {
 					'workflow:update',
 				]);
 				if (!workflow) return;
-				if (!(await isTemporary(workflowId))) return;
+				if (!(await aiBuilderTemporaryWorkflowRepository.existsForWorkflow(workflowId))) return;
 
-				await unmarkTemporary(workflowId);
+				await aiBuilderTemporaryWorkflowRepository.unmark(workflowId);
 			},
 
 			async archiveIfAiTemporary(workflowId: string) {
@@ -1672,14 +1656,16 @@ export class InstanceAiAdapterService {
 					'workflow:update',
 				]);
 				if (!workflow) return false;
-				if (!(await isTemporary(workflowId))) return false;
+				if (!(await aiBuilderTemporaryWorkflowRepository.existsForWorkflow(workflowId))) {
+					return false;
+				}
 				if (workflow.isArchived) {
-					await unmarkTemporary(workflowId);
+					await aiBuilderTemporaryWorkflowRepository.unmark(workflowId);
 					return false;
 				}
 
 				await workflowService.archive(user, workflowId, { skipArchived: true });
-				await unmarkTemporary(workflowId);
+				await aiBuilderTemporaryWorkflowRepository.unmark(workflowId);
 				return true;
 			},
 
@@ -1872,7 +1858,7 @@ export class InstanceAiAdapterService {
 					async (transactionManager, ctx) => {
 						const workflow = await workflowRepository.createContent(newWorkflow, ctx);
 						await sharedWorkflowRepository.makeOwner([workflow.id], projectId, transactionManager);
-						if (options?.markAsAiTemporary && !markers) {
+						if (options?.markAsAiTemporary) {
 							if (!threadId) {
 								throw new UnexpectedError(
 									'Cannot mark AI-builder temporary workflow without a thread ID',
@@ -1902,10 +1888,6 @@ export class InstanceAiAdapterService {
 
 				let updated: WorkflowEntity;
 				try {
-					// Thread state is not part of the transaction above. Marking here puts a
-					// failed write on the cleanup path, so the shell does not stay behind.
-					if (options?.markAsAiTemporary && markers) await markers.mark(saved.id);
-
 					// Enforce credential tamper protection — same guard as the
 					// REST controller (workflows.controller PATCH /:workflowId).
 					// oxlint-disable-next-line typescript/no-deprecated
@@ -1930,7 +1912,7 @@ export class InstanceAiAdapterService {
 					try {
 						const archived = await workflowService.archive(user, saved.id, { skipArchived: true });
 						if (archived && options?.markAsAiTemporary) {
-							await unmarkTemporary(saved.id);
+							await aiBuilderTemporaryWorkflowRepository.unmark(saved.id);
 						}
 					} catch (cleanupError) {
 						logger.warn('Failed to clean up AI-builder workflow shell after create failure', {

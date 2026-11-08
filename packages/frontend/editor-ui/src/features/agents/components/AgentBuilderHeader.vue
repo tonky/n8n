@@ -38,7 +38,6 @@ const props = defineProps<{
 	projectName: string | null;
 	projectIcon: IconOrEmoji;
 	headerActions: Array<ActionDropdownItem<string>>;
-	isUnsaved?: boolean;
 	saveStatus?: 'idle' | 'saving' | 'saved';
 	beforeRevertToPublished?: () => Promise<void> | void;
 	artifactMode?: boolean;
@@ -57,7 +56,7 @@ const emit = defineEmits<{
 	unpublished: [agent: AgentResource];
 	reverted: [agent: AgentResource];
 	'switch-agent': [agentId: string];
-	'open-publish-timeline': [];
+	'toggle-version-history': [];
 	'setup-task-action': [task: SetupTask<SetupTaskId>];
 }>();
 
@@ -273,14 +272,11 @@ function onMenuSelect(id: string) {
 				:project-id="projectId"
 				:agent-id="agentId"
 				:is-saving="saveStatus === 'saving' || editingLocked"
-				:show-publish-timeline="!artifactMode"
-				:is-unsaved="isUnsaved"
 				:before-revert-to-published="beforeRevertToPublished"
 				:config-validation-status="configValidationStatus"
 				:config-validation-issues="props.configValidationIssues ?? []"
 				:before-publish="beforePublish"
 				@publish-ready="emit('publish-ready', $event)"
-				@open-publish-timeline="emit('open-publish-timeline')"
 				@published="(a: AgentResource) => emit('published', a)"
 				@unpublished="(a: AgentResource) => emit('unpublished', a)"
 				@reverted="(a: AgentResource) => emit('reverted', a)"

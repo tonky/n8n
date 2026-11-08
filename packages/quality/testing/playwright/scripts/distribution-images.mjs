@@ -11,7 +11,6 @@ const CAPABILITY_SERVICES = {
 	oidc: ['keycloak'],
 	proxy: ['proxy'],
 	'source-control': ['gitea'],
-	'trusted-sources': ['keycloak'],
 };
 
 const SERVICE_IMAGES = {

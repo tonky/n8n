@@ -16,9 +16,7 @@
   Cloud certificates can omit it. Saved eligibility is retained after later plan changes.
 - Use PostHog instance-date targeting to select new instances. The backend does
   not repeat the date filter.
-- Evaluate eligibility as soon as login, trial, and survey data are available.
-  The delay is configured by `MCP_DISCOVERY_DELAY_MS`, currently `0` milliseconds.
-  Evaluate Assistant activity at first login plus this delay. A successful
+- Evaluate Assistant activity at first login plus 30 minutes. A successful
   Builder workflow or agent creation/edit at or before that cutoff excludes the
   owner. Match the four existing Builder creation and modification events.
   Manual edits, MCP actions, failed saves, and empty agent shells do not count.
@@ -27,8 +25,7 @@
   imply eligibility. First-login persistence runs in the background and can fail
   without blocking authentication.
 - Do not exclude an owner because an MCP client is connected or the instance is
-  activated. Save the user's eligibility cutoff on the backend. Keep previously
-  saved eligibility timestamps unchanged. Select control
+  activated. Save the user's eligibility cutoff on the backend. Select control
   or treatment through the editor's standard PostHog `getVariant()` path, with
   instance-group allocation configured in PostHog. Do not persist a variant.
   The endpoint's `assigned` status means eligibility was confirmed; the UI also
@@ -51,18 +48,12 @@ Build an agent / Build a workflow screen does not change.
 
 | State | CTA |
 | --- | --- |
-| MCP disabled | Build in Claude |
+| MCP disabled | Build with Claude |
 | MCP enabled, Claude not connected | Connect Claude |
-| Claude connected, no successful workflow write | Build in Claude |
+| Claude connected, no successful workflow write | Build with Claude |
 | First successful workflow write through any MCP client | Hide all four entry points |
 
-The Create menu and empty canvas use the short CTA above. In the Assistant empty
-state, show `Prefer Claude?` outside the `Build your workflow in Claude` button
-only while MCP is disabled. In this stage, the expanded sidebar shows the title
-`Build workflows in Claude`, the description `Describe it in Claude, it appears in n8n.`,
-and a separate CTA button. Once MCP is enabled, both placements use only the short
-CTA above, without a title, description, or prefix. The collapsed sidebar shows
-only the Claude icon with an accessible CTA label.
+When MCP is disabled, only the expanded sidebar entry adds the subtext `Connect to n8n`.
 Before Claude connects, all four CTAs open MCP settings in the same tab.
 After Claude connects, all four open `https://claude.ai/new` in a new tab.
 Treatment also changes the MCP settings copy and Connect button styling. These
@@ -96,7 +87,7 @@ the value is available. Empty eligibility claims can be completed on a later vis
 Retry unknown data after one minute twice, then after two, four, and at most five
 minutes. Keep retrying so temporary failures can recover. Reset the delay when
 data becomes available or the user changes. Reject a known non-Claude answer
-immediately.
+without waiting for the deadline.
 
 Check on initialization and every 60 seconds while waiting or showing
 entry points. Stop for control, excluded, inactive, or completed treatment users.
@@ -105,9 +96,6 @@ not fetch PostHog flags separately. Missing, disabled or unrecognized variants
 show no treatment and emit no exposure. If flags arrive after saved eligibility,
 the UI reacts without another visit; treatment resumes completion polling.
 Waiting/unknown eligibility checks continue independently of flag availability.
-Keep the waiting path so a positive delay can be configured again. With the
-current zero delay, valid login timestamps qualify without waiting. The editor
-also accepts `waiting` responses from older backends during rollout.
 An API failure does not clear eligibility already loaded in the editor.
 
 Keep participation tracking centralized and gated by confirmed eligibility.

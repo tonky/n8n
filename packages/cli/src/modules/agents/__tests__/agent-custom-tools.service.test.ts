@@ -1,5 +1,3 @@
-import type { AgentDefinitionService } from '@/modules/agents/agent-definition.service';
-import { TransactionRunner } from '@n8n/db';
 import type { EventService } from '@n8n/backend-services';
 import { Container } from '@n8n/di';
 import type { ToolDescriptor } from '@n8n/agents';
@@ -74,8 +72,6 @@ function makeService() {
 			modificationTelemetry,
 		),
 		createAgentSkillRefsService(),
-		mock<AgentDefinitionService>(),
-		historyTransactionRunner(),
 	);
 
 	return {
@@ -279,9 +275,3 @@ describe('AgentCustomToolsService', () => {
 		);
 	});
 });
-
-function historyTransactionRunner() {
-	const runner = mock<TransactionRunner>();
-	runner.run.mockImplementation(async (ctx, fn) => await fn(ctx));
-	return runner;
-}

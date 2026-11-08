@@ -11,18 +11,16 @@ import { useUsersStore } from '@n8n/stores/users.store';
 import { useSettingsStore } from '@n8n/stores/settings.store';
 import { useRolesStore } from '@n8n/stores/roles.store';
 
-const DialogStub = {
-	props: ['header', 'description'],
+const ModalStub = {
 	template: `
-		<div role="dialog">
-			<h2 v-if="header">{{ header }}</h2>
-			<p v-if="description">{{ description }}</p>
-			<slot />
+		<div>
+			<slot name="header" />
+			<slot name="title" />
+			<slot name="content" />
+			<slot name="footer" />
 		</div>
 	`,
 };
-
-const dialogPartStub = { template: '<div><slot /></div>' };
 
 const mockClipboard = {
 	copy: vi.fn(),
@@ -47,11 +45,7 @@ vi.mock('@/app/composables/usePageRedirectionHelper', () => ({
 
 const global = {
 	stubs: {
-		Dialog: DialogStub,
-		DialogHeader: dialogPartStub,
-		DialogTitle: dialogPartStub,
-		DialogFooter: dialogPartStub,
-		DialogDescription: dialogPartStub,
+		Modal: ModalStub,
 	},
 };
 

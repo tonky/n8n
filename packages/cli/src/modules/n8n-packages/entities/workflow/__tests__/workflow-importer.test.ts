@@ -28,7 +28,6 @@ const makeWorkflow = (id: string): WorkflowEntity =>
 	});
 
 const bindings: PackageImportBindings = {
-	agents: new Map(),
 	credentials: new Map(),
 	workflows: new Map(),
 };
@@ -239,7 +238,6 @@ describe('WorkflowImporter.apply', () => {
 		createWorkflow.mockResolvedValue(makeWorkflow('created'));
 
 		await importer.apply(context, plan, {
-			agents: new Map(),
 			credentials: new Map([['source-credential', 'target-credential']]),
 			workflows: new Map(),
 		});
@@ -412,9 +410,9 @@ describe('WorkflowImporter.plan', () => {
 				},
 			],
 			{
-				conflictPolicy: 'new-version',
-				idPolicy: 'source',
-				publishingPolicy: 'preserve-published-state',
+				workflowConflictPolicy: 'new-version',
+				workflowIdPolicy: 'source',
+				workflowPublishingPolicy: 'preserve-published-state',
 				missingNodeTypeMode: 'fail',
 			},
 			{ checkRootPlacement: false },
@@ -454,9 +452,9 @@ describe('WorkflowImporter.plan', () => {
 				},
 			],
 			{
-				conflictPolicy: 'new-version',
-				idPolicy: 'source',
-				publishingPolicy: 'preserve-published-state',
+				workflowConflictPolicy: 'new-version',
+				workflowIdPolicy: 'source',
+				workflowPublishingPolicy: 'preserve-published-state',
 				missingNodeTypeMode: 'fail',
 			},
 			{ checkRootPlacement: false },
@@ -474,9 +472,9 @@ describe('WorkflowImporter.plan', () => {
 	});
 	describe('placement of a matched workflow', () => {
 		const options = {
-			conflictPolicy: 'new-version',
-			idPolicy: 'source',
-			publishingPolicy: 'preserve-published-state',
+			workflowConflictPolicy: 'new-version',
+			workflowIdPolicy: 'source',
+			workflowPublishingPolicy: 'preserve-published-state',
 			missingNodeTypeMode: 'fail',
 		} as const;
 

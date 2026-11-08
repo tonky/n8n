@@ -61,12 +61,6 @@ export interface V1StepExecutorDeps {
 		context: AdditionalDataContext,
 	) => Promise<IWorkflowExecuteAdditionalData>;
 	loadStepData: StepDataLoader;
-	/**
-	 * Mints the token that `$execution.resumeUrl` and `$execution.resumeFormUrl`
-	 * carry. The host supplies it because the host holds the resume secret.
-	 * Without it, the URLs carry a random token that the engine cannot verify.
-	 */
-	resumeToken?: (context: { executionId: string }) => string;
 }
 
 export type ExecutableNodeType = INodeType & { execute: NonNullable<INodeType['execute']> };
@@ -81,7 +75,6 @@ export interface CreateExecuteContextParams {
 	additionalData: IWorkflowExecuteAdditionalData;
 	itemsByConnection: INodeExecutionData[][];
 	stepContext: StepExecutionContext;
-	resumeToken?: string;
 }
 
 export interface RunNodeParams {

@@ -1,7 +1,6 @@
 import { LicenseState, Logger } from '@n8n/backend-common';
-import { PersonRepository, SettingsRepository } from '@n8n/db';
+import { SettingsRepository, UserRepository } from '@n8n/db';
 import { Service } from '@n8n/di';
-import { NotFoundError } from '@n8n/errors';
 import { Cipher } from 'n8n-core';
 import { v4 as uuid } from 'uuid';
 
@@ -16,7 +15,7 @@ export const MFA_CACHE_KEY = 'mfa:enforce';
 @Service()
 export class MfaService {
 	constructor(
-		private personRepository: PersonRepository,
+		private userRepository: UserRepository,
 		private settingsRepository: SettingsRepository,
 		private cacheService: CacheService,
 		private license: LicenseState,
@@ -72,10 +71,10 @@ export class MfaService {
 			recoveryCodes,
 		);
 
-		const person = await this.getPerson(userId);
-		person.mfaSecret = encryptedSecret;
-		person.mfaRecoveryCodes = encryptedRecoveryCodes;
-		await this.personRepository.save(person);
+		const user = await this.userRepository.findOneByOrFail({ id: userId });
+		user.mfaSecret = encryptedSecret;
+		user.mfaRecoveryCodes = encryptedRecoveryCodes;
+		await this.userRepository.save(user);
 	}
 
 	async encryptSecretAndRecoveryCodes(rawSecret: string, rawRecoveryCodes: string[]) {
@@ -99,7 +98,9 @@ export class MfaService {
 	}
 
 	async getSecretAndRecoveryCodes(userId: string) {
-		const { mfaSecret, mfaRecoveryCodes } = await this.getPerson(userId);
+		const { mfaSecret, mfaRecoveryCodes } = await this.userRepository.findOneByOrFail({
+			id: userId,
+		});
 		return await this.decryptSecretAndRecoveryCodes(mfaSecret ?? '', mfaRecoveryCodes ?? []);
 	}
 
@@ -108,24 +109,24 @@ export class MfaService {
 		mfaCode: string | undefined,
 		mfaRecoveryCode: string | undefined,
 	) {
-		const person = await this.getPerson(userId);
+		const user = await this.userRepository.findOneByOrFail({ id: userId });
 		if (mfaCode) {
-			const decryptedSecret = await this.cipher.decryptV2(person.mfaSecret!);
+			const decryptedSecret = await this.cipher.decryptV2(user.mfaSecret!);
 			return this.totp.verifySecret({ secret: decryptedSecret, mfaCode });
 		}
 
 		if (mfaRecoveryCode) {
 			const validCodes = await Promise.all(
-				person.mfaRecoveryCodes.map(async (code) => await this.cipher.decryptV2(code)),
+				user.mfaRecoveryCodes.map(async (code) => await this.cipher.decryptV2(code)),
 			);
 			const index = validCodes.indexOf(mfaRecoveryCode);
 			if (index === -1) return false;
 			// remove used recovery code
 			validCodes.splice(index, 1);
-			person.mfaRecoveryCodes = await Promise.all(
+			user.mfaRecoveryCodes = await Promise.all(
 				validCodes.map(async (code) => await this.cipher.encryptV2(code)),
 			);
-			await this.personRepository.save(person);
+			await this.userRepository.save(user);
 			return true;
 		}
 
@@ -133,10 +134,12 @@ export class MfaService {
 	}
 
 	async enableMfa(userId: string) {
-		const person = await this.personRepository.findByIdWithRole(userId);
-		if (!person) throw new NotFoundError('User not found');
-		person.mfaEnabled = true;
-		return await this.personRepository.save(person);
+		const user = await this.userRepository.findOneOrFail({
+			where: { id: userId },
+			relations: ['role'],
+		});
+		user.mfaEnabled = true;
+		return await this.userRepository.save(user);
 	}
 
 	async disableMfaWithMfaCode(userId: string, mfaCode: string) {
@@ -160,13 +163,11 @@ export class MfaService {
 	}
 
 	private async disableMfaForUser(userId: string) {
-		await this.personRepository.disableMfa(userId);
-	}
-
-	/** MFA belongs to people. A service account id is not found. */
-	private async getPerson(userId: string) {
-		const person = await this.personRepository.findById(userId);
-		if (!person) throw new NotFoundError('User not found');
-		return person;
+		// oxlint-disable-next-line typescript/no-deprecated
+		await this.userRepository.update(userId, {
+			mfaEnabled: false,
+			mfaSecret: null,
+			mfaRecoveryCodes: [],
+		});
 	}
 }

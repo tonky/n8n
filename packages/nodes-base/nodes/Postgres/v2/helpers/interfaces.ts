@@ -60,9 +60,6 @@ export type PostgresNodeCredentials = {
 	maxConnections: number;
 	allowUnauthorizedCerts?: boolean;
 	ssl?: 'disable' | 'allow' | 'require' | 'verify' | 'verify-full';
-	caCertificate?: string;
-	clientCertificate?: string;
-	clientPrivateKey?: string;
 } & (
 	| { sshTunnel: false }
 	| ({

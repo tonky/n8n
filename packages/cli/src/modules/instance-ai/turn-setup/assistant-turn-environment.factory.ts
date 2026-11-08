@@ -241,11 +241,11 @@ export class AssistantTurnEnvironmentFactory {
 		} = params;
 		const { memory } = runtime;
 		const thread = await memory.getThread(threadId);
-		if (thread && thread.resourceId !== runtime.resourceId) {
+		if (thread && thread.resourceId !== user.id) {
 			throw new ForbiddenError('Not authorized for this thread');
 		}
 
-		const boundProjectId = await runtime.getProjectId();
+		const boundProjectId = await memory.getThreadProjectId(threadId);
 		if (!boundProjectId) {
 			throw new UnexpectedError(
 				`Instance AI thread "${threadId}" has no bound project; it must be created via POST /instance-ai/threads before a run can start`,
@@ -340,7 +340,6 @@ export class AssistantTurnEnvironmentFactory {
 			modelId,
 			modelFetch: this.modelService.getModelFetch(),
 			allowSendingParameterValues,
-			temporaryWorkflowMarkers: runtime.temporaryWorkflowMarkers,
 		});
 
 		const browserMcpServer = browserUseEnabledGlobally

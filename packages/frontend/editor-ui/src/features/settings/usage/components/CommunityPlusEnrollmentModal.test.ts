@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { mockedStore } from '@/__tests__/utils';
 import { createComponentRenderer } from '@/__tests__/render';
 import CommunityPlusEnrollmentModal from './CommunityPlusEnrollmentModal.vue';
-import { STORES } from '@n8n/stores';
 import { COMMUNITY_PLUS_ENROLLMENT_MODAL } from '../usage.constants';
 import { useUsageStore } from '../usage.store';
 import { useToast } from '@n8n/composables/useToast';
@@ -37,13 +36,10 @@ vi.mock('@n8n/composables/useTelemetry', () => {
 const renderComponent = createComponentRenderer(CommunityPlusEnrollmentModal, {
 	global: {
 		stubs: {
-			Dialog: {
-				template: '<div role="dialog"><slot /></div>',
+			Modal: {
+				template:
+					'<div role="dialog"><slot name="header" /><slot name="content" /><slot name="footer" /></div>',
 			},
-			DialogHeader: { template: '<div><slot /></div>' },
-			DialogTitle: { template: '<h2><slot /></h2>' },
-			DialogDescription: { template: '<p><slot /></p>' },
-			DialogFooter: { template: '<div><slot /></div>' },
 		},
 	},
 });
@@ -52,15 +48,7 @@ describe('CommunityPlusEnrollmentModal', () => {
 	const buttonLabel = 'Send me a free license key';
 
 	beforeEach(() => {
-		createTestingPinia({
-			initialState: {
-				[STORES.UI]: {
-					modalStateById: {
-						[COMMUNITY_PLUS_ENROLLMENT_MODAL]: { open: true },
-					},
-				},
-			},
-		});
+		createTestingPinia();
 	});
 
 	it('should not throw error opened only with the name', () => {

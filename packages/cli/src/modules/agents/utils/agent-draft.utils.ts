@@ -7,9 +7,15 @@ import type { Agent } from '../entities/agent.entity';
 import type { AgentRepository } from '../repositories/agent.repository';
 import type { AgentDefinitionMetadata } from './agent-definition';
 
-/** Each changed definition needs an ID that cannot refer to an older snapshot. */
+/**
+ * Start a new draft if the agent is currently in sync with the published snapshot.
+ * Any mutation that changes how the agent would run must call this so that
+ * `hasUnpublishedChanges` stays accurate.
+ */
 export function markAgentDraftDirty(agent: Agent): void {
-	agent.versionId = uuid();
+	if (agent.versionId !== null && agent.versionId === agent.activeVersionId) {
+		agent.versionId = uuid();
+	}
 }
 
 /**

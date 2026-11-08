@@ -26,7 +26,8 @@ description: |
   do not need it.
 
   Agent definitions include referenced skills, custom tools, and schedules.
-  Knowledge base files and runtime data are excluded.
+  Knowledge base files and runtime data are excluded. Agent package imports
+  remain unavailable.
 x-required-scope: project:export,workflow:export,agent:export
 parameters:
   - $ref: ../../../../shared/spec/parameters/idempotencyKey.yml

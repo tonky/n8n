@@ -157,11 +157,10 @@ beforeAll(async () => {
 				...task,
 			})),
 		);
-		await agentRepository.setActiveVersionFenced(
-			agent.id,
-			agent.publicationRevision,
-			history.versionId,
-		);
+		await agentRepository.setActiveVersionFenced(agent.id, agent.revision, {
+			activeVersionId: history.versionId,
+			versionId: agent.versionId!,
+		});
 		sources.push({ agent: (await agentRepository.findById(agent.id))!, draft, published });
 	}
 });

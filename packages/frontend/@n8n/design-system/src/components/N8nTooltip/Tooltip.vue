@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useZIndex } from 'element-plus';
 import {
 	TooltipContent,
 	TooltipPortal,
@@ -59,8 +58,6 @@ const disableHoverableContent = computed(() => !props.enterable);
 
 // Handle controlled visibility
 const isOpen = ref(false);
-const { nextZIndex } = useZIndex();
-const zIndex = ref<number>();
 
 watch(
 	() => props.visible,
@@ -68,15 +65,6 @@ watch(
 		if (newVisible !== undefined) {
 			isOpen.value = newVisible;
 		}
-	},
-	{ immediate: true },
-);
-
-watch(
-	isOpen,
-	(open) => {
-		// Allocate on each open so tooltips stay above Element Plus menus.
-		if (open) zIndex.value = nextZIndex();
 	},
 	{ immediate: true },
 );
@@ -113,7 +101,6 @@ const handleOpenChange = (open: boolean) => {
 				<TooltipContent
 					data-test-id="tooltip-content"
 					:class="['n8n-tooltip', contentClass]"
-					:style="{ '--tooltip--z': zIndex }"
 					:side="placementParts.side"
 					:align="placementParts.align"
 					:side-offset="offset"
@@ -141,6 +128,8 @@ const handleOpenChange = (open: boolean) => {
 </template>
 
 <style lang="scss" module>
+@use '../../css/common/var';
+
 .buttons {
 	display: flex;
 	align-items: center;
@@ -158,7 +147,7 @@ const handleOpenChange = (open: boolean) => {
 
 // Global styles for teleported tooltip content
 :global(.n8n-tooltip) {
-	z-index: var(--tooltip--z);
+	z-index: var.$index-tooltip;
 	max-width: 180px;
 	padding: var(--spacing--4xs) var(--spacing--3xs);
 	min-height: var(--height--sm);

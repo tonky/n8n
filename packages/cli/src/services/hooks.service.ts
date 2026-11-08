@@ -2,15 +2,14 @@ import type {
 	AuthenticatedRequest,
 	Settings,
 	CredentialsEntity,
-	CloudHooksPeople,
 	User,
 	WorkflowEntity,
 } from '@n8n/db';
 import {
 	CredentialsRepository,
-	PersonRepository,
 	WorkflowRepository,
 	SettingsRepository,
+	UserRepository,
 } from '@n8n/db';
 import { Service } from '@n8n/di';
 import type { FindManyOptions, FindOneOptions, FindOptionsWhere } from '@n8n/typeorm';
@@ -28,8 +27,6 @@ import { UserService } from '@/services/user.service';
  */
 @Service()
 export class HooksService {
-	private readonly personCollection: CloudHooksPeople;
-
 	private innerAuthMiddleware: (
 		req: AuthenticatedRequest,
 		res: Response,
@@ -39,12 +36,11 @@ export class HooksService {
 	constructor(
 		private readonly userService: UserService,
 		private readonly authService: AuthService,
-		personRepository: PersonRepository,
+		private readonly userRepository: UserRepository,
 		private readonly settingsRepository: SettingsRepository,
 		private readonly workflowRepository: WorkflowRepository,
 		private readonly credentialsRepository: CredentialsRepository,
 	) {
-		this.personCollection = personRepository.forCloudHooks();
 		this.innerAuthMiddleware = authService.createAuthMiddleware({ allowSkipMFA: false });
 	}
 
@@ -72,14 +68,14 @@ export class HooksService {
 	 * 2. To know when to update the user's profile also in cloud
 	 */
 	async findOneUser(filter: FindOneOptions<User>) {
-		return await this.personCollection.findOne(filter);
+		return await this.userRepository.findOne(filter);
 	}
 
 	/**
 	 * Save instance owner with the cloud signup data
 	 */
 	async saveUser(user: User) {
-		return await this.personCollection.save(user);
+		return await this.userRepository.save(user);
 	}
 
 	/**
@@ -132,7 +128,7 @@ export class HooksService {
 	 */
 	dbCollections() {
 		return {
-			User: this.personCollection,
+			User: this.userRepository,
 			Settings: this.settingsRepository,
 			Credentials: this.credentialsRepository,
 			Workflow: this.workflowRepository,

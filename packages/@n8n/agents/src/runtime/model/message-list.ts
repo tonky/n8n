@@ -120,7 +120,6 @@ type MessageSource = 'history' | 'input' | 'response';
  */
 export class AgentMessageList {
 	activeSkillIds?: string[];
-	activeSkillVersions?: Record<string, string | null>;
 
 	private all: AgentDbMessage[] = [];
 
@@ -326,16 +325,14 @@ export class AgentMessageList {
 	 * the persisted message; it is metadata only and never reaches the model
 	 * (`toAiMessages` ignores it). No-op when the tool call is unknown.
 	 */
-	stampActivatedSkill(toolCallId: string, skillId: string, version?: string): void {
+	stampActivatedSkill(toolCallId: string, skillId: string): void {
 		const host = this.findToolCallHost(toolCallId);
 		if (!host) return;
 		const block = this.findToolCallBlock(host, toolCallId);
 		if (!block) return;
 		const current = block.activatedSkillIds ?? [];
-		block.activatedSkillIds = [...new Set([...current, skillId])];
-		if (version !== undefined) {
-			block.activatedSkillVersions = { ...block.activatedSkillVersions, [skillId]: version };
-		}
+		if (current.includes(skillId)) return;
+		block.activatedSkillIds = [...current, skillId];
 		this.responseSet.add(host);
 	}
 
@@ -485,16 +482,12 @@ export class AgentMessageList {
 			inputIds: toIds(this.inputSet),
 			responseIds: toIds(this.responseSet),
 			...(this.activeSkillIds !== undefined ? { activeSkillIds: [...this.activeSkillIds] } : {}),
-			...(this.activeSkillVersions ? { activeSkillVersions: { ...this.activeSkillVersions } } : {}),
 		};
 	}
 
 	static deserialize(data: SerializedMessageList): AgentMessageList {
 		const list = new AgentMessageList();
 		list.activeSkillIds = data.activeSkillIds ? [...data.activeSkillIds] : undefined;
-		list.activeSkillVersions = data.activeSkillVersions
-			? { ...data.activeSkillVersions }
-			: undefined;
 		const historyIdSet = new Set(data.historyIds);
 		const inputIdSet = new Set(data.inputIds);
 		const responseIdSet = new Set(data.responseIds);

@@ -52,7 +52,7 @@ export class Env {
 
 	charge(units: number): void {
 		this.work += units;
-		if (this.work > MAX_WORK) throw new EngineFallbackError('too_much_work');
+		if (this.work > MAX_WORK) throw new EngineFallbackError();
 	}
 }
 
@@ -65,20 +65,7 @@ export class Env {
  * nested `$parameter` expression, or a getter on a data object. Expressions
  * are pure and workflow data is JSON, so the only cost is the repeated work.
  */
-export class EngineFallbackError extends Error {
-	constructor(readonly reason: NativeFallbackReason) {
-		super();
-	}
-}
-
-/** Why a runtime value sent an expression back to the engine. */
-export type NativeFallbackReason =
-	| 'too_large'
-	| 'too_deep'
-	| 'too_much_work'
-	| 'unsupported_method'
-	| 'unsupported_type'
-	| 'replace_pattern';
+export class EngineFallbackError extends Error {}
 
 /**
  * Thrown by an optional member/call on a nullish receiver and caught by the
@@ -108,7 +95,7 @@ export function bounded<T>(value: T): T {
 	const isSizeable = typeof value === 'string' || isArray(value);
 
 	if (isSizeable && value.length > MAX_RESULT_LENGTH) {
-		throw new EngineFallbackError('too_large');
+		throw new EngineFallbackError();
 	}
 
 	return value;
@@ -161,7 +148,7 @@ function evalMember(node: Extract<SimpleNode, { kind: 'member' }>, env: Env): un
 		node.key in object &&
 		!hasOwn(object, node.key);
 	if (inherited) {
-		throw new EngineFallbackError('unsupported_type');
+		throw new EngineFallbackError();
 	}
 
 	// A node reference member (`.item`, `.json`) resolves through the proxy.
@@ -173,7 +160,7 @@ function evalMember(node: Extract<SimpleNode, { kind: 'member' }>, env: Env): un
 	// drops a nested function but fails on an inherited one; legacy throws),
 	// so the configured engine decides rather than this module guessing.
 	if (typeof value === 'function' || typeof value === 'symbol') {
-		throw new EngineFallbackError('unsupported_type');
+		throw new EngineFallbackError();
 	}
 
 	return value;
@@ -211,7 +198,7 @@ function methodFor(receiver: unknown, name: string): NativeMethod {
 		method = ARRAY_METHODS.get(name);
 	}
 
-	if (method === undefined) throw new EngineFallbackError('unsupported_method');
+	if (method === undefined) throw new EngineFallbackError();
 
 	return method;
 }
@@ -254,8 +241,7 @@ function preflightSize(receiver: unknown, method: string, args: unknown[]): numb
 		// `$$` is an escaped literal `$`; strip those pairs first so that `$$&`
 		// (a literal "$&") stays native while `$$$&` (a literal "$" then `$&`)
 		// bails. With a string pattern every other `$` is literal.
-		if (/\$[&`']/.test(replacement.replaceAll('$$', '')))
-			throw new EngineFallbackError('replace_pattern');
+		if (/\$[&`']/.test(replacement.replaceAll('$$', ''))) throw new EngineFallbackError();
 
 		upperBound =
 			method === 'replace'
@@ -272,7 +258,7 @@ function preflightSize(receiver: unknown, method: string, args: unknown[]): numb
 	}
 
 	if (upperBound > MAX_RESULT_LENGTH) {
-		throw new EngineFallbackError('too_large');
+		throw new EngineFallbackError();
 	}
 
 	return upperBound;
@@ -308,10 +294,10 @@ const STRINGIFIES_ELEMENTS = new Set(['join', 'toSorted']);
 function assertPrimitiveElements(receiver: unknown[]): void {
 	// The receiver cap applies before the scan, so the scan never walks more
 	// than the cap either.
-	if (receiver.length > MAX_RESULT_LENGTH) throw new EngineFallbackError('too_large');
+	if (receiver.length > MAX_RESULT_LENGTH) throw new EngineFallbackError();
 
 	for (const element of receiver) {
-		if (!isPrimitive(element)) throw new EngineFallbackError('unsupported_type');
+		if (!isPrimitive(element)) throw new EngineFallbackError();
 	}
 }
 
@@ -346,7 +332,7 @@ function elementContentWork(receiver: unknown[], method: string): number {
  * cap hands off: the engine owns data that deep.
  */
 function contentWeight(value: unknown, budget: number, depth = 0): number {
-	if (depth > MAX_DEPTH) throw new EngineFallbackError('too_deep');
+	if (depth > MAX_DEPTH) throw new EngineFallbackError();
 	if (typeof value === 'string') return value.length;
 	if (!isObj(value)) return 1;
 
@@ -382,7 +368,7 @@ function assertConcatWeight(receiver: unknown[], args: unknown[]): void {
 		if (weight > MAX_RESULT_LENGTH) break;
 		weight += contentWeight(arg, MAX_RESULT_LENGTH - weight);
 	}
-	if (weight > MAX_RESULT_LENGTH) throw new EngineFallbackError('too_large');
+	if (weight > MAX_RESULT_LENGTH) throw new EngineFallbackError();
 }
 
 function evalReceiver(
@@ -419,7 +405,7 @@ function evalCall(node: Extract<SimpleNode, { kind: 'call' }>, env: Env): unknow
 	// An own property shadowing the method (an engine-resolved $parameter value
 	// can carry one) would take precedence in the engines.
 	if (hasOwn(receiver, node.method)) {
-		throw new EngineFallbackError('unsupported_method');
+		throw new EngineFallbackError();
 	}
 
 	const method = methodFor(receiver, node.method);
@@ -438,7 +424,7 @@ function evalCall(node: Extract<SimpleNode, { kind: 'call' }>, env: Env): unknow
 function evalArgs(node: Extract<SimpleNode, { kind: 'call' }>, env: Env): unknown[] {
 	const args = node.args.map((argument) => evalNode(argument, env));
 	if (!args.every((arg) => isAllowedArgument(node.method, arg))) {
-		throw new EngineFallbackError('unsupported_type');
+		throw new EngineFallbackError();
 	}
 
 	return args;
@@ -462,12 +448,12 @@ function evalExtension(node: Extract<SimpleNode, { kind: 'call' }>, env: Env): u
 
 	const args = evalArgs(node, env);
 	const weight = contentWeight(receiver, MAX_RESULT_LENGTH);
-	if (weight > MAX_RESULT_LENGTH) throw new EngineFallbackError('too_large');
+	if (weight > MAX_RESULT_LENGTH) throw new EngineFallbackError();
 	env.charge(weight);
 
 	const result: unknown = extend(receiver, node.method, args);
 	if (isObj(result) && !isArray(result) && Object.getPrototypeOf(result) !== Object.prototype) {
-		throw new EngineFallbackError('unsupported_type');
+		throw new EngineFallbackError();
 	}
 
 	return bounded(result);
@@ -484,24 +470,24 @@ function evalIterate(node: Extract<SimpleNode, { kind: 'iterate' }>, env: Env): 
 	const receiver = evalReceiver(node, env);
 
 	if (!isArray(receiver) || hasOwn(receiver, node.method)) {
-		throw new EngineFallbackError('unsupported_method');
+		throw new EngineFallbackError();
 	}
 
 	const method = ITERATOR_NATIVES.get(node.method);
-	if (method === undefined) throw new EngineFallbackError('unsupported_method');
+	if (method === undefined) throw new EngineFallbackError();
 
 	env.charge(preflightSize(receiver, node.method, []));
 
 	let weight = 0;
 	const visit = (element: unknown) => {
-		if (++env.steps > MAX_STEPS) throw new EngineFallbackError('too_much_work');
+		if (++env.steps > MAX_STEPS) throw new EngineFallbackError();
 
 		env.param = element;
 		const result = evalNode(node.body, env);
 
 		if (node.method === 'map') {
 			weight += contentWeight(result, MAX_RESULT_LENGTH - weight);
-			if (weight > MAX_RESULT_LENGTH) throw new EngineFallbackError('too_large');
+			if (weight > MAX_RESULT_LENGTH) throw new EngineFallbackError();
 		}
 
 		return result;
@@ -519,14 +505,14 @@ function evalIterate(node: Extract<SimpleNode, { kind: 'iterate' }>, env: Env): 
  */
 function evalNodeRefCall(proxy: unknown, method: string, env: Env): unknown {
 	const fn: unknown = Reflect.get(proxy as object, method);
-	if (typeof fn !== 'function') throw new EngineFallbackError('unsupported_method');
+	if (typeof fn !== 'function') throw new EngineFallbackError();
 
 	const result = bounded(fn.call(proxy));
 
 	// A node name that is an Object.prototype key resolves through a plain
 	// object lookup on the host. Only the item shapes stay native.
 	const expected = method === 'all' ? isArray(result) : result === undefined || isItem(result);
-	if (!expected) throw new EngineFallbackError('unsupported_type');
+	if (!expected) throw new EngineFallbackError();
 
 	env.charge(isArray(result) ? result.length : 1);
 
@@ -542,11 +528,10 @@ const isItem = (value: unknown): boolean => isObj(value) && !isArray(value);
  * prototype, which is also the engine's.
  */
 function evalTimeRead(root: unknown, fn: NativeMethod | undefined): unknown {
-	if (fn === undefined || !DateTime.isDateTime(root))
-		throw new EngineFallbackError('unsupported_method');
+	if (fn === undefined || !DateTime.isDateTime(root)) throw new EngineFallbackError();
 
 	const result = fn.call(root);
-	if (!isPrimitive(result)) throw new EngineFallbackError('unsupported_type');
+	if (!isPrimitive(result)) throw new EngineFallbackError();
 
 	return result;
 }
@@ -576,7 +561,7 @@ function evalUnary(node: Extract<SimpleNode, { kind: 'unary' }>, env: Env): unkn
 	}
 
 	if (!isPrimitive(argument)) {
-		throw new EngineFallbackError('unsupported_type');
+		throw new EngineFallbackError();
 	}
 
 	return node.op === '-' ? -toNum(argument) : toNum(argument);
@@ -587,7 +572,7 @@ function evalBinary(node: Extract<SimpleNode, { kind: 'binary' }>, env: Env): un
 	const right = evalNode(node.right, env);
 
 	if (!isPrimitive(left) || !isPrimitive(right)) {
-		throw new EngineFallbackError('unsupported_type');
+		throw new EngineFallbackError();
 	}
 
 	const result = binaryOps[node.op](left, right);

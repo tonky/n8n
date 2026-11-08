@@ -1,7 +1,6 @@
 import {
 	AgentIntegrationConfig,
 	isCredentialAgentIntegration,
-	isDraftIntegration,
 	type AgentIntegrationSettings,
 } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
@@ -612,11 +611,8 @@ export class ChatIntegrationService {
 			}
 		}
 
-		// A draft has no credential yet, so there is nothing to connect.
 		const additions = nextExternal.filter(
-			(integration) =>
-				!isDraftIntegration(integration) &&
-				!previousKeys.has(buildIntegrationConnectionId(integration)),
+			(integration) => !previousKeys.has(buildIntegrationConnectionId(integration)),
 		);
 
 		if (additions.length > 0 && !agent.activeVersionId) {

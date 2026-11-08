@@ -1,4 +1,3 @@
-import type { AgentPublishHistoryRepository } from '../repositories/agent-publish-history.repository';
 import {
 	type CredentialsFinderService,
 	type EventService,
@@ -41,6 +40,7 @@ import type { AgentChatAttachmentService } from '../agent-chat-attachment.servic
 import { AgentConfigPreparationService } from '../agent-config-preparation.service';
 import { AgentConfigService } from '../agent-config.service';
 import type { NodeToolAiGatewayService } from '../json-config/node-tool-ai-gateway.service';
+import { AgentCustomToolsService } from '../agent-custom-tools.service';
 import type { AgentBackgroundJobRepository } from '../repositories/agent-background-job.repository';
 import type { AgentBackgroundJobService } from '../background/agent-background-job.service';
 import { AgentExecutionOrchestratorService } from '../agent-execution-orchestrator.service';
@@ -217,6 +217,7 @@ describe('AgentRuntimeReconstructionService integration tools', () => {
 	let telemetry: Mocked<Telemetry>;
 	let runtimeCacheService: AgentRuntimeCacheService;
 	let agentConfigService: AgentConfigService;
+	let agentCustomToolsService: AgentCustomToolsService;
 	let agentExecutionOrchestratorService: AgentExecutionOrchestratorService;
 	let agentIntegrationPersistenceService: AgentIntegrationPersistenceService;
 	let agentPublishService: AgentPublishService;
@@ -279,7 +280,6 @@ describe('AgentRuntimeReconstructionService integration tools', () => {
 		agentRepository.hasRevision.mockResolvedValue(true);
 		const definitionService = new AgentDefinitionService(
 			agentTaskRepository,
-			agentHistoryRepository,
 			agentTaskSnapshotRepository,
 			agentRepository,
 			transactionRunner,
@@ -303,7 +303,12 @@ describe('AgentRuntimeReconstructionService integration tools', () => {
 			saveCompletion,
 			skillRefs,
 			mock<ChatIntegrationRegistry>(),
-			mock<AgentDefinitionService>(),
+		);
+		agentCustomToolsService = new AgentCustomToolsService(
+			logger,
+			agentRepository,
+			saveCompletion,
+			skillRefs,
 		);
 		agentExecutionOrchestratorService = new AgentExecutionOrchestratorService(
 			logger,
@@ -342,8 +347,6 @@ describe('AgentRuntimeReconstructionService integration tools', () => {
 			mock<AgentSetupCompletionService>(),
 			skillRefs,
 			mock<N8nChatFlagService>(),
-			mock<AgentDefinitionService>(),
-			transactionRunner,
 		);
 		agentValidationService = new AgentValidationService(
 			agentRepository,
@@ -360,6 +363,9 @@ describe('AgentRuntimeReconstructionService integration tools', () => {
 			logger,
 			agentRepository,
 			agentHistoryRepository,
+			agentTaskSnapshotRepository,
+			agentTaskRepository,
+			agentCustomToolsService,
 			runtimeCacheService,
 			agentValidationService,
 			credentialsService,
@@ -375,7 +381,6 @@ describe('AgentRuntimeReconstructionService integration tools', () => {
 			mock<AgentFileRepository>({
 				getKnowledgeTotals: async () => ({ fileCount: 0, totalBytes: 0 }),
 			}),
-			mock<AgentPublishHistoryRepository>(),
 		);
 		agentTestChatService = new AgentTestChatService(n8nMemory, mock<AgentChatAttachmentService>());
 		agentsService = new AgentsService(
@@ -400,7 +405,6 @@ describe('AgentRuntimeReconstructionService integration tools', () => {
 			saveCompletion,
 			mock<AgentSetupCompletionService>(),
 			mock<N8nChatFlagService>(),
-			mock<AgentDefinitionService>(),
 		);
 		service = agentExecutionOrchestratorService;
 		markSharedTestSetupAsUsed(

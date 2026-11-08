@@ -441,8 +441,6 @@ describe('OauthService', () => {
 				'internal',
 				undefined,
 				false,
-				undefined,
-				{ managedVersion: undefined },
 			);
 		});
 	});
@@ -465,8 +463,6 @@ describe('OauthService', () => {
 				'internal',
 				undefined,
 				true,
-				undefined,
-				{ managedVersion: undefined },
 			);
 		});
 	});
@@ -492,7 +488,6 @@ describe('OauthService', () => {
 				decryptedData,
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -1244,68 +1239,6 @@ describe('OauthService', () => {
 		});
 	});
 
-	describe('getCarriedOverTokenData', () => {
-		const tokens = { access_token: 'old', refresh_token: 'old-refresh' };
-
-		it('should keep the stored tokens when the app does not change', () => {
-			credentialsHelper.getBoundVersion.mockReturnValue(2);
-
-			expect(
-				service.getCarriedOverTokenData('notionOAuth2Api', { oauthTokenData: tokens }, 2),
-			).toEqual(tokens);
-		});
-
-		it('should not carry the stored version over', () => {
-			credentialsHelper.getBoundVersion.mockReturnValue(2);
-
-			expect(
-				service.getCarriedOverTokenData(
-					'notionOAuth2Api',
-					{ oauthTokenData: { ...tokens, n8n_managed_version: 2 } },
-					2,
-				),
-			).toEqual(tokens);
-		});
-
-		it('should start fresh when the managed version changes', () => {
-			credentialsHelper.getBoundVersion.mockReturnValue(1);
-
-			expect(
-				service.getCarriedOverTokenData('notionOAuth2Api', { oauthTokenData: tokens }, 2),
-			).toEqual({});
-		});
-
-		it('should start fresh when a managed credential moves to its own client', () => {
-			credentialsHelper.getBoundVersion.mockReturnValue(2);
-
-			expect(
-				service.getCarriedOverTokenData('notionOAuth2Api', { oauthTokenData: tokens }, undefined),
-			).toEqual({});
-		});
-
-		it('should start fresh when a credential with its own client moves to the managed app', () => {
-			credentialsHelper.getBoundVersion.mockReturnValue(undefined);
-
-			expect(
-				service.getCarriedOverTokenData('notionOAuth2Api', { oauthTokenData: tokens }, 1),
-			).toEqual({});
-		});
-
-		it('should keep the stored tokens of a credential with its own client', () => {
-			credentialsHelper.getBoundVersion.mockReturnValue(undefined);
-
-			expect(
-				service.getCarriedOverTokenData('notionOAuth2Api', { oauthTokenData: tokens }, undefined),
-			).toEqual(tokens);
-		});
-
-		it('should return nothing when the credential has no token data', () => {
-			credentialsHelper.getBoundVersion.mockReturnValue(undefined);
-
-			expect(service.getCarriedOverTokenData('notionOAuth2Api', {}, 1)).toEqual({});
-		});
-	});
-
 	describe('resolveCredential', () => {
 		it('should resolve credential successfully', async () => {
 			const token = new (require('csrf'))();
@@ -1400,66 +1333,6 @@ describe('OauthService', () => {
 			await expect(service.resolveCredential(req)).rejects.toThrow(
 				'The OAuth callback state is invalid!',
 			);
-		});
-
-		describe('managed app version', () => {
-			const makeRequest = () => {
-				const token = new (require('csrf'))();
-				const stateToken = token.create('csrf-secret');
-				const state = { token: stateToken, createdAt: timestamp, data: 'encrypted-data' };
-				const encodedState = Buffer.from(JSON.stringify(state)).toString('base64');
-				const req = mock<OAuthRequest.OAuth2Credential.Callback>({
-					query: { state: encodedState },
-					user: mock<User>({ id: 'user-id' }),
-				});
-				const mockCredential = mock<CredentialsEntity>({ id: 'credential-id' });
-				const mockAdditionalData = mock<IWorkflowExecuteAdditionalData>();
-
-				cipher.decryptV2.mockResolvedValue(
-					JSON.stringify({
-						cid: 'credential-id',
-						userId: 'user-id',
-						origin: 'static-credential',
-					}),
-				);
-				credentialsFinderService.findCredentialForUser.mockResolvedValue(mockCredential);
-				vi.mocked(WorkflowExecuteAdditionalData.getBase).mockResolvedValue(mockAdditionalData);
-				credentialsHelper.getDecrypted.mockResolvedValue({ clientId: '' });
-				credentialsHelper.applyDefaultsAndOverwrites.mockResolvedValue({ clientId: 'client-id' });
-
-				return { req, mockAdditionalData };
-			};
-
-			it('should apply the managed version pinned in the flow state', async () => {
-				const { req, mockAdditionalData } = makeRequest();
-				cacheService.get.mockResolvedValue({ csrfSecret: 'csrf-secret', managedVersion: 2 });
-				vi.spyOn(service as any, 'verifyCsrfState').mockReturnValue(true);
-
-				const result = await service.resolveCredential(req);
-
-				expect(credentialsHelper.applyDefaultsAndOverwrites).toHaveBeenCalledWith(
-					mockAdditionalData,
-					{ clientId: '' },
-					expect.anything(),
-					'internal',
-					undefined,
-					undefined,
-					2,
-				);
-				expect(result[4].managedVersion).toBe(2);
-			});
-
-			it('should check the flow state before it reads the credential data', async () => {
-				const { req } = makeRequest();
-				cacheService.get.mockResolvedValue(undefined);
-
-				await expect(service.resolveCredential(req)).rejects.toThrow(
-					'The OAuth callback state is invalid!',
-				);
-
-				expect(credentialsHelper.getDecrypted).not.toHaveBeenCalled();
-				expect(credentialsHelper.applyDefaultsAndOverwrites).not.toHaveBeenCalled();
-			});
 		});
 
 		it('should throw NotFoundError when credential is not found', async () => {
@@ -1798,60 +1671,6 @@ describe('OauthService', () => {
 			expect(result).toBe(mockOAuthCredentials);
 		});
 
-		describe('managed app version', () => {
-			const credential = mock<CredentialsEntity>({ id: '1', type: 'testOAuth2Api' });
-			const mockAdditionalData = mock<IWorkflowExecuteAdditionalData>();
-
-			beforeEach(() => {
-				vi.mocked(WorkflowExecuteAdditionalData.getBase).mockResolvedValue(mockAdditionalData);
-				credentialsHelper.getDecrypted.mockResolvedValue({ clientId: '' });
-				credentialsHelper.applyDefaultsAndOverwrites.mockResolvedValue({ clientId: 'client-id' });
-			});
-
-			it('should use the version of a new connection and return it', async () => {
-				credentialsHelper.getNewConnectionVersion.mockReturnValue(2);
-
-				const result = await service.getNewConnectionCredentials(credential, 'user-id');
-
-				expect(result).toEqual({ oauthCredentials: { clientId: 'client-id' }, managedVersion: 2 });
-				expect(credentialsHelper.getNewConnectionVersion).toHaveBeenCalledWith(credential.type, {
-					clientId: '',
-				});
-				expect(credentialsHelper.applyDefaultsAndOverwrites).toHaveBeenCalledWith(
-					mockAdditionalData,
-					{ clientId: '' },
-					credential.type,
-					'internal',
-					undefined,
-					undefined,
-					2,
-				);
-			});
-
-			it('should return no version for a user-owned app', async () => {
-				credentialsHelper.getNewConnectionVersion.mockReturnValue(undefined);
-
-				const result = await service.getNewConnectionCredentials(credential, 'user-id');
-
-				expect(result.managedVersion).toBeUndefined();
-			});
-
-			it('should leave the version to the credential for an existing connection', async () => {
-				await service.getOAuthCredentials(credential);
-
-				expect(credentialsHelper.getNewConnectionVersion).not.toHaveBeenCalled();
-				expect(credentialsHelper.applyDefaultsAndOverwrites).toHaveBeenCalledWith(
-					mockAdditionalData,
-					{ clientId: '' },
-					credential.type,
-					'internal',
-					undefined,
-					undefined,
-					undefined,
-				);
-			});
-		});
-
 		it('should delete scope for non-generic OAuth2 credentials', async () => {
 			const credential = mock<CredentialsEntity>({
 				id: '1',
@@ -1872,7 +1691,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -1899,7 +1717,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id', scope: 'old-scope' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -1930,7 +1747,6 @@ describe('OauthService', () => {
 					'internal',
 					undefined,
 					undefined,
-					undefined,
 				);
 			},
 		);
@@ -1955,7 +1771,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id', scope: 'custom-scope' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -1984,7 +1799,6 @@ describe('OauthService', () => {
 				'internal',
 				undefined,
 				undefined,
-				undefined,
 			);
 		});
 
@@ -2009,7 +1823,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id', scope: 'custom-scope' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -2038,7 +1851,6 @@ describe('OauthService', () => {
 				'internal',
 				undefined,
 				undefined,
-				undefined,
 			);
 		});
 
@@ -2063,7 +1875,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id', scope: 'custom-scope' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -2092,7 +1903,6 @@ describe('OauthService', () => {
 				'internal',
 				undefined,
 				undefined,
-				undefined,
 			);
 		});
 
@@ -2116,7 +1926,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id', scope: 'old-scope' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -2148,7 +1957,6 @@ describe('OauthService', () => {
 				'internal',
 				undefined,
 				undefined,
-				undefined,
 			);
 		});
 
@@ -2175,7 +1983,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -2206,7 +2013,6 @@ describe('OauthService', () => {
 				'internal',
 				undefined,
 				undefined,
-				undefined,
 			);
 		});
 
@@ -2231,7 +2037,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -2261,7 +2066,6 @@ describe('OauthService', () => {
 				{ clientId: 'client-id' },
 				credential.type,
 				'internal',
-				undefined,
 				undefined,
 				undefined,
 			);
@@ -2294,9 +2098,7 @@ describe('OauthService', () => {
 				authentication: 'header',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 
 			const generateAOuth2AuthUriBound = service.generateAOauth2AuthUri.bind(service);
@@ -2307,7 +2109,7 @@ describe('OauthService', () => {
 			});
 
 			expect(authUri).toContain('https://example.domain/oauth2/auth');
-			expect(service.getNewConnectionCredentials).toHaveBeenCalledWith(credential, 'user-id');
+			expect(service.getOAuthCredentials).toHaveBeenCalledWith(credential, 'user-id');
 			// CSRF/PKCE state must not be persisted to the credential; it lives in the cache.
 			expect(service.encryptAndSaveData).not.toHaveBeenCalled();
 			expect(cacheService.set).toHaveBeenCalledWith(
@@ -2322,11 +2124,9 @@ describe('OauthService', () => {
 			]);
 
 			// Reject javascript: and data: protocols in OAuth2 URLs (XSS)
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials: {
-					...oauthCredentials,
-					authUrl: "javascript:alert('Hacked')//",
-				},
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue({
+				...oauthCredentials,
+				authUrl: "javascript:alert('Hacked')//",
 			});
 			const promiseJs = generateAOuth2AuthUriBound(credential, {
 				cid: credential.id,
@@ -2336,11 +2136,9 @@ describe('OauthService', () => {
 			await expect(promiseJs).rejects.toThrow(BadRequestError);
 			await expect(promiseJs).rejects.toThrow(/OAuth url must use HTTP or HTTPS protocol/);
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials: {
-					...oauthCredentials,
-					accessTokenUrl: 'data:text/html,<script>alert(1)</script>',
-				},
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue({
+				...oauthCredentials,
+				accessTokenUrl: 'data:text/html,<script>alert(1)</script>',
 			});
 			const promiseData = generateAOuth2AuthUriBound(credential, {
 				cid: credential.id,
@@ -2382,9 +2180,7 @@ describe('OauthService', () => {
 				authentication: 'header',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 
 			const authUri = await service.generateAOauth2AuthUri(credential, {
@@ -2432,9 +2228,7 @@ describe('OauthService', () => {
 				authQueryParameters: 'custom_param=value',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 
 			const authUri = await service.generateAOauth2AuthUri(credential, {
@@ -2476,9 +2270,7 @@ describe('OauthService', () => {
 				authQueryParameters: 'response_mode=query&prompt=select_account',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 
 			await service.generateAOauth2AuthUri(credential, {
@@ -2519,9 +2311,7 @@ describe('OauthService', () => {
 				authentication: 'header',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 
 			await service.generateAOauth2AuthUri(credential, {
@@ -2553,9 +2343,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.get).mockResolvedValue({
 				data: {
 					authorization_endpoint: 'https://example.domain/oauth2/auth',
@@ -2634,9 +2422,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.get).mockResolvedValue({
 				data: { invalid: 'metadata' },
 			} as any);
@@ -2669,9 +2455,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.get).mockResolvedValue({
 				data: {
 					authorization_endpoint: 'https://example.domain/oauth2/auth',
@@ -2723,9 +2507,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.get).mockResolvedValue({
 				data: {
 					authorization_endpoint: 'https://example.domain/oauth2/auth',
@@ -2787,9 +2569,7 @@ describe('OauthService', () => {
 				authentication: 'header',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 			vi.spyOn(service, 'createCsrfState').mockResolvedValue([
 				'csrf-secret',
@@ -2816,46 +2596,6 @@ describe('OauthService', () => {
 			);
 		});
 
-		it('should store the managed app version in the flow state', async () => {
-			const { ClientOAuth2 } = await import('@n8n/client-oauth2');
-			const credential = mock<CredentialsEntity>({ id: '1', type: 'googleOAuth2Api' });
-			const oauthCredentials: OAuth2CredentialData = {
-				clientId: 'client_id',
-				clientSecret: 'client_secret',
-				authUrl: 'https://example.domain/oauth2/auth',
-				accessTokenUrl: 'https://example.domain/oauth2/token',
-				scope: 'openid',
-				grantType: 'authorizationCode',
-				authentication: 'header',
-			};
-			vi.mocked(ClientOAuth2).mockImplementation(function () {
-				return { code: { getUri: vi.fn().mockReturnValue({ toString: () => 'uri' }) } } as any;
-			});
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-				managedVersion: 2,
-			});
-			vi.spyOn(service, 'createCsrfState').mockResolvedValue([
-				'csrf-secret',
-				'base64-state',
-				'state-token',
-			]);
-			const storeOauthFlowState = vi
-				.spyOn(service, 'storeOauthFlowState')
-				.mockResolvedValue(undefined);
-
-			await service.generateAOauth2AuthUri(credential, {
-				cid: credential.id,
-				origin: 'static-credential',
-				userId: 'user-id',
-			});
-
-			expect(storeOauthFlowState).toHaveBeenCalledWith(
-				'state-token',
-				expect.objectContaining({ managedVersion: 2 }),
-			);
-		});
-
 		describe('browser binding', () => {
 			it('does not apply binding when called without req/res', async () => {
 				const credential = mock<CredentialsEntity>({ id: '1', type: 'genericOAuth2Api' });
@@ -2865,9 +2605,7 @@ describe('OauthService', () => {
 					accessTokenUrl: 'https://example.domain/oauth/token',
 				} as OAuth2CredentialData;
 
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials,
-				});
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 				vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 				vi.spyOn(service, 'createCsrfState').mockResolvedValue([
 					'csrf-secret',
@@ -2894,9 +2632,7 @@ describe('OauthService', () => {
 					accessTokenUrl: 'https://example.domain/oauth/token',
 				} as OAuth2CredentialData;
 
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials,
-				});
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 				vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 				vi.spyOn(service, 'createCsrfState').mockResolvedValue([
 					'csrf-secret',
@@ -2925,9 +2661,7 @@ describe('OauthService', () => {
 					accessTokenUrl: 'https://example.domain/oauth/token',
 				} as OAuth2CredentialData;
 
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials,
-				});
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 				vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
 				vi.spyOn(service, 'createCsrfState').mockResolvedValue([
 					'csrf-secret',
@@ -2974,9 +2708,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.get).mockResolvedValue({
 				data: {
 					authorization_endpoint: 'https://example.domain/issuer1/authorize',
@@ -3031,9 +2763,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.get).mockResolvedValue({
 				data: {
 					authorization_endpoint: 'https://example.domain/authorize',
@@ -3086,9 +2816,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.get).mockResolvedValue({
 				data: {
 					authorization_endpoint: 'https://example.domain/authorize',
@@ -3138,9 +2866,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.get).mockResolvedValue({
 				data: {
 					authorization_endpoint: 'https://oauth.example.com/tenant/auth/provider/authorize',
@@ -3190,9 +2916,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Protected resource discovery fails (both calls)
 			// Then RFC 8414 fails, OpenID Connect succeeds
@@ -3256,9 +2980,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Protected resource discovery fails, then RFC 8414 and OpenID Connect path insertion fail, path appending succeeds
 			vi.mocked(httpClientMock.get)
@@ -3325,9 +3047,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			vi.mocked(httpClientMock.get)
 				.mockRejectedValueOnce(new Error('404')) // protected resource path-specific
@@ -3388,9 +3108,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// All three endpoints fail
 			vi.mocked(httpClientMock.get).mockRejectedValue(new Error('404 Not Found'));
@@ -3432,9 +3150,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Protected resource discovery (path-specific fails, root succeeds)
 			vi.mocked(httpClientMock.get)
@@ -3505,9 +3221,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Protected resource discovery fails (both path-specific and root)
 			vi.mocked(httpClientMock.get)
@@ -3579,9 +3293,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Protected resource discovery resolves with non-200 responses (e.g. a 204
 			// or 404 body that didn't throw) - the loop must treat these as misses and
@@ -3649,9 +3361,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Path-specific protected resource discovery succeeds
 			vi.mocked(httpClientMock.get)
@@ -3719,9 +3429,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Path-specific fails, root protected resource discovery succeeds
 			vi.mocked(httpClientMock.get)
@@ -3796,9 +3504,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Protected resource discovery fails (not an MCP server)
 			vi.mocked(httpClientMock.get)
@@ -3855,9 +3561,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Malicious protected resource returns javascript: protocol URL
 			vi.mocked(httpClientMock.get).mockResolvedValue({
@@ -3898,9 +3602,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			// Server metadata omits refresh_token from grant_types_supported (Common Room pattern)
 			vi.mocked(httpClientMock.get)
 				.mockRejectedValueOnce(new Error('404')) // protected resource path-specific
@@ -3959,9 +3661,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			// Protected resource discovery fails (both)
 			vi.mocked(httpClientMock.get)
@@ -4007,9 +3707,7 @@ describe('OauthService', () => {
 				useDynamicClientRegistration: true,
 			} as OAuth2CredentialData;
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			try {
 				await service.generateAOauth2AuthUri(credential, {
@@ -4062,14 +3760,12 @@ describe('OauthService', () => {
 			inlineJwks: boolean | undefined = undefined,
 		) {
 			const credential = mock<CredentialsEntity>({ id: '1', type: 'oAuth2Api' });
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials: {
-					serverUrl: 'https://example.domain',
-					useDynamicClientRegistration: true,
-					jweEnabled,
-					inlineJwks,
-				} as OAuth2CredentialData,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue({
+				serverUrl: 'https://example.domain',
+				useDynamicClientRegistration: true,
+				jweEnabled,
+				inlineJwks,
+			} as OAuth2CredentialData);
 
 			await service.generateAOauth2AuthUri(credential, {
 				cid: credential.id,
@@ -5018,9 +4714,7 @@ describe('OauthService', () => {
 			])(
 				'should fall back to OpenID discovery and register when OAuth metadata returns HTTP $statusCode with a text body',
 				async ({ statusCode, body }) => {
-					vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-						oauthCredentials: makeDcrCredentials(),
-					});
+					vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(makeDcrCredentials());
 					vi.mocked(httpClientMock.get)
 						.mockResolvedValueOnce({
 							data: {
@@ -5075,9 +4769,7 @@ describe('OauthService', () => {
 			);
 
 			it('should include discovered resource in the authorize URL and CSRF state', async () => {
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: makeDcrCredentials(),
-				});
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(makeDcrCredentials());
 				vi.mocked(httpClientMock.get).mockResolvedValueOnce({
 					data: {
 						authorization_servers: ['https://auth.example.com'],
@@ -5110,9 +4802,7 @@ describe('OauthService', () => {
 					code_verifier: 'code_verifier',
 					code_challenge: 'code_challenge',
 				});
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: makeDcrCredentials(),
-				});
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(makeDcrCredentials());
 				vi.mocked(httpClientMock.get).mockResolvedValueOnce({
 					data: {
 						authorization_servers: ['https://auth.example.com'],
@@ -5170,12 +4860,12 @@ describe('OauthService', () => {
 					code_verifier: 'code_verifier',
 					code_challenge: 'code_challenge',
 				});
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: makeDcrCredentials({
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(
+					makeDcrCredentials({
 						clientSecret: 'stale-secret',
 						authentication: 'header',
 					}),
-				});
+				);
 				vi.mocked(httpClientMock.get).mockResolvedValueOnce({
 					data: {
 						authorization_servers: ['https://auth.example.com'],
@@ -5214,9 +4904,7 @@ describe('OauthService', () => {
 			});
 
 			it('should omit resource when discovery and credential input do not provide one', async () => {
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: makeDcrCredentials(),
-				});
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(makeDcrCredentials());
 				vi.mocked(httpClientMock.get).mockResolvedValueOnce({
 					data: {
 						authorization_servers: ['https://auth.example.com'],
@@ -5238,11 +4926,11 @@ describe('OauthService', () => {
 			});
 
 			it('should include normalized user-supplied resource URL when it matches discovery', async () => {
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: makeDcrCredentials({
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(
+					makeDcrCredentials({
 						resourceUrl: 'https://mcp.example.com/mcp///',
 					} as Partial<OAuth2CredentialData>),
-				});
+				);
 				vi.mocked(httpClientMock.get).mockResolvedValueOnce({
 					data: {
 						authorization_servers: ['https://auth.example.com'],
@@ -5261,11 +4949,11 @@ describe('OauthService', () => {
 			});
 
 			it('should reject user-supplied resource URL that differs from discovered resource', async () => {
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: makeDcrCredentials({
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(
+					makeDcrCredentials({
 						resourceUrl: 'https://mcp.example.com/other',
 					} as Partial<OAuth2CredentialData>),
-				});
+				);
 				vi.mocked(httpClientMock.get).mockResolvedValueOnce({
 					data: {
 						authorization_servers: ['https://auth.example.com'],
@@ -5283,11 +4971,11 @@ describe('OauthService', () => {
 			});
 
 			it('should reject malformed user-supplied resource URL before generating authorize URL', async () => {
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: makeDcrCredentials({
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(
+					makeDcrCredentials({
 						resourceUrl: 'not-a-url',
 					} as Partial<OAuth2CredentialData>),
-				});
+				);
 
 				await expect(
 					service.generateAOauth2AuthUri(credential, {
@@ -5299,8 +4987,8 @@ describe('OauthService', () => {
 			});
 
 			it('should use resourceUrl for static credentials (useDynamicClientRegistration: false)', async () => {
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: makeDcrCredentials({
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(
+					makeDcrCredentials({
 						clientId: 'client-id',
 						clientSecret: 'client-secret',
 						authUrl: 'https://auth.example.com/oauth2/auth',
@@ -5308,7 +4996,7 @@ describe('OauthService', () => {
 						useDynamicClientRegistration: false,
 						resourceUrl: 'https://mcp.example.com/mcp///',
 					} as Partial<OAuth2CredentialData>),
-				});
+				);
 				vi.mocked(httpClientMock.get).mockRejectedValue(new Error('discovery unavailable'));
 
 				const authUri = await service.generateAOauth2AuthUri(credential, {
@@ -5375,15 +5063,15 @@ describe('OauthService', () => {
 				});
 				await mockClientOAuth2UriFromOptions();
 				vi.spyOn(service, 'encryptAndSaveData').mockResolvedValue(undefined);
-				vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-					oauthCredentials: // Under DCR the `scope` field is hidden and defaults to '' — the user
-						// cannot supply scopes, so the flow depends entirely on discovery.
-						makeDcrCredentials({
-							serverUrl: ATLASSIAN_SERVER_URL,
-							scope: '',
-							...credentialOverrides,
-						}),
-				});
+				vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(
+					// Under DCR the `scope` field is hidden and defaults to '' — the user
+					// cannot supply scopes, so the flow depends entirely on discovery.
+					makeDcrCredentials({
+						serverUrl: ATLASSIAN_SERVER_URL,
+						scope: '',
+						...credentialOverrides,
+					}),
+				);
 
 				await service.generateAOauth2AuthUri(credential, {
 					cid: credential.id,
@@ -5538,9 +5226,7 @@ describe('OauthService', () => {
 				signatureMethod: 'HMAC-SHA1',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.request).mockResolvedValue({
 				data: 'oauth_token=random-token&oauth_token_secret=random-secret',
 			});
@@ -5567,37 +5253,6 @@ describe('OauthService', () => {
 			expect(externalHooks.run).toHaveBeenCalledWith('oauth1.authenticate', expect.any(Array));
 		});
 
-		it('should store the managed app version in the flow state', async () => {
-			const credential = mock<CredentialsEntity>({ id: '1', type: 'twitterOAuth1Api' });
-			const oauthCredentials: OAuth1CredentialData = {
-				consumerKey: 'consumer_key',
-				consumerSecret: 'consumer_secret',
-				requestTokenUrl: 'https://example.domain/oauth/request_token',
-				authUrl: 'https://example.domain/oauth/authorize',
-				accessTokenUrl: 'https://example.domain/oauth/access_token',
-				signatureMethod: 'HMAC-SHA1',
-			};
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-				managedVersion: 2,
-			});
-			vi.mocked(httpClientMock.request).mockResolvedValue({
-				data: 'oauth_token=random-token&oauth_token_secret=random-secret',
-			});
-
-			await service.generateAOauth1AuthUri(credential, {
-				cid: credential.id,
-				origin: 'static-credential',
-				userId: 'user-id',
-			});
-
-			expect(cacheService.set).toHaveBeenCalledWith(
-				expect.stringMatching(/^oauth:flow:/),
-				expect.objectContaining({ managedVersion: 2 }),
-				expect.any(Number),
-			);
-		});
-
 		it('should reject javascript: protocol in OAuth1 URL (XSS)', async () => {
 			const credential = mock<CredentialsEntity>({ id: '1', type: 'twitterOAuth1Api' });
 			const oauthCredentials: OAuth1CredentialData = {
@@ -5609,9 +5264,7 @@ describe('OauthService', () => {
 				signatureMethod: 'HMAC-SHA1',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 
 			const promise = service.generateAOauth1AuthUri(credential, {
 				cid: credential.id,
@@ -5633,9 +5286,7 @@ describe('OauthService', () => {
 				signatureMethod: 'HMAC-SHA256',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.request).mockResolvedValue({
 				data: 'oauth_token=random-token&oauth_token_secret=random-secret',
 			});
@@ -5667,9 +5318,7 @@ describe('OauthService', () => {
 				signatureMethod: 'HMAC-SHA1',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.request).mockRejectedValue(new Error('Request token failed'));
 
 			await expect(
@@ -5693,9 +5342,7 @@ describe('OauthService', () => {
 				signatureMethod: 'HMAC-SHA1',
 			};
 
-			vi.spyOn(service, 'getNewConnectionCredentials').mockResolvedValue({
-				oauthCredentials,
-			});
+			vi.spyOn(service, 'getOAuthCredentials').mockResolvedValue(oauthCredentials);
 			vi.mocked(httpClientMock.request).mockResolvedValue({
 				data: 'oauth_token=random-token&oauth_token_secret=random-secret',
 			});

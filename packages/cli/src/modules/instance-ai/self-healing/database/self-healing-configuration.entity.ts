@@ -29,9 +29,6 @@ export class SelfHealingConfiguration extends WithTimestamps {
 	@Column({ type: 'boolean', default: false })
 	enabled: boolean;
 
-	@Column({ type: 'boolean', default: false })
-	includeAllProjectMembers: boolean;
-
 	@Index()
 	@Column({ type: 'uuid', nullable: true })
 	enabledById: string | null;

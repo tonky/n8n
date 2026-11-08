@@ -5,7 +5,6 @@ import { Response } from 'express';
 import { ensureError } from '@n8n/utils/errors/ensure-error';
 
 import { CredentialsOverwrites } from '@/credentials-overwrites';
-import { withTokenVersion } from '@/managed-versions';
 import { OauthService, type OAuth1CredentialData } from '@/oauth/oauth.service';
 import { OAuthRequest } from '@/requests';
 
@@ -56,15 +55,8 @@ export class OAuth1CredentialController {
 				oauthTokenSecret: flowState.oauthTokenSecret ?? '',
 			});
 
-			// Store the managed app version with the tokens, so every later request of this
-			// credential uses the app that issued them.
-			const tokenDataToSave =
-				flowState.managedVersion === undefined
-					? oauthTokenData
-					: withTokenVersion(oauthTokenData, flowState.managedVersion);
-
 			if (!state.origin || state.origin === 'static-credential') {
-				await this.oauthService.encryptAndSaveData(credential, { oauthTokenData: tokenDataToSave });
+				await this.oauthService.encryptAndSaveData(credential, { oauthTokenData });
 
 				this.logger.debug('OAuth1 callback successful for new credential', {
 					credentialId: credential.id,
@@ -87,7 +79,7 @@ export class OAuth1CredentialController {
 
 				await this.oauthService.saveDynamicCredential(
 					credential,
-					tokenDataToSave,
+					oauthTokenData,
 					state.authorizationHeader.split('Bearer ')[1],
 					state.credentialResolverId,
 					(state.authMetadata as Record<string, unknown>) ?? {},

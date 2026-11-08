@@ -1,4 +1,3 @@
-import { TransactionRunner } from '@n8n/db';
 import { type ToolDescriptor } from '@n8n/agents';
 import {
 	type AgentJsonToolConfig,
@@ -14,7 +13,6 @@ import {
 	type AgentMutationTelemetryContext,
 	buildAgentMutationEvent,
 } from './agent-modification-telemetry.service';
-import { AgentDefinitionService } from './agent-definition.service';
 import { AgentSaveCompletionService } from './agent-save-completion.service';
 import { AgentSkillRefsService } from './agent-skill-refs.service';
 import type { Agent } from './entities/agent.entity';
@@ -32,8 +30,6 @@ export class AgentCustomToolsService {
 		private readonly agentRepository: AgentRepository,
 		private readonly saveCompletion: AgentSaveCompletionService,
 		private readonly agentSkillRefs: AgentSkillRefsService,
-		private readonly definitionService: AgentDefinitionService,
-		private readonly transactionRunner: TransactionRunner,
 	) {}
 
 	validateDescriptor(descriptor: ToolDescriptor): void {
@@ -167,11 +163,7 @@ export class AgentCustomToolsService {
 		recordTelemetry = true,
 	): Promise<void> {
 		markAgentDraftDirty(entity);
-		const saved = await this.transactionRunner.run({}, async (ctx) => {
-			await saveAgentDraftFenced(this.agentRepository, entity, ctx);
-			await this.definitionService.captureVersion(entity, context.user, ctx, context.modifiedBy);
-			return entity;
-		});
+		const saved = await saveAgentDraftFenced(this.agentRepository, entity);
 		await this.saveCompletion.bodySaved(
 			buildAgentMutationEvent(saved, skillRefs, projectId, context, ['tools']),
 			context.pushRef,

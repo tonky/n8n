@@ -159,11 +159,6 @@ export interface AgentIntegrationStatusEntry {
 	errorMessage?: string;
 }
 
-export interface AgentIntegrationDraftEntry {
-	type: string;
-	settings?: AgentIntegrationSettings;
-}
-
 export interface AgentIntegrationStatusResponse {
 	/**
 	 * Rollup across `integrations`, for callers that only need one word:
@@ -171,8 +166,6 @@ export interface AgentIntegrationStatusResponse {
 	 */
 	status: 'configured' | 'connected' | 'disconnected' | 'partial' | 'error';
 	integrations: AgentIntegrationStatusEntry[];
-	/** Channels saved without a credential. Setup forms start from their settings. */
-	drafts: AgentIntegrationDraftEntry[];
 	n8nChat: { draftEnabled: boolean; publishedEnabled: boolean };
 }
 
@@ -355,23 +348,6 @@ export interface AgentVersionListItemDto {
 	updatedAt: string;
 	author: string;
 	isActive: boolean;
-	name?: string | null;
-	description?: string | null;
-	isCurrent?: boolean;
-	lastPublished?: Pick<AgentPublishHistoryItemDto, 'author' | 'createdAt' | 'isLegacy'>;
-}
-
-export interface AgentPublishHistoryItemDto {
-	id: number;
-	versionId: string | null;
-	name: string | null;
-	description: string | null;
-	event: 'activated' | 'deactivated';
-	author: string;
-	createdAt: string;
-	endedAt: string | null;
-	isActive: boolean;
-	isLegacy: boolean;
 }
 
 /**

@@ -51,7 +51,7 @@ import {
 	TagMissingMode,
 	VariableConflictPolicy,
 	VariableMissingMode,
-	ImportConflictPolicy,
+	WorkflowConflictPolicy,
 	WorkflowIdPolicy,
 	WorkflowPublishingPolicy,
 	type ImportRequest,
@@ -119,9 +119,9 @@ function isConfirmableConflict(code: PromotionBindingConflict['code']): boolean 
 // but a confirmed Continue uses `overwrite` for data tables.
 const IMPORT_POLICY: Omit<ImportRequest, 'user'> = {
 	projectConflictPolicy: ProjectConflictPolicy.Overwrite,
-	conflictPolicy: ImportConflictPolicy.NewVersion,
-	idPolicy: WorkflowIdPolicy.Source,
-	publishingPolicy: WorkflowPublishingPolicy.MatchSource,
+	workflowConflictPolicy: WorkflowConflictPolicy.NewVersion,
+	workflowIdPolicy: WorkflowIdPolicy.Source,
+	workflowPublishingPolicy: WorkflowPublishingPolicy.MatchSource,
 	missingNodeTypeMode: MissingNodeTypeMode.Fail,
 	credentialMatchingMode: 'id-only',
 	credentialMissingMode: 'must-preexist',

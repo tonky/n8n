@@ -62,9 +62,6 @@ const emit = defineEmits<{
 					:data-testid="props.addButtonTestId"
 					@click="emit('add')"
 				>
-					<template #icon>
-						<N8nIcon icon="plus" :size="16" />
-					</template>
 					{{ props.addLabel }}
 				</N8nButton>
 			</div>

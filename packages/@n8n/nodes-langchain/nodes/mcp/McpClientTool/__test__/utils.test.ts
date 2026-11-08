@@ -133,12 +133,8 @@ describe('mcpToolToDynamicTool - attribution', () => {
 
 		expect(mcpToolToDynamicTool(tool, vi.fn(), '(Powered by Genie)').metadata).toEqual({
 			isFromToolkit: true,
-			isMcpTool: true,
 			attribution: '(Powered by Genie)',
 		});
-		expect(mcpToolToDynamicTool(tool, vi.fn()).metadata).toEqual({
-			isFromToolkit: true,
-			isMcpTool: true,
-		});
+		expect(mcpToolToDynamicTool(tool, vi.fn()).metadata).toEqual({ isFromToolkit: true });
 	});
 });

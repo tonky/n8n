@@ -1,7 +1,6 @@
 import type { ModalDefinition } from '@n8n/frontend-module-sdk';
 
 import {
-	AGENT_VERSION_METADATA_MODAL_KEY,
 	AGENT_CONFIRMATION_MODAL_KEY,
 	AGENT_DESCRIPTION_MODAL_KEY,
 	AGENT_JSON_IMPORT_MODAL_KEY,
@@ -17,11 +16,6 @@ import {
 } from './constants';
 
 export const AGENTS_MODALS: ModalDefinition[] = [
-	{
-		key: AGENT_VERSION_METADATA_MODAL_KEY,
-		component: async () => await import('./components/AgentVersionMetadataModal.vue'),
-		initialState: { open: false },
-	},
 	{
 		key: AGENT_TOOLS_MODAL_KEY,
 		component: async () => await import('./components/AgentToolsConnectionModalWrapper.vue'),

@@ -17,8 +17,6 @@ const props = withDefaults(
 		projectId: string;
 		agentId: string;
 		isSaving?: boolean;
-		isUnsaved?: boolean;
-		showPublishTimeline?: boolean;
 		beforeRevertToPublished?: () => Promise<void> | void;
 		/**
 		 * Static, authoritative readiness result. `null` means unknown/stale
@@ -42,7 +40,6 @@ const { canUpdate, canPublish, canUnpublish } = useAgentPermissions(() => props.
 
 const emit = defineEmits<{
 	'publish-ready': [ready: boolean];
-	'open-publish-timeline': [];
 	published: [agent: AgentResource];
 	unpublished: [agent: AgentResource];
 	reverted: [agent: AgentResource];
@@ -129,14 +126,6 @@ const dropdownActions = computed(() => {
 		});
 	}
 
-	if (props.showPublishTimeline) {
-		actions.push({
-			id: 'publish-timeline',
-			label: locale.baseText('workflowHistory.action.viewTimeline'),
-			disabled: !props.agent || props.isUnsaved,
-		});
-	}
-
 	actions.push({
 		id: 'unpublish',
 		label: locale.baseText('agents.publish.dropdown.unpublish'),
@@ -150,19 +139,9 @@ const dropdownActions = computed(() => {
 
 async function onPublishClick() {
 	if (isPublishDisabled.value) return;
-	const { projectId, agentId } = props;
 	if (props.beforePublish && !(await props.beforePublish())) return;
-	if (projectId !== props.projectId || agentId !== props.agentId) return;
-	const versionId = props.agent?.versionId;
-	if (!versionId) return;
-	const updated = await publish(
-		projectId,
-		agentId,
-		versionId,
-		() => projectId === props.projectId && agentId === props.agentId,
-	);
-	if (updated && projectId === props.projectId && agentId === props.agentId)
-		emit('published', updated);
+	const updated = await publish(props.projectId, props.agentId);
+	if (updated) emit('published', updated);
 }
 
 useKeybindings({
@@ -175,10 +154,6 @@ useKeybindings({
 defineExpose({ publish: onPublishClick });
 
 async function onDropdownSelect(action: string) {
-	if (action === 'publish-timeline') {
-		if (props.showPublishTimeline && props.agent && !props.isUnsaved) emit('open-publish-timeline');
-		return;
-	}
 	if (action === 'publish') {
 		await onPublishClick();
 		return;
