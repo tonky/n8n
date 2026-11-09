@@ -59,7 +59,7 @@ _target_scope: {
 	rules: [
 		if len(#ignore) > 0 {match: #ignore, action: "ignore"},
 		if len(#runner) > 0 {match: #runner, action: "full_component"},
-		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"], engine: "typescript"},
+		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue,json}"], engine: "typescript"},
 	]
 }
 
@@ -170,6 +170,7 @@ pipeline: schema.#Pipeline & {
 					target_scope: _target_scope & {#dir: p.dir, #tests: p.tests, #ignore: p.exclude}
 					recorder:     *"own_linux" | string
 					recorded_by:  *["enact-node"] | [...string]
+					resources:    {cpus: *2.0 | number, memory_mb: *4096 | int}
 					jobs: test: {
 						name:  *"Test" | string
 						tasks: *[{name: "Run Tests", command: _vitest}] | [...schema.#Task]
@@ -198,7 +199,15 @@ pipeline: schema.#Pipeline & {
 			}
 		}
 
-		frontend: jobs: test: tasks: [{name: "Run Tests", command: _vitest, timeout: _wholeSuiteTimeout}]
+		frontend: {
+			resources:        {cpus: 2.0, memory_mb: 4096}
+			record_resources: {cpus: 2.0, memory_mb: 6144}
+			jobs: {
+				lint:      resources: {cpus: 2.0, memory_mb: 6144}
+				typecheck: resources: {cpus: 2.0, memory_mb: 6144}
+				test: tasks: [{name: "Run Tests", command: _vitest, timeout: _wholeSuiteTimeout}]
+			}
+		}
 
 		"@n8n/expression-runtime": jobs: test: tasks: [{name: "Run Tests", command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}]
 
@@ -402,9 +411,11 @@ pipeline: schema.#Pipeline & {
 					}]
 				}
 				migrate: {
-					recorder:     "own_linux"
-					recorded_by:  ["enact-node", "n8n-services"]
-					target_scope: _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
+					recorder:         "own_linux"
+					recorded_by:      ["enact-node", "n8n-services"]
+					resources:        {cpus: 4.0, memory_mb: 4096}
+					record_resources: {cpus: 4.0, memory_mb: 4096}
+					target_scope:     _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
 					tasks: [
 						{
 							name:    "migrate"
