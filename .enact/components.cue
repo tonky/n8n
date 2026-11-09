@@ -58,8 +58,9 @@ _target_scope: {
 	tests:     #tests
 	rules: [
 		if len(#ignore) > 0 {match: #ignore, action: "ignore"},
+		if #dir != "packages/frontend/@n8n/i18n" {match: ["packages/frontend/@n8n/i18n/src/locales/*.json"], action: "ignore"},
 		if len(#runner) > 0 {match: #runner, action: "full_component"},
-		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue,json}"], engine: "typescript"},
+		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"], engine: "typescript"},
 	]
 }
 
@@ -167,10 +168,11 @@ pipeline: schema.#Pipeline & {
 				}
 				if p.shards > 0 {shards: *p.shards | int}
 				if len(p.tests) > 0 {
-					target_scope: _target_scope & {#dir: p.dir, #tests: p.tests, #ignore: p.exclude}
-					recorder:     *"own_linux" | string
-					recorded_by:  *["enact-node"] | [...string]
-					resources:    {cpus: *2.0 | number, memory_mb: *4096 | int}
+					target_scope:     _target_scope & {#dir: p.dir, #tests: p.tests, #ignore: p.exclude}
+					recorder:         *"own_linux" | string
+					recorded_by:      *["enact-node"] | [...string]
+					resources:        {cpus: *2.0 | number, memory_mb: *2048 | int}
+					record_resources: {cpus: *2.0 | number, memory_mb: *4096 | int}
 					jobs: test: {
 						name:  *"Test" | string
 						tasks: *[{name: "Run Tests", command: _vitest}] | [...schema.#Task]
@@ -508,7 +510,7 @@ pipeline: schema.#Pipeline & {
 					name:             "Dev-Server Boot Smoke"
 					needs:            ["build", "@n8n/db:build"]
 					recorder:         "trace"
-					record_resources: {cpus: 4.0, memory_mb: 11264}
+					record_resources: {cpus: 4.0, memory_mb: 10240}
 					target_scope: _target_scope & {
 						#dir:   P.dir
 						#tests: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]
@@ -530,7 +532,7 @@ pipeline: schema.#Pipeline & {
 					tasks: [
 						{
 							name:      "Run dev-server smoke spec (non-default ports)"
-							command:   "DB_TYPE=sqlite pnpm test:dev-server-smoke:alt-port --reporter=list --trace=off {relative_targets}"
+							command:   "helpers/playwright-runner.sh --ensure-browsers && DB_TYPE=sqlite pnpm test:dev-server-smoke:alt-port --reporter=list --trace=off {relative_targets}"
 							env:       DB_TYPE: "sqlite"
 							unset_env: _unsetPgEnv
 						},
@@ -545,9 +547,8 @@ pipeline: schema.#Pipeline & {
 				test: {
 					name:  "Test"
 					needs: ["build", "@n8n/db:build"]
-					// Keep the owned recorder within the existing 13 GiB full carrier:
-					// 11 GiB payload plus the pool's 2 GiB setup reserve.
-					record_resources: {cpus: 4.0, memory_mb: 11264}
+					// Keep the owned recorder within the 12 GiB carrier (10 GiB payload + 2 GiB reserve).
+					record_resources: {cpus: 4.0, memory_mb: 10240}
 					tasks: [{
 						name:      "Run Tests"
 						command:   "helpers/playwright-runner.sh {relative_targets}"

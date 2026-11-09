@@ -18,6 +18,26 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VITEST_BIN="$REPO_ROOT/packages/cli/node_modules/.bin/vitest"
 
+if [ "${1:-}" = "--ensure-browsers" ]; then
+  if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ "$(uname -s)" = "Linux" ]; then
+    for browser_bin in \
+      "$PLAYWRIGHT_BROWSERS_PATH"/chromium*/chrome*/chrome-headless-shell \
+      "$PLAYWRIGHT_BROWSERS_PATH"/chromium*/chrome*/headless_shell \
+      "$PLAYWRIGHT_BROWSERS_PATH"/chromium*/chrome*/chrome; do
+      if [ -x "$browser_bin" ]; then
+        if ! "$browser_bin" --version >/dev/null 2>&1; then
+          echo "📦 [playwright-runner] Pulling Nix store RUNPATH closure for $browser_bin..." >&2
+          enve cache pull "$REPO_ROOT/enve.lock" \
+            --cache "${ENACT_R2_BUCKET:-https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev}" \
+            -j 16 >&2 || true
+        fi
+        break
+      fi
+    done
+  fi
+  exit 0
+fi
+
 # The workspace packages: linked where configs and tools resolve them, and built
 if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   # Link all workspace @n8n packages into root node_modules/@n8n so configs and tools resolve them
