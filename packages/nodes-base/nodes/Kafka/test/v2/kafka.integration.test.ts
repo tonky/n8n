@@ -16,6 +16,8 @@
  * manual evidence on ENT-222.
  */
 import { sleep } from '@n8n/utils/sleep';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { Kafka, type Consumer } from 'kafkajs';
 import { createServiceStack, type N8NStack } from 'n8n-containers';
 import type {
@@ -47,6 +49,36 @@ let credentials: KafkaCredentials;
 let inBroker: (command: string) => Promise<string>;
 
 beforeAll(async () => {
+	// A broker already running (N8N_TEST_KAFKA_BROKER, host:port) stands in for the
+	// container where no container runtime is: the Kafka CLI tools run on this host,
+	// as Apache Kafka names them (`kafka-topics.sh`), against that broker.
+	const broker = process.env.N8N_TEST_KAFKA_BROKER;
+	if (broker) {
+		credentials = {
+			clientId: 'n8n-kafka-integration',
+			brokers: broker,
+			ssl: false,
+			authentication: false,
+		};
+		inBroker = async (command) => {
+			const local = command
+				.replaceAll('localhost:9092', broker)
+				.replace(/\bkafka-(topics|console-producer|consumer-groups)\b/g, 'kafka-$1.sh');
+			try {
+				const { stdout } = await promisify(execFile)('sh', ['-c', local]);
+				return stdout;
+			} catch (error) {
+				const { code, stdout, stderr } = error as {
+					code?: number;
+					stdout?: string;
+					stderr?: string;
+				};
+				throw new Error(`in-broker command failed (${code}): ${stdout ?? ''}${stderr ?? ''}`);
+			}
+		};
+		return;
+	}
+
 	stack = await createServiceStack({ services: ['kafka'] });
 	// The stack types services generically, so narrow to the Kafka shape here, as
 	// the MySQL integration test does.
