@@ -363,7 +363,6 @@ jobs:
           restore-keys: |-
             node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-
             node_build-${{ runner.os }}-${{ matrix.task_id }}-
-            node_build-${{ runner.os }}-
       - name: Restore Cache [vitest_transforms]
         id: cache_vitest_transforms
         if: ${{ (contains(format(',{0},', matrix.caches), ',vitest_transforms,')) && !steps.skip.outputs.hit }}
@@ -372,9 +371,7 @@ jobs:
         with:
           key: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('pnpm-lock.yaml') }}
           path: node_modules/.vitest-cache
-          restore-keys: |-
-            vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-
-            vitest_transforms-${{ runner.os }}-
+          restore-keys: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-
     - name: Record Restored Package Caches
       if: ${{ (steps.runner_caches.outputs.host == '') && !steps.skip.outputs.hit }}
       continue-on-error: true
@@ -548,14 +545,14 @@ jobs:
           key: ${{ steps.browsers_l1_cache.outputs.cache-primary-key }}
           path: /tmp/.cache/ms-playwright
       - name: Save Cache [node_build]
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-{1}-{2}-', runner.os, matrix.task_id, hashFiles('package.json', 'pnpm-lock.yaml'))))) && steps.cache_node_build.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-{1}-{2}-', runner.os, matrix.task_id, hashFiles('package.json', 'pnpm-lock.yaml'))))) && steps.cache_node_build.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
           key: ${{ steps.cache_node_build.outputs.cache-primary-key }}
           path: .turbo
       - name: Save Cache [vitest_transforms]
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',vitest_transforms,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && steps.cache_vitest_transforms.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',vitest_transforms,')) && steps.cache_vitest_transforms.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:

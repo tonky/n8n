@@ -72,7 +72,13 @@ if [ -f "$REPO_ROOT/pnpm-lock.yaml" ] && [ ! -d "$REPO_ROOT/node_modules" ]; the
 fi
 
 # The repairs the installed tree needs (links, resolution, native-addon fallbacks).
-[ ! -d "$REPO_ROOT/node_modules" ] || REPO_ROOT="$REPO_ROOT" "$SCRIPT_DIR/repair-node-modules.sh"
+if [ -d "$REPO_ROOT/node_modules" ]; then
+  if [ "$SETUP_FIXTURE" = 1 ]; then
+    REPO_ROOT="$REPO_ROOT" "$SCRIPT_DIR/repair-node-modules.sh" >&2
+  else
+    REPO_ROOT="$REPO_ROOT" "$SCRIPT_DIR/repair-node-modules.sh"
+  fi
+fi
 
 # Node 24's IncomingMessage symbols (repair-node-modules.sh writes the preload).
 HTTP_PRELOAD="$REPO_ROOT/node_modules/.enact-node24-http-preload.cjs"
@@ -91,6 +97,11 @@ if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ -d "$PLAYWRIGHT_BROWSERS_PATH" ];
     if [ -x "$browser" ]; then
       export N8N_EVAL_BROWSER_EXECUTABLE="${N8N_EVAL_BROWSER_EXECUTABLE:-$browser}"
       if [ "$(uname -s)" = Linux ]; then
+        if ! "$browser" --version >/dev/null 2>&1; then
+          enve cache pull "$REPO_ROOT/enve.lock" \
+            --cache "${ENACT_R2_BUCKET:-https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev}" \
+            -j 16 >&2 || true
+        fi
         PW_RPATH_CACHE="$REPO_ROOT/node_modules/.enact-playwright-rpath-v1"
         if [ ! -f "$PW_RPATH_CACHE" ] && [ -d "$REPO_ROOT/node_modules" ]; then
           rg -ao "/[^:[:space:]]+/lib(:/[^:[:space:]]+/lib)+" "$browser" 2>/dev/null | head -n 1 > "$PW_RPATH_CACHE" || true
@@ -130,12 +141,22 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
 fi
 
 if [ "$SETUP_FIXTURE" = 1 ]; then
+  context=""
   if [ -e node_modules/@n8n/backend-test-utils ]; then
     export N8N_LOG_LEVEL=silent DB_TYPE=postgresdb DB_POSTGRESDB_USER=postgres PGUSER=postgres \
       DB_POSTGRESDB_DATABASE=n8n DB_POSTGRESDB_SCHEMA=alt_schema DB_TABLE_PREFIX=test_
     db="n8n_template_$$_$RANDOM"
     node "$SCRIPT_DIR/n8n-template-db.cjs" "$db" >&2 || exit
-    printf 'N8N_TEST_TEMPLATE_DB=%s\nN8N_WORKSPACE_DEPS_BUILT=1\n' "$db"
+    context=$(printf '{"env":{"N8N_TEST_TEMPLATE_DB":"%s","N8N_WORKSPACE_DEPS_BUILT":"1"}}' "$db")
+  elif [ "${N8N_WORKSPACE_DEPS_BUILT:-}" = 1 ]; then
+    context='{"env":{"N8N_WORKSPACE_DEPS_BUILT":"1"}}'
+  fi
+  if [ -n "$context" ]; then
+    if [ -n "${ENACT_FIXTURE_CONTEXT_FILE:-}" ]; then
+      printf '%s\n' "$context" > "$ENACT_FIXTURE_CONTEXT_FILE"
+    else
+      printf '%s\n' "$context"
+    fi
   fi
   exit 0
 fi

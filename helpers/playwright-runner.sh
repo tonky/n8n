@@ -45,6 +45,22 @@ fi
 
 if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
   if compgen -G "$PLAYWRIGHT_BROWSERS_PATH/chromium*" >/dev/null 2>&1; then
+    if [ "$(uname -s)" = "Linux" ]; then
+      for browser_bin in \
+        "$PLAYWRIGHT_BROWSERS_PATH"/chromium*/chrome*/chrome-headless-shell \
+        "$PLAYWRIGHT_BROWSERS_PATH"/chromium*/chrome*/headless_shell \
+        "$PLAYWRIGHT_BROWSERS_PATH"/chromium*/chrome*/chrome; do
+        if [ -x "$browser_bin" ]; then
+          if ! "$browser_bin" --version >/dev/null 2>&1; then
+            echo "📦 [playwright-runner] Pulling Nix store RUNPATH closure for $browser_bin..." >&2
+            enve cache pull "$REPO_ROOT/enve.lock" \
+              --cache "${ENACT_R2_BUCKET:-https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev}" \
+              -j 16 >&2 || true
+          fi
+          break
+        fi
+      done
+    fi
     echo "✅ [playwright-runner] Playwright browser already warm in $PLAYWRIGHT_BROWSERS_PATH"
   elif [[ "$PLAYWRIGHT_BROWSERS_PATH" == /nix/store/* || "$PLAYWRIGHT_BROWSERS_PATH" == */enve/store/* ]]; then
     echo "❌ [playwright-runner] Store PLAYWRIGHT_BROWSERS_PATH has no chromium browser: $PLAYWRIGHT_BROWSERS_PATH" >&2

@@ -551,7 +551,6 @@ jobs:
           restore-keys: |-
             node_build-${{ runner.os }}-stage-check-and-lint-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-
             node_build-${{ runner.os }}-stage-check-and-lint-
-            node_build-${{ runner.os }}-
     - name: Record Restored Package Caches
       if: ${{ (steps.runner_caches.outputs.host == '') && steps.stage_plan.outputs.stage_has_work == 'true' }}
       continue-on-error: true
