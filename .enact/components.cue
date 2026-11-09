@@ -211,7 +211,7 @@ pipeline: schema.#Pipeline & {
 			}
 		}
 
-		for n in ["@n8n/expression-runtime", "@n8n/n8n-nodes-langchain"] {
+		for n in ["@n8n/expression-runtime", "@n8n/n8n-nodes-langchain", "nodes-base"] {
 			(n): jobs: test: tasks: [{name: "Run Tests", command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}]
 		}
 
