@@ -384,7 +384,7 @@ pipeline: schema.#Pipeline & {
 			services:         Services
 			service:          n8n.services.cli
 			resources:        {cpus: 2.0, memory_mb: 4096}
-			record_resources: {cpus: 4.0, memory_mb: 4096}
+			record_resources: {cpus: 4.0, memory_mb: 6144}
 			recorded_by:      ["enact-node", "n8n-services"]
 			target_scope: not_run: [{
 				tests: [

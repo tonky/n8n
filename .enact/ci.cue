@@ -21,7 +21,7 @@ pipeline: schema.#Pipeline & {
 	env: NODE_OPTIONS: "--max-old-space-size=6144"
 	toolchain: node: {
 		package_manager: "pnpm"
-		env: {ELECTRON_SKIP_BINARY_DOWNLOAD: "1", GITHUB_TOKEN: ""}
+		env: {ELECTRON_SKIP_BINARY_DOWNLOAD: "1", GITHUB_TOKEN: "", npm_config_build_from_source: "false"}
 	}
 	ci: {
 		control_worker: "standard"
