@@ -58,7 +58,8 @@ if [ "${ENACT_SERVICES_ACTIVE:-0}" = 1 ] && [ -z "$DECLARED_SERVICES" ]; then
   exit 1
 fi
 
-WORK=$(mktemp -d "${TMPDIR:-/tmp}/enact-footprints.XXXXXX")
+mkdir -p "$ROOT/.enact/state/tmp"
+WORK=$(mktemp -d "$ROOT/.enact/state/tmp/enact-footprints.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 
 # run_kind <name> <wanted> <services> [<target>...]: the targets (none: the whole suite),
@@ -102,6 +103,14 @@ def trie_paths(v, p=""):
         for k, c in v.items():
             np = p if k in ("", ".") else (f"{p}/{k}" if p else k)
             yield from trie_paths(c, np)
+def probe_paths(v):
+    if isinstance(v, list) and v and all(isinstance(g, list) and len(g) == 2 and isinstance(g[1], list) for g in v):
+        for dirs, names in v:
+            for d in trie_paths(dirs):
+                for n in names:
+                    yield f"{d}/{n}" if d else n
+    else:
+        yield from trie_paths(v or [])
 targets = m.get("targets") or {}
 for t in [t for t in targets if not wanted(t)]:
     del targets[t]
@@ -115,6 +124,19 @@ if services:
         rs = fp.get("recorders") or []
         if "n8n-services/1" not in rs:
             fp["recorders"] = rs + ["n8n-services/1"]
+if len(targets) >= 2 and not m.get("shared"):
+    shared = {}
+    for field, expand in (("files", trie_paths), ("installed", trie_paths), ("probes", probe_paths)):
+        per_t = {t: set(expand(fp.get(field) or [])) for t, fp in targets.items()}
+        common = set.intersection(*per_t.values())
+        if common:
+            shared[field] = sorted(common)
+            for t, fp in targets.items():
+                own = sorted(per_t[t] - common)
+                if own: fp[field] = own
+                else: fp.pop(field, None)
+    if shared:
+        m["shared"] = shared
 m["outcomes"] = True
 with open(to + ".part", "w", encoding="utf-8") as f:
     json.dump(m, f, ensure_ascii=False, separators=(",", ":"))

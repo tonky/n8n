@@ -53,16 +53,18 @@ pipeline: schema.#Pipeline & {
 				}
 			}
 			arm64: {
-				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci", "mac1"], tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
+				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci", "mac1"], host_id: "mac1", tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
 				pool: {
 					cpus: 16, memory_mb: 36864
 					// mac1's dispatcher runs 4c/8G while a Mac lane or gate holds the host
 					// (KNOWLEDGE `tonky-ci` load clamp): an l job would wait it out.
 					floor: {cpus: 4, memory_mb: 8192}
-					sizes: {
-						"tonky-ci-s": {cpus: 2, memory_mb: 4096}
-						"tonky-ci-m": {cpus: 4, memory_mb: 8192}
-						"tonky-ci-l": {cpus: 6, memory_mb: 13312}
+					quantization: {
+						label_prefix: "tonky-ci", cpu_step: 1, memory_step_mb: 1024
+						runtime_reserve_mb: 2048
+						min: {cpus: 1, memory_mb: 4096}
+						max: {cpus: 6, memory_mb: 13312}
+						control: {cpus: 2, memory_mb: 4096}
 					}
 				}
 			}

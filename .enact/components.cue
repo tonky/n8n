@@ -171,7 +171,7 @@ pipeline: schema.#Pipeline & {
 					target_scope:     _target_scope & {#dir: p.dir, #tests: p.tests, #ignore: p.exclude}
 					recorder:         *"own_linux" | string
 					recorded_by:      *["enact-node"] | [...string]
-					resources:        {cpus: *2.0 | number, memory_mb: *2048 | int}
+					resources:        {cpus: *2.0 | number, memory_mb: *4096 | int}
 					record_resources: {cpus: *2.0 | number, memory_mb: *4096 | int}
 					jobs: test: {
 						name:  *"Test" | string
