@@ -10,8 +10,21 @@ let stack: N8NStack;
 let credentials: MysqlNodeCredentials;
 
 beforeAll(async () => {
-	stack = await createServiceStack({ services: ['mysql'] });
-	const meta = stack.serviceResults.mysql!.meta as {
+	// A server already running (N8N_TEST_MYSQL_HOST and the rest) stands in for the
+	// container where no container runtime is.
+	const env = process.env;
+	if (!env.N8N_TEST_MYSQL_HOST) stack = await createServiceStack({ services: ['mysql'] });
+	const meta = (
+		env.N8N_TEST_MYSQL_HOST
+			? {
+					externalHost: env.N8N_TEST_MYSQL_HOST,
+					externalPort: Number(env.N8N_TEST_MYSQL_PORT ?? 3306),
+					database: env.N8N_TEST_MYSQL_DATABASE ?? 'n8n_test',
+					username: env.N8N_TEST_MYSQL_USER ?? 'n8n_user',
+					password: env.N8N_TEST_MYSQL_PASSWORD ?? 'test_password',
+				}
+			: stack.serviceResults.mysql!.meta
+	) as {
 		externalHost: string;
 		externalPort: number;
 		database: string;
