@@ -48,7 +48,7 @@ pipeline: schema.#Pipeline & {
 						// Retain the existing cold JavaScript setup floor during the canary.
 						min: {cpus: 1, memory_mb: 4096}
 						max: {cpus: 6, memory_mb: 13312}
-						control: {cpus: 2, memory_mb: 4096}
+						control: {cpus: 4, memory_mb: 12288}
 					}
 				}
 			}
@@ -67,11 +67,11 @@ pipeline: schema.#Pipeline & {
 				}
 			}
 			l7: {
-				// A second X64 host (8c/14G), limited to 4c/8G allocations.
+				// A second X64 host (16t, ~13 GiB free), limited to 4c/8G allocations.
 				// A gate lane holding l7 drains its dispatcher to zero.
 				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], host_id: "l7", tier: "dedicated", available: 1, cost_per_min: 0.006, timeout_minutes: 90
 				pool: {
-					cpus: 8, memory_mb: 12288
+					cpus: 14, memory_mb: 13312
 					quantization: {
 						label_prefix: "tonky-ci", cpu_step: 1, memory_step_mb: 1024
 						runtime_reserve_mb: 2048
