@@ -211,7 +211,9 @@ pipeline: schema.#Pipeline & {
 			}
 		}
 
-		"@n8n/expression-runtime": jobs: test: tasks: [{name: "Run Tests", command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}]
+		for n in ["@n8n/expression-runtime", "@n8n/n8n-nodes-langchain"] {
+			(n): jobs: test: tasks: [{name: "Run Tests", command: _vitest, env: N8N_TESTS_READ_OWN_BUILD: "1"}]
+		}
 
 		"@n8n/mcp-apps": {
 			let P = _packages["@n8n/mcp-apps"]
