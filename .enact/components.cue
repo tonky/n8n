@@ -59,7 +59,7 @@ _target_scope: {
 	rules: [
 		if len(#ignore) > 0 {match: #ignore, action: "ignore"},
 		if len(#runner) > 0 {match: #runner, action: "full_component"},
-		{match: [#dir + "/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"], engine: "typescript"},
+		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"], engine: "typescript"},
 	]
 }
 
