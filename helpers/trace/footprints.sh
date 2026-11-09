@@ -125,10 +125,15 @@ if services:
         if "n8n-services/1" not in rs:
             fp["recorders"] = rs + ["n8n-services/1"]
 if len(targets) >= 2 and not m.get("shared"):
+    func_files = {
+        f for fp in targets.values() for f in (fp.get("functions") or {}).keys()
+    }
     shared = {}
-    for field, expand in (("files", trie_paths), ("installed", trie_paths), ("probes", probe_paths)):
+    for field, expand in (("files", trie_paths), ("loaded", trie_paths), ("installed", trie_paths), ("probes", probe_paths)):
         per_t = {t: set(expand(fp.get(field) or [])) for t, fp in targets.items()}
         common = set.intersection(*per_t.values())
+        if field in ("files", "loaded"):
+            common -= func_files
         if common:
             shared[field] = sorted(common)
             for t, fp in targets.items():

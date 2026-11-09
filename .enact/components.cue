@@ -397,7 +397,7 @@ pipeline: schema.#Pipeline & {
 				test: {
 					fixture: {
 						scope:   "shard"
-						setup:   "N8N_TESTS_READ_OWN_BUILD=1 helpers/vitest-runner.sh --setup-fixture {relative_targets}"
+						setup:   "helpers/vitest-runner.sh --setup-fixture {relative_targets}"
 						release: "helpers/vitest-runner.sh --release-fixture"
 					}
 					tasks: [{
@@ -415,8 +415,8 @@ pipeline: schema.#Pipeline & {
 				migrate: {
 					recorder:         "own_linux"
 					recorded_by:      ["enact-node", "n8n-services"]
-					resources:        {cpus: 4.0, memory_mb: 4096}
-					record_resources: {cpus: 4.0, memory_mb: 4096}
+					resources:        {cpus: 4.0, memory_mb: 6144}
+					record_resources: {cpus: 4.0, memory_mb: 6144}
 					target_scope:     _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
 					tasks: [
 						{

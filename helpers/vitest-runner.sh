@@ -279,9 +279,10 @@ fi
 
 # Transforms persist across runs (node_modules/.vitest-cache, keyed by each module's
 # content and the config: every run still reads the sources it uses, so traces see them):
-# halves a test file's start-up. VITEST_FS_CACHE=0 turns it off.
+# halves a test file's start-up. VITEST_FS_CACHE=0 turns it off; multi-shard runs disable
+# it so parallel shards in a shared worktree don't race on `rmdir node_modules/.vitest-cache`.
 CACHE_OPTS=()
-[ "${VITEST_FS_CACHE:-1}" = 0 ] || CACHE_OPTS=(--fsModuleCache)
+[ "${VITEST_FS_CACHE:-1}" = 0 ] || [ "${ENACT_SHARD_TOTAL:-1}" -gt 1 ] || CACHE_OPTS=(--fsModuleCache)
 
 # The package's vitest, as its `pnpm test` runs it: pnpm sets the environment its scripts
 # get (npm_config_user_agent: node-cli's commands pick the package manager they were run with).
