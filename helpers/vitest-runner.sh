@@ -125,7 +125,9 @@ if [ -d "$REPO_ROOT/packages/@n8n" ]; then
   if [ -n "$CURRENT_PKG" ]; then
     filter="${CURRENT_PKG}^..."
     # A package whose tests load its own build (N8N_TESTS_READ_OWN_BUILD, components.cue).
-    [ "${N8N_TESTS_READ_OWN_BUILD:-}" = 1 ] && filter="${CURRENT_PKG}..."
+    if [ "${N8N_TESTS_READ_OWN_BUILD:-}" = 1 ] || [ "$CURRENT_PKG" = "n8n" ]; then
+      filter="${CURRENT_PKG}..."
+    fi
     for target in "${TARGETS[@]}"; do
       case "$target" in ../*) filter="${CURRENT_PKG}..." ;; esac
     done

@@ -37,7 +37,7 @@ jobs:
     if: ${{ inputs.matrix != '{"include":[]}' && inputs.matrix != '[]' && inputs.matrix != '' }}
     strategy:
       fail-fast: false
-      max-parallel: 16
+      max-parallel: 64
       matrix: ${{ fromJson(inputs.matrix) }}
     runs-on: ${{ matrix.runs_on }}
     timeout-minutes: 90

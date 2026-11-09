@@ -397,7 +397,7 @@ pipeline: schema.#Pipeline & {
 				test: {
 					fixture: {
 						scope:   "shard"
-						setup:   "helpers/vitest-runner.sh --setup-fixture {relative_targets}"
+						setup:   "N8N_TESTS_READ_OWN_BUILD=1 helpers/vitest-runner.sh --setup-fixture {relative_targets}"
 						release: "helpers/vitest-runner.sh --release-fixture"
 					}
 					tasks: [{
