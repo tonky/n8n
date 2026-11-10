@@ -678,7 +678,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
-    - tonky-ci-c4m12g
+    - tonky-ci-c2m4g
     timeout-minutes: 5
     outputs:
       builds: ${{ steps.diff.outputs.builds }}
@@ -935,7 +935,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
-    - tonky-ci-c4m12g
+    - tonky-ci-c2m4g
     timeout-minutes: 10
     steps:
     - name: Probe Runner Caches
@@ -1102,7 +1102,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
-    - tonky-ci-c4m12g
+    - tonky-ci-c2m4g
     timeout-minutes: 5
     steps:
     - name: Probe Runner Caches
