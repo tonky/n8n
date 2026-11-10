@@ -64,6 +64,20 @@ EOF
   touch "$REPO_ROOT/node_modules/.enact-curlconverter-healed-v1" 2>/dev/null || true
 fi
 
+# Under parallel Vitest shards with eBPF + V8 coverage tracing, @testing-library/dom's 1000ms
+# default waitFor/findBy* timeout flakes when async File.text() or Vue slot mounts contend for CPU.
+if [ ! -f "$REPO_ROOT/node_modules/.enact-testing-library-timeout-healed-v1" ]; then
+  for tl_file in \
+    "$REPO_ROOT"/node_modules/.pnpm/@testing-library+dom*/node_modules/@testing-library/dom/dist/config.js \
+    "$REPO_ROOT"/node_modules/.pnpm/@testing-library+dom*/node_modules/@testing-library/dom/dist/@testing-library/dom.cjs.js \
+    "$REPO_ROOT"/node_modules/.pnpm/@testing-library+dom*/node_modules/@testing-library/dom/dist/@testing-library/dom.esm.js; do
+    if [ -f "$tl_file" ]; then
+      sed 's/asyncUtilTimeout: 1000,/asyncUtilTimeout: 10000,/g' "$tl_file" > "$tl_file.tmp" && mv -f "$tl_file.tmp" "$tl_file"
+    fi
+  done
+  touch "$REPO_ROOT/node_modules/.enact-testing-library-timeout-healed-v1" 2>/dev/null || true
+fi
+
 [ -d "$REPO_ROOT/packages/@n8n" ] || exit 0
 
 # The workspace packages: linked where configs and tools resolve them
