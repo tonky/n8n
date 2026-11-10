@@ -135,9 +135,15 @@ pipeline: schema.#Pipeline & {
 		},
 		for n in ["nodes-base", "@n8n/n8n-nodes-langchain"] {
 			let P = _packages[n]
-			outputs: [for g in _nodeMetaOutputs {P.dir + g}]
-			inputs:  [P.dir + "/**"]
-			exclude: [for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
+			outputs: [P.dir + "/dist/known/credentials.json", P.dir + "/dist/types/credentials.json"]
+			inputs:  [P.dir + "/package.json", P.dir + "/credentials/**"]
+			exclude: [for e in ["/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
+		},
+		for n in ["nodes-base", "@n8n/n8n-nodes-langchain"] {
+			let P = _packages[n]
+			outputs: [P.dir + "/dist/known/nodes.json", P.dir + "/dist/types/nodes.json", P.dir + "/dist/methods/**", P.dir + "/dist/node-definitions/**"]
+			inputs:  [P.dir + "/package.json", P.dir + "/nodes/**", P.dir + "/utils/**"]
+			exclude: [for e in ["/**/methods/**", "/**/types.ts", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
 		},
 		{
 			outputs: ["packages/cli/dist/timezones.json"]
