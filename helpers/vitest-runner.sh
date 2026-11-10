@@ -37,6 +37,8 @@ TARGETS=("$@")
 export TZ=UTC
 export PGTZ=UTC
 export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
+export VITE_CONFIG_NATIVE_IGNORE_WARNING=true
+export TURBO_TELEMETRY_DISABLED=1
 export NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-/tmp/.node_compile_cache}"
 if [ -n "${ENACT_ATTRIBUTION_FILE:-}" ] || [ -n "${ENACT_FOOTPRINT_DIR:-}" ]; then
   export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=3072"

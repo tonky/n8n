@@ -115,10 +115,6 @@ targets = m.get("targets") or {}
 for t in [t for t in targets if not wanted(t)]:
     del targets[t]
     (m.get("target_service_deps") or {}).pop(t, None)
-for fp in targets.values():
-    if "dirs" in fp:
-        rdirs = {f.rsplit("/", 1)[0] for f in trie_paths(fp.get("files") or []) if "/" in f and not f.endswith((".test.ts", ".spec.ts", ".test.js", ".spec.js"))}
-        fp["dirs"] = [d for d in trie_paths(fp["dirs"]) if d.removeprefix("dir:").rstrip("/") in rdirs]
 if services:
     for fp in targets.values():
         rs = fp.get("recorders") or []
@@ -142,6 +138,18 @@ if len(targets) >= 2 and not m.get("shared"):
                 else: fp.pop(field, None)
     if shared:
         m["shared"] = shared
+for fp in targets.values():
+    if "dirs" in fp:
+        rdirs = {
+            f.rsplit("/", 1)[0]
+            for f in trie_paths(fp.get("files") or [])
+            if "/" in f
+            and not f.endswith((".test.ts", ".spec.ts", ".test.js", ".spec.js", "/package.json", "/tsconfig.json", "/tsconfig.build.json"))
+            and "/vitest.config" not in f
+        }
+        kept_dirs = [d for d in trie_paths(fp["dirs"]) if d.removeprefix("dir:").rstrip("/") in rdirs]
+        if kept_dirs: fp["dirs"] = kept_dirs
+        else: fp.pop("dirs", None)
 m["outcomes"] = True
 with open(to + ".part", "w", encoding="utf-8") as f:
     json.dump(m, f, ensure_ascii=False, separators=(",", ":"))

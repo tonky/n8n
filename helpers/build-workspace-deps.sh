@@ -9,6 +9,8 @@
 # N8N_WORKSPACE_DEPS_BUILT=1 skips it when a caller already built up front.
 # ==============================================================================
 set -euo pipefail
+export TURBO_TELEMETRY_DISABLED=1
+export VITE_CONFIG_NATIVE_IGNORE_WARNING=true
 [ "${N8N_WORKSPACE_DEPS_BUILT:-}" = 1 ] && exit 0
 task=build:unchecked
 if [ "${1:-}" = --checked ]; then task=build; shift; fi

@@ -116,6 +116,8 @@ pipeline: schema.#Pipeline & {
 			exclude: [
 				for d in [p.dir, for b in Bundles {b}] for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/*.stories.*", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e},
 				for db in ["sqlite", "postgresdb"] {"packages/@n8n/db/src/migrations/" + db + "/index.ts"},
+				"packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts",
+				"packages/@n8n/expression-runtime/src/pool/**",
 			]
 			mapped: [for d in [p.dir, for b in Bundles {b}] {d + "/**"}]
 			if !p.bundled && _noSrcDir[n] == _|_ {
@@ -166,11 +168,12 @@ pipeline: schema.#Pipeline & {
 		},
 		{
 			let P = _packages["@n8n/expression-runtime"]
-			outputs:    [P.dir + "/dist/{cjs,esm}/**", P.dir + "/.turbo/**"]
-			inputs:     [P.dir + "/**"]
-			exclude:    [for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
-			mapped:     [P.dir + "/**"]
-			transpiled: [{from: P.dir + "/src", to: [P.dir + "/dist/cjs", P.dir + "/dist/esm"]}]
+			outputs:         [P.dir + "/dist/**", P.dir + "/.turbo/**"]
+			exclude_outputs: [P.dir + "/dist/bundle/**"]
+			inputs:          [P.dir + "/**"]
+			exclude:         [for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
+			mapped:          [P.dir + "/**"]
+			transpiled:      [{from: P.dir + "/src", to: [P.dir + "/dist/cjs", P.dir + "/dist/esm"]}]
 		},
 		{
 			let P = _packages["@n8n/expression-runtime"]
@@ -505,6 +508,7 @@ pipeline: schema.#Pipeline & {
 				migrate: {
 					recorder:         "own_linux"
 					recorded_by:      ["enact-node", "n8n-services"]
+					shards:           2
 					resources:        {cpus: 4.0, memory_mb: 6144}
 					record_resources: {cpus: 4.0, memory_mb: 6144}
 					target_scope:     _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}

@@ -317,7 +317,7 @@ jobs:
           restore-keys: ${{ runner.os }}-enact-tasks-
       - name: Restore Python build & venv cache
         id: python_l1_cache
-        if: ${{ (hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '' && contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '') && !steps.skip.outputs.hit }}
+        if: ${{ (contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
@@ -328,7 +328,7 @@ jobs:
           restore-keys: ${{ runner.os }}-python-
       - name: Restore Go build cache
         id: go_l1_cache
-        if: ${{ (hashFiles('**/go.mod', '**/go.sum') != '' && contains(matrix.technology, 'go') && steps.runner_caches.outputs.host == '') && !steps.skip.outputs.hit }}
+        if: ${{ (contains(matrix.technology, 'go') && steps.runner_caches.outputs.host == '' && hashFiles('**/go.mod', '**/go.sum') != '') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
@@ -523,7 +523,7 @@ jobs:
           node_l1_cache node_modules/.cache
         ENACT_UV_PRUNE: "true"
     - name: Save Python build & venv cache
-      if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '' && contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.cache_delta.outputs.python_l1_cache == 'true') && steps.python_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+      if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.cache_delta.outputs.python_l1_cache == 'true') && steps.python_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -533,7 +533,7 @@ jobs:
           /tmp/.cache/pip
     - parallel:
       - name: Save Go build cache
-        if: ${{ (((env.ENACT_SAVE_EVENT == 'true' && hashFiles('**/go.mod', '**/go.sum') != '' && contains(matrix.technology, 'go') && steps.runner_caches.outputs.host == '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.go_l1_cache.outputs.cache-matched-key, format('{0}-go-{1}-', runner.os, hashFiles('**/go.mod', '**/go.sum'))))) && steps.go_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ (((env.ENACT_SAVE_EVENT == 'true' && contains(matrix.technology, 'go') && steps.runner_caches.outputs.host == '' && hashFiles('**/go.mod', '**/go.sum') != '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.go_l1_cache.outputs.cache-matched-key, format('{0}-go-{1}-', runner.os, hashFiles('**/go.mod', '**/go.sum'))))) && steps.go_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
