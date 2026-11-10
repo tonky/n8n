@@ -66,14 +66,30 @@ if [ "$task" = "build:unchecked" ] && [ $# -eq 1 ] && [ -d .enact ]; then
   esac
 fi
 if [ -n "$stamp_dir" ]; then
-  filter_key="$(printf '%s\0%s' "$task" "$*" | cksum | awk '{print $1 "-" $2}')"
-  stamp_file="$stamp_dir/turbo-$filter_key.done"
-  [ -f "$stamp_file" ] && exit 0
+  missing=0
+  for filter in "$@"; do
+    fk="$(printf '%s\0%s' "$task" "$filter" | cksum | awk '{print $1 "-" $2}')"
+    [ -f "$stamp_dir/filter-$fk.done" ] || { missing=1; break; }
+  done
+  [ "$missing" -eq 0 ] && exit 0
   filters=()
   for filter in "$@"; do filters+=("--filter=$filter"); done
-  "$enact" helper lock workspace-build -- \
+  "$enact" helper lock workspace-build -- bash -e -c '
+    stamp_dir="$1"; task="$2"; shift 2
+    missing=0
+    for filter in "$@"; do
+      fk="$(printf "%s\0%s" "$task" "$filter" | cksum | awk "{print \$1 \"-\" \$2}")"
+      [ -f "$stamp_dir/filter-$fk.done" ] || { missing=1; break; }
+    done
+    [ "$missing" -eq 0 ] && exit 0
+    filters=()
+    for filter in "$@"; do filters+=("--filter=$filter"); done
     pnpm turbo run "$task" "${filters[@]}" --output-logs=errors-only
-  : > "$stamp_file"
+    for filter in "$@"; do
+      fk="$(printf "%s\0%s" "$task" "$filter" | cksum | awk "{print \$1 \"-\" \$2}")"
+      : > "$stamp_dir/filter-$fk.done"
+    done
+  ' _ "$stamp_dir" "$task" "$@"
   exit 0
 fi
 filters=()

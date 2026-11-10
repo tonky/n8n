@@ -89,23 +89,88 @@ pipeline: schema.#Pipeline & {
 
 	analysis: recorders: {"e2e-footprint.mjs": "1", "n8n-services": "1"}
 
+	let _dualTsc = {"base": true, "@n8n/ai-node-sdk": true, "@n8n/ai-utilities": true}
+	let _nodePkg = {"nodes-base": true, "@n8n/n8n-nodes-langchain": true}
+	let _noSrcDir = {
+		"@n8n/code-health": true, "@n8n/eslint-config": true, "@n8n/eslint-plugin-community-nodes": true,
+		"@n8n/json-schema-to-zod": true, "@n8n/oxlint-config": true, "@n8n/playwright-janitor": true,
+		"@n8n/rules-engine": true, "@n8n/stylelint-config": true, "@n8n/test-impact": true, "@n8n/vitest-config": true,
+	}
+	let _cliExtraOutputs = [
+		"packages/cli/dist/timezones.json",
+		"packages/cli/dist/agent-library-bundle.js",
+		"packages/cli/dist/user-management/email/templates/**",
+		"packages/cli/dist/public-api/v1/openapi.yml",
+		"packages/cli/dist/modules/agents/integrations/platforms/*/assets/**",
+		"packages/cli/dist/eventbus/message-event-bus-writer/message-event-bus-log-writer-worker.*",
+	]
+	let _nodeMetaOutputs = ["/dist/known/**", "/dist/types/**", "/dist/methods/**", "/dist/node-definitions/**"]
+
 	analysis: derived: [
 		for n, p in _packages if p.built && n != "@n8n/expression-runtime" {
 			let Bundles = [if n != "@n8n/mcp-apps" for b in p.bundles {b}]
 			outputs: [p.dir + "/dist/**", p.dir + "/.turbo/**"]
-			inputs:  [p.dir + "/**", for b in Bundles {b + "/**"}]
+			if n == "cli" {exclude_outputs: _cliExtraOutputs}
+			if _nodePkg[n] != _|_ {exclude_outputs: [for g in _nodeMetaOutputs {p.dir + g}]}
+			inputs: [p.dir + "/**", for b in Bundles {b + "/**"}]
 			exclude: [
 				for d in [p.dir, for b in Bundles {b}] for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/*.stories.*", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e},
 				for db in ["sqlite", "postgresdb"] {"packages/@n8n/db/src/migrations/" + db + "/index.ts"},
 			]
 			mapped: [for d in [p.dir, for b in Bundles {b}] {d + "/**"}]
+			if !p.bundled && _noSrcDir[n] == _|_ {
+				if _dualTsc[n] != _|_ {
+					transpiled: [{from: p.dir + "/src", to: [p.dir + "/dist/cjs", p.dir + "/dist/esm"]}]
+				}
+				if _nodePkg[n] != _|_ {
+					transpiled: [{from: p.dir, to: [p.dir + "/dist"]}]
+				}
+				if _dualTsc[n] == _|_ && _nodePkg[n] == _|_ {
+					transpiled: [{from: p.dir + "/src", to: [p.dir + "/dist"]}]
+				}
+			}
+		},
+		for n in ["nodes-base", "@n8n/n8n-nodes-langchain"] {
+			let P = _packages[n]
+			outputs: [for g in _nodeMetaOutputs {P.dir + g}]
+			inputs:  [P.dir + "/**"]
+			exclude: [for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
+		},
+		{
+			outputs: ["packages/cli/dist/timezones.json"]
+			inputs:  ["packages/cli/scripts/build.mjs", "packages/cli/package.json", "pnpm-lock.yaml"]
+		},
+		{
+			outputs: ["packages/cli/dist/agent-library-bundle.js"]
+			inputs:  ["packages/cli/scripts/bundle-agent-library.mjs", "packages/@n8n/agents/src/sdk/**"]
+			exclude: ["packages/@n8n/agents/**/*.test.ts", "packages/@n8n/agents/**/__tests__/**"]
+		},
+		{
+			outputs: ["packages/cli/dist/user-management/email/templates/**"]
+			inputs:  ["packages/cli/scripts/build.mjs", "packages/cli/src/user-management/email/templates/**"]
+		},
+		{
+			outputs: ["packages/cli/dist/public-api/v1/openapi.yml"]
+			inputs:  ["packages/cli/scripts/build.mjs", "packages/cli/src/public-api/**"]
+			exclude: ["packages/cli/src/public-api/**/*.test.ts", "packages/cli/src/public-api/**/__tests__/**"]
+		},
+		{
+			outputs: ["packages/cli/dist/modules/agents/integrations/platforms/*/assets/**"]
+			inputs:  ["packages/cli/scripts/build.mjs", "packages/cli/src/modules/agents/integrations/platforms/**"]
+			exclude: ["packages/cli/src/modules/agents/integrations/platforms/**/*.test.ts", "packages/cli/src/modules/agents/integrations/platforms/**/__tests__/**"]
+		},
+		{
+			outputs: ["packages/cli/dist/eventbus/message-event-bus-writer/message-event-bus-log-writer-worker.*"]
+			inputs:  ["packages/cli/src/eventbus/**", "packages/cli/tsconfig.json", "packages/cli/tsconfig.build.json", "packages/cli/package.json"]
+			exclude: ["packages/cli/src/eventbus/**/*.test.ts", "packages/cli/src/eventbus/**/__tests__/**"]
 		},
 		{
 			let P = _packages["@n8n/expression-runtime"]
-			outputs: [P.dir + "/dist/{cjs,esm}/**", P.dir + "/.turbo/**"]
-			inputs:  [P.dir + "/**"]
-			exclude: [for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
-			mapped:  [P.dir + "/**"]
+			outputs:    [P.dir + "/dist/{cjs,esm}/**", P.dir + "/.turbo/**"]
+			inputs:     [P.dir + "/**"]
+			exclude:    [for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
+			mapped:     [P.dir + "/**"]
+			transpiled: [{from: P.dir + "/src", to: [P.dir + "/dist/cjs", P.dir + "/dist/esm"]}]
 		},
 		{
 			let P = _packages["@n8n/expression-runtime"]
@@ -215,12 +280,17 @@ pipeline: schema.#Pipeline & {
 			}
 		}
 
+		for n in ["cli", "frontend", "nodes-base", "@n8n/n8n-nodes-langchain"] {
+			(n): jobs: {
+				lint:      resources: {cpus: 4.0, memory_mb: 6144}
+				typecheck: resources: {cpus: 4.0, memory_mb: 8192}
+			}
+		}
+
 		frontend: {
 			resources:        {cpus: 2.0, memory_mb: 4096}
 			record_resources: {cpus: 2.0, memory_mb: 6144}
 			jobs: {
-				lint:      resources: {cpus: 2.0, memory_mb: 6144}
-				typecheck: resources: {cpus: 2.0, memory_mb: 6144}
 				test: tasks: [{name: "Run Tests", command: _vitest, timeout: _wholeSuiteTimeout}]
 			}
 		}
