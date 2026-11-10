@@ -185,8 +185,12 @@ pipeline: schema.#Pipeline & {
 			inputs:  ["packages/@n8n/workflow-sdk/test-fixtures/real-workflows/public_published_templates.zip", "packages/@n8n/workflow-sdk/test-fixtures/real-workflows/manifest.json"]
 		},
 		for db in ["sqlite", "postgresdb"] {
-			outputs: ["packages/@n8n/db/src/migrations/" + db + "/index.ts"]
-			inputs:  ["packages/@n8n/db/scripts/generate-migration-index.mjs", "packages/@n8n/db/src/migrations/common/[0-9]*.ts", "packages/@n8n/db/src/migrations/" + db + "/[0-9]*.ts"]
+			outputs: [
+				"packages/@n8n/db/src/migrations/" + db + "/index.ts",
+				"packages/@n8n/db/dist/migrations/" + db + "/index.*",
+				"packages/@n8n/db/dist/index.*",
+			]
+			inputs: ["packages/@n8n/db/scripts/generate-migration-index.mjs", "packages/@n8n/db/src/migrations/common/[0-9]*.ts", "packages/@n8n/db/src/migrations/" + db + "/[0-9]*.ts"]
 		},
 		{
 			outputs: ["packages/@n8n/task-runner-python/.venv/**"]
