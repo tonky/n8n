@@ -1096,7 +1096,7 @@ jobs:
     - test
     - build-outputs
     - test-built
-    if: always()
+    if: "!cancelled()"
     runs-on:
     - self-hosted
     - Linux

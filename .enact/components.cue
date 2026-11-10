@@ -61,6 +61,7 @@ _target_scope: {
 		if #dir != "packages/frontend/@n8n/i18n" {match: ["packages/frontend/@n8n/i18n/src/locales/*.json"], action: "ignore"},
 		if len(#runner) > 0 {match: #runner, action: "full_component"},
 		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"], engine: "typescript"},
+		{match: ["packages/**/{src,evaluations,test,__tests__,nodes,credentials}/**/*.json"], engine: "reach"},
 	]
 }
 
@@ -114,7 +115,7 @@ pipeline: schema.#Pipeline & {
 			if _nodePkg[n] != _|_ {exclude_outputs: [for g in _nodeMetaOutputs {p.dir + g}]}
 			inputs: [p.dir + "/**", for b in Bundles {b + "/**"}]
 			exclude: [
-				for d in [p.dir, for b in Bundles {b}] for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/*.stories.*", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e},
+				for d in [p.dir, for b in Bundles {b}] for e in ["/dist/**", "/evaluations/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/*.stories.*", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e},
 				for db in ["sqlite", "postgresdb"] {"packages/@n8n/db/src/migrations/" + db + "/index.ts"},
 				"packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts",
 				"packages/@n8n/expression-runtime/src/pool/**",
