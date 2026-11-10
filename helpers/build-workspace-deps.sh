@@ -11,6 +11,10 @@
 set -euo pipefail
 export TURBO_TELEMETRY_DISABLED=1
 export VITE_CONFIG_NATIVE_IGNORE_WARNING=true
+if [ -n "${ENACT_HOST_CACHE:-}" ] && [ -d "$ENACT_HOST_CACHE/repo" ] && [ -w "$ENACT_HOST_CACHE/repo" ]; then
+  mkdir -p "$ENACT_HOST_CACHE/repo/turbo" 2>/dev/null || true
+  export TURBO_CACHE_DIR="${TURBO_CACHE_DIR:-$ENACT_HOST_CACHE/repo/turbo}"
+fi
 [ "${N8N_WORKSPACE_DEPS_BUILT:-}" = 1 ] && exit 0
 task=build:unchecked
 if [ "${1:-}" = --checked ]; then task=build; shift; fi

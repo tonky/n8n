@@ -281,11 +281,10 @@ fi
 
 # Transforms persist across runs (node_modules/.vitest-cache, keyed by each module's
 # content and the config: every run still reads the sources it uses, so traces see them):
-# halves a test file's start-up. VITEST_FS_CACHE=0 turns it off; local multi-shard runs
-# disable it so parallel shards in a shared worktree don't race on `rmdir node_modules/.vitest-cache`,
-# whereas GitHub Actions matrix shards run in isolated containers with per-shard cache directories.
+# halves a test file's start-up. VITEST_FS_CACHE=0 turns it off; multi-shard or bin-packed
+# runs disable it so parallel shards in a shared worktree don't race on `rmdir node_modules/.vitest-cache`.
 CACHE_OPTS=()
-if [ "${VITEST_FS_CACHE:-1}" != 0 ] && { [ "${GITHUB_ACTIONS:-}" = true ] || [ "${ENACT_SHARD_TOTAL:-1}" -le 1 ]; }; then
+if [ "${VITEST_FS_CACHE:-1}" != 0 ] && [ "${ENACT_SHARD_TOTAL:-1}" -le 1 ] && [[ "${ENACT_MATRIX_COMMAND:-}" != *" --shard "*" --shard "* ]] && [[ "${ENACT_MATRIX_COMMAND:-}" != *" -c "*" -c "* ]]; then
   CACHE_OPTS=(--fsModuleCache)
 fi
 

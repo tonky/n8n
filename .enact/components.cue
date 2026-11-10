@@ -210,8 +210,8 @@ pipeline: schema.#Pipeline & {
 	]
 
 	caches: {
-		vitest_transforms: {paths: ["node_modules/.vitest-cache"], key: ["pnpm-lock.yaml"], scope: "task", used_by: jobs: ["test", "migrate"]}
-		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml"], scope: "task", refresh: "rolling"}
+		vitest_transforms: {paths: ["node_modules/.vitest-cache"], key: ["pnpm-lock.yaml"], scope: "task", used_by: {components: ["@n8n/node-cli"], jobs: ["test"]}}
+		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml"], scope: "task", refresh: "rolling", used_by: jobs: ["build", "lint", "typecheck"]}
 	}
 
 	components: {
