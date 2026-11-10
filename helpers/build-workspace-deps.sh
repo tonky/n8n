@@ -15,7 +15,16 @@ if [ "${1:-}" = --checked ]; then task=build; shift; fi
 [ $# -gt 0 ] || { echo "usage: build-workspace-deps.sh [--checked] <turbo filter...>" >&2; exit 64; }
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-if [ -f packages/@n8n/db/scripts/generate-migration-index.mjs ]; then
+stamp_dir=""
+if [ "${GITHUB_ACTIONS:-}" = true ] && [ -n "${RUNNER_TEMP:-}" ] && [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null || echo dirty)" ]; then
+  head_sha="$(git rev-parse HEAD 2>/dev/null || true)"
+  if [ -n "$head_sha" ]; then
+    root_key="$(printf '%s' "$PWD" | cksum | awk '{print $1}')"
+    stamp_dir="$RUNNER_TEMP/enact-n8n-ws-build-$head_sha-$root_key"
+    mkdir -p "$stamp_dir"
+  fi
+fi
+if [ -f packages/@n8n/db/scripts/generate-migration-index.mjs ] && { [ -z "$stamp_dir" ] || [ ! -f "$stamp_dir/migration-indexes.done" ]; }; then
   node -e '
     const fs = require("node:fs");
     const orig = fs.writeFileSync;
@@ -26,14 +35,16 @@ if [ -f packages/@n8n/db/scripts/generate-migration-index.mjs ]; then
     require("node:module").syncBuiltinESMExports();
     import("./packages/@n8n/db/scripts/generate-migration-index.mjs").then(m => m.generateMigrationIndexes());
   '
+  [ -z "$stamp_dir" ] || : > "$stamp_dir/migration-indexes.done"
 fi
-if [ -d node_modules ] && [ -d packages/@n8n ]; then
+if [ -d node_modules ] && [ -d packages/@n8n ] && { [ -z "$stamp_dir" ] || [ ! -f "$stamp_dir/symlinks.done" ]; }; then
   mkdir -p node_modules/@n8n
   for pkg in packages/@n8n/*; do
     [ -d "$pkg" ] || continue
     name="${pkg##*/}"
     [ -e "node_modules/@n8n/$name" ] || ln -sfn "../../$pkg" "node_modules/@n8n/$name" 2>/dev/null || true
   done
+  [ -z "$stamp_dir" ] || : > "$stamp_dir/symlinks.done"
 fi
 enact="${ENACT_EXE:-${ENACT_BIN:-$(command -v enact || true)}}"
 [ -n "$enact" ] || { echo "build-workspace-deps.sh: enact not found (set ENACT_EXE, ENACT_BIN, or put enact on PATH)" >&2; exit 2; }
@@ -53,6 +64,17 @@ if [ "$task" = "build:unchecked" ] && [ $# -eq 1 ] && [ -d .enact ]; then
       fi
       ;;
   esac
+fi
+if [ -n "$stamp_dir" ]; then
+  filter_key="$(printf '%s\0%s' "$task" "$*" | cksum | awk '{print $1 "-" $2}')"
+  stamp_file="$stamp_dir/turbo-$filter_key.done"
+  [ -f "$stamp_file" ] && exit 0
+  filters=()
+  for filter in "$@"; do filters+=("--filter=$filter"); done
+  "$enact" helper lock workspace-build -- \
+    pnpm turbo run "$task" "${filters[@]}" --output-logs=errors-only
+  : > "$stamp_file"
+  exit 0
 fi
 filters=()
 for filter in "$@"; do filters+=("--filter=$filter"); done

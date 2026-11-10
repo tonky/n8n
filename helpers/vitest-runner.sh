@@ -279,10 +279,13 @@ fi
 
 # Transforms persist across runs (node_modules/.vitest-cache, keyed by each module's
 # content and the config: every run still reads the sources it uses, so traces see them):
-# halves a test file's start-up. VITEST_FS_CACHE=0 turns it off; multi-shard runs disable
-# it so parallel shards in a shared worktree don't race on `rmdir node_modules/.vitest-cache`.
+# halves a test file's start-up. VITEST_FS_CACHE=0 turns it off; local multi-shard runs
+# disable it so parallel shards in a shared worktree don't race on `rmdir node_modules/.vitest-cache`,
+# whereas GitHub Actions matrix shards run in isolated containers with per-shard cache directories.
 CACHE_OPTS=()
-[ "${VITEST_FS_CACHE:-1}" = 0 ] || [ "${ENACT_SHARD_TOTAL:-1}" -gt 1 ] || CACHE_OPTS=(--fsModuleCache)
+if [ "${VITEST_FS_CACHE:-1}" != 0 ] && { [ "${GITHUB_ACTIONS:-}" = true ] || [ "${ENACT_SHARD_TOTAL:-1}" -le 1 ]; }; then
+  CACHE_OPTS=(--fsModuleCache)
+fi
 
 # The package's vitest, as its `pnpm test` runs it: pnpm sets the environment its scripts
 # get (npm_config_user_agent: node-cli's commands pick the package manager they were run with).

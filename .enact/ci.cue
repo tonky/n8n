@@ -83,9 +83,6 @@ pipeline: schema.#Pipeline & {
 					}
 				}
 			}
-			gha_x64: {
-				labels: ["ubuntu-24.04"], arch: "x86_64", tier: "on_demand", cpus: 4, memory_mb: 16384, max_parallel: 16, cost_per_min: 0.006, boot_overhead_sec: 18, timeout_minutes: 90
-			}
 		}
 	}
 	workflows: {

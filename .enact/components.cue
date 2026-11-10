@@ -90,7 +90,7 @@ pipeline: schema.#Pipeline & {
 	analysis: recorders: {"e2e-footprint.mjs": "1", "n8n-services": "1"}
 
 	analysis: derived: [
-		for n, p in _packages if p.built {
+		for n, p in _packages if p.built && n != "@n8n/expression-runtime" {
 			let Bundles = [if n != "@n8n/mcp-apps" for b in p.bundles {b}]
 			outputs: [p.dir + "/dist/**", p.dir + "/.turbo/**"]
 			inputs:  [p.dir + "/**", for b in Bundles {b + "/**"}]
@@ -99,6 +99,20 @@ pipeline: schema.#Pipeline & {
 				for db in ["sqlite", "postgresdb"] {"packages/@n8n/db/src/migrations/" + db + "/index.ts"},
 			]
 			mapped: [for d in [p.dir, for b in Bundles {b}] {d + "/**"}]
+		},
+		{
+			let P = _packages["@n8n/expression-runtime"]
+			outputs: [P.dir + "/dist/{cjs,esm}/**", P.dir + "/.turbo/**"]
+			inputs:  [P.dir + "/**"]
+			exclude: [for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {P.dir + e}]
+			mapped:  [P.dir + "/**"]
+		},
+		{
+			let P = _packages["@n8n/expression-runtime"]
+			outputs: [P.dir + "/dist/bundle/**"]
+			inputs:  [P.dir + "/esbuild.config.js", P.dir + "/package.json", P.dir + "/src/{runtime,extensions,types}/**", P.dir + "/src/bridge/bridge-messages.ts", for b in P.bundles {b + "/**"}]
+			exclude: [for d in [P.dir, for b in P.bundles {b}] for e in ["/dist/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e}]
+			mapped:  [P.dir + "/src/{runtime,extensions,types}/**", for b in P.bundles {b + "/**"}]
 		},
 		{outputs: ["packages/cli/test-exports-*/**"], inputs: ["packages/cli/test/integration/environments/source-control-export.service.test.ts"]},
 		{
