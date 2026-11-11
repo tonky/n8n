@@ -78,7 +78,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
-    - tonky-ci-c4m12g
+    - tonky-ci-c6m12g
     timeout-minutes: 90
     steps:
     - name: Probe Runner Caches
@@ -515,7 +515,7 @@ jobs:
         ENACT_INPUT_WARM_REACH: ${{ inputs.warm_reach }}
         ENACT_INTEGRATION_BRANCH: ${{ vars.ENACT_INTEGRATION_BRANCH }}
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
-        ENACT_RUNNER_ALLOCATION: "{\"cpus\":4.0,\"memory_mb\":12288,\"runtime_reserve_mb\":2048}"
+        ENACT_RUNNER_ALLOCATION: "{\"cpus\":6.0,\"memory_mb\":12288,\"runtime_reserve_mb\":2048}"
         ENACT_SAME_REPO_PR: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -615,7 +615,7 @@ jobs:
         ENACT_INPUT_WARM_REACH: ${{ inputs.warm_reach }}
         ENACT_INTEGRATION_BRANCH: ${{ vars.ENACT_INTEGRATION_BRANCH }}
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
-        ENACT_RUNNER_ALLOCATION: "{\"cpus\":4.0,\"memory_mb\":12288,\"runtime_reserve_mb\":2048}"
+        ENACT_RUNNER_ALLOCATION: "{\"cpus\":6.0,\"memory_mb\":12288,\"runtime_reserve_mb\":2048}"
         ENACT_SAME_REPO_PR: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -678,7 +678,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
-    - tonky-ci-c2m4g
+    - tonky-ci-c1m4g
     timeout-minutes: 5
     outputs:
       builds: ${{ steps.diff.outputs.builds }}
@@ -935,7 +935,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
-    - tonky-ci-c2m4g
+    - tonky-ci-c1m4g
     timeout-minutes: 10
     steps:
     - name: Probe Runner Caches
@@ -1102,7 +1102,7 @@ jobs:
     - Linux
     - X64
     - tonky-ci
-    - tonky-ci-c2m4g
+    - tonky-ci-c1m4g
     timeout-minutes: 5
     steps:
     - name: Probe Runner Caches

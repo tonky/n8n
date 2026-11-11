@@ -60,7 +60,7 @@ _target_scope: {
 		if len(#ignore) > 0 {match: #ignore, action: "ignore"},
 		if #dir != "packages/frontend/@n8n/i18n" {match: ["packages/frontend/@n8n/i18n/src/locales/*.json"], action: "ignore"},
 		if len(#runner) > 0 {match: #runner, action: "full_component"},
-		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"], engine: "typescript"},
+		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"], engine: "reach"},
 		{match: ["packages/**/{src,evaluations,test,__tests__,nodes,credentials}/**/*.json"], engine: "reach"},
 	]
 }
@@ -237,9 +237,10 @@ pipeline: schema.#Pipeline & {
 			depends_on:      []
 			workspace_scope: include_dependencies: true
 			jobs: lint: {
-				name:     "Workspace Integrity, Boundaries, Formatting & Packaging"
-				direct:   true
-				services: false
+				name:      "Workspace Integrity, Boundaries, Formatting & Packaging"
+				direct:    true
+				services:  false
+				resources: {cpus: 6.0, memory_mb: 8192}
 				tasks: [
 					{name: "Check workspace package integrity", command: "node scripts/check-workspace-private-deps.mjs"},
 					{name: "Check module boundaries", command: "node scripts/check-boundaries.mjs"},
@@ -278,7 +279,7 @@ pipeline: schema.#Pipeline & {
 						name:      "Lint"
 						direct:    true
 						services:  false
-						resources: {cpus: *2.0 | number, memory_mb: *4096 | int}
+						resources: {cpus: *2.0 | number, memory_mb: *3072 | int}
 						tasks:     [_lint & {#pkg: p.pkg, #styles: p.lint_styles, #format: p.format_check, name: "Run Linter"}]
 					}
 				}
@@ -287,7 +288,7 @@ pipeline: schema.#Pipeline & {
 						name:      "Typecheck"
 						direct:    true
 						services:  false
-						resources: {cpus: *2.0 | number, memory_mb: *6144 | int}
+						resources: {cpus: *2.0 | number, memory_mb: *3584 | int}
 						tasks:     [_typecheck & {#pkg: p.pkg, #declarations: p.declarations, name: "Typecheck"}]
 					}
 				}
@@ -296,8 +297,8 @@ pipeline: schema.#Pipeline & {
 
 		for n in ["cli", "frontend", "nodes-base", "@n8n/n8n-nodes-langchain"] {
 			(n): jobs: {
-				lint:      resources: {cpus: 4.0, memory_mb: 6144}
-				typecheck: resources: {cpus: 4.0, memory_mb: 8192}
+				lint:      resources: {cpus: 2.0, memory_mb: 3072}
+				typecheck: resources: {cpus: 2.0, memory_mb: 4096}
 			}
 		}
 
