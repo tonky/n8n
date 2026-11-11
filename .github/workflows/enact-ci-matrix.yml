@@ -15,7 +15,6 @@ on:
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
   COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
-  ENACT_OUTPUTS_PRODUCERS: "{\"-n8n-db--build\":{\"job\":\"@n8n/db:build\",\"paths\":\"packages/@n8n/db/dist\\npackages/@n8n/db/dist/index.js\\npackages/@n8n/db/src/migrations/sqlite/index.ts\\npackages/@n8n/db/src/migrations/postgresdb/index.ts\\n.enact/state/outputs/-n8n-db--build.key\"},\"playwright--build\":{\"job\":\"playwright:build\",\"paths\":\"packages/@n8n/agents/dist\\npackages/@n8n/ai-node-sdk/dist\\npackages/@n8n/ai-utilities/dist\\npackages/@n8n/ai-workflow-builder.ee/dist\\npackages/@n8n/api-types/dist\\npackages/@n8n/backend-common/dist\\npackages/@n8n/backend-network/dist\\npackages/@n8n/backend-services/dist\\npackages/@n8n/backend-test-utils/dist\\npackages/@n8n/blob-storage/dist\\npackages/@n8n/chat-hub/dist\\npackages/@n8n/client-oauth2/dist\\npackages/@n8n/codemirror-lang/dist\\npackages/@n8n/codemirror-lang-html/dist\\npackages/@n8n/codemirror-lang-sql/dist\\npackages/@n8n/config/dist\\npackages/@n8n/constants/dist\\npackages/@n8n/decorators/dist\\npackages/@n8n/di/dist\\npackages/@n8n/engine/dist\\npackages/@n8n/errors/dist\\npackages/@n8n/eslint-config/dist\\npackages/@n8n/eslint-plugin-community-nodes/dist\\npackages/@n8n/expression-runtime/dist\\npackages/@n8n/imap/dist\\npackages/@n8n/inbound-auth/dist\\npackages/@n8n/instance-ai/dist\\npackages/@n8n/json-schema-to-zod/dist\\npackages/@n8n/mcp-apps/dist\\npackages/@n8n/mcp-browser/dist\\npackages/@n8n/node-engine-compatibility/dist\\npackages/@n8n/nodes-langchain/dist\\npackages/@n8n/oxlint-config/dist\\npackages/@n8n/permissions/dist\\npackages/@n8n/scheduler/dist\\npackages/@n8n/stylelint-config/dist\\npackages/@n8n/syslog-client/dist\\npackages/@n8n/task-runner/dist\\npackages/@n8n/telemetry/dist\\npackages/@n8n/tournament/dist\\npackages/@n8n/typeorm/dist\\npackages/@n8n/utils/dist\\npackages/@n8n/vitest-config/dist\\npackages/@n8n/workflow-sdk/dist\\npackages/cli/dist\\npackages/core/dist\\npackages/frontend/@n8n/chat/dist\\npackages/frontend/@n8n/composables/dist\\npackages/frontend/@n8n/design-system/dist\\npackages/frontend/@n8n/eslint-plugin-design-system/dist\\npackages/frontend/@n8n/frontend-constants/dist\\npackages/frontend/@n8n/frontend-utils/dist\\npackages/frontend/@n8n/i18n/dist\\npackages/frontend/@n8n/rest-api-client/dist\\npackages/frontend/@n8n/stores/dist\\npackages/frontend/editor-ui/dist\\npackages/modules/apps/backend/dist\\npackages/modules/insights/backend/dist\\npackages/modules/quick-connect/backend/dist\\npackages/modules/workflow-builder/backend/dist\\npackages/nodes-base/dist\\npackages/quality/policy/rules-engine/dist\\npackages/quality/testing/janitor/dist\\npackages/quality/testing/test-impact/dist\\npackages/workflow/dist\\npackages/cli/dist/commands/start.js\\npackages/frontend/editor-ui/dist/index.html\\n.enact/state/outputs/playwright--build.key\"}}"
   ENACT_REMOTE_SAVE_EVENT: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
   ENACT_SAVE_EVENT: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
   ENVE_CACHE_PUBLIC_KEY: enve-r2-1:ckHPTeWVef6mba+1AwWHjKYCsUWKPfP9IXPm5YXNoHg=
@@ -199,6 +198,14 @@ jobs:
         export ENACT_HISTORY_DIR="$RUNNER_TEMP/enact-history"
         printf 'ENACT_HISTORY_DIR=%s\n' "$ENACT_HISTORY_DIR" >> "$GITHUB_ENV"
         enact ci history import --input "$RUNNER_TEMP/enact-history-input/snapshot.json" --manifest "$RUNNER_TEMP/enact-history-input/snapshot.manifest.json" --output "$ENACT_HISTORY_DIR"
+    - name: Write the Build Outputs Producers
+      if: ${{ (toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit }}
+      run: |-
+        cat > "$ENACT_OUTPUTS_PRODUCERS_FILE" <<'PRODUCERS_JSON'
+        {"-n8n-db--build":{"job":"@n8n/db:build","paths":"packages/@n8n/db/dist\npackages/@n8n/db/dist/index.js\npackages/@n8n/db/src/migrations/sqlite/index.ts\npackages/@n8n/db/src/migrations/postgresdb/index.ts\n.enact/state/outputs/-n8n-db--build.key"},"playwright--build":{"job":"playwright:build","paths":"packages/@n8n/agents/dist\npackages/@n8n/ai-node-sdk/dist\npackages/@n8n/ai-utilities/dist\npackages/@n8n/ai-workflow-builder.ee/dist\npackages/@n8n/api-types/dist\npackages/@n8n/backend-common/dist\npackages/@n8n/backend-network/dist\npackages/@n8n/backend-services/dist\npackages/@n8n/backend-test-utils/dist\npackages/@n8n/blob-storage/dist\npackages/@n8n/chat-hub/dist\npackages/@n8n/client-oauth2/dist\npackages/@n8n/codemirror-lang/dist\npackages/@n8n/codemirror-lang-html/dist\npackages/@n8n/codemirror-lang-sql/dist\npackages/@n8n/config/dist\npackages/@n8n/constants/dist\npackages/@n8n/decorators/dist\npackages/@n8n/di/dist\npackages/@n8n/engine/dist\npackages/@n8n/errors/dist\npackages/@n8n/eslint-config/dist\npackages/@n8n/eslint-plugin-community-nodes/dist\npackages/@n8n/expression-runtime/dist\npackages/@n8n/imap/dist\npackages/@n8n/inbound-auth/dist\npackages/@n8n/instance-ai/dist\npackages/@n8n/json-schema-to-zod/dist\npackages/@n8n/mcp-apps/dist\npackages/@n8n/mcp-browser/dist\npackages/@n8n/node-engine-compatibility/dist\npackages/@n8n/nodes-langchain/dist\npackages/@n8n/oxlint-config/dist\npackages/@n8n/permissions/dist\npackages/@n8n/scheduler/dist\npackages/@n8n/stylelint-config/dist\npackages/@n8n/syslog-client/dist\npackages/@n8n/task-runner/dist\npackages/@n8n/telemetry/dist\npackages/@n8n/tournament/dist\npackages/@n8n/typeorm/dist\npackages/@n8n/utils/dist\npackages/@n8n/vitest-config/dist\npackages/@n8n/workflow-sdk/dist\npackages/cli/dist\npackages/core/dist\npackages/frontend/@n8n/chat/dist\npackages/frontend/@n8n/composables/dist\npackages/frontend/@n8n/design-system/dist\npackages/frontend/@n8n/eslint-plugin-design-system/dist\npackages/frontend/@n8n/frontend-constants/dist\npackages/frontend/@n8n/frontend-utils/dist\npackages/frontend/@n8n/i18n/dist\npackages/frontend/@n8n/rest-api-client/dist\npackages/frontend/@n8n/stores/dist\npackages/frontend/editor-ui/dist\npackages/modules/apps/backend/dist\npackages/modules/insights/backend/dist\npackages/modules/quick-connect/backend/dist\npackages/modules/workflow-builder/backend/dist\npackages/nodes-base/dist\npackages/quality/policy/rules-engine/dist\npackages/quality/testing/janitor/dist\npackages/quality/testing/test-impact/dist\npackages/workflow/dist\npackages/cli/dist/commands/start.js\npackages/frontend/editor-ui/dist/index.html\n.enact/state/outputs/playwright--build.key"}}
+        PRODUCERS_JSON
+      env:
+        ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
     - name: Restore Built Outputs from the Host Cache
       id: outputs-host
       if: ${{ (steps.runner_caches.outputs.host != '' && toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit }}
@@ -207,6 +214,7 @@ jobs:
       env:
         ENACT_OUTPUTS_NEEDED: ${{ toJson(matrix.output_keys) }}
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
+        ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
     - name: Restore Built Outputs (@n8n/db:build)
       id: outputs--n8n-db--build
       if: ${{ (matrix.output_keys['-n8n-db--build'] != '' && steps.outputs-host.outputs['-n8n-db--build'] != 'true') && !steps.skip.outputs.hit }}
@@ -302,6 +310,7 @@ jobs:
       env:
         ENACT_OUTPUTS_NEEDED: ${{ toJson(matrix.output_keys) }}
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
+        ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
         ENACT_OUTPUTS_STEPS: ${{ toJson(steps) }}
     - parallel:
       - name: Restore Python build & venv cache
@@ -321,13 +330,11 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-node-v2-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'pnpm-workspace.yaml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-node-v3-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'pnpm-workspace.yaml') }}
           path: |-
             .enact/state/pnpm-store
             node_modules/.cache
-          restore-keys: |-
-            ${{ runner.os }}-${{ runner.arch }}-node-v2-${{ matrix.task_id }}-
-            ${{ runner.os }}-${{ runner.arch }}-node-v2-
+          restore-keys: ${{ runner.os }}-${{ runner.arch }}-node-v3-
       - name: Restore Cache [node_build]
         id: cache_node_build
         if: ${{ (contains(format(',{0},', matrix.caches), ',node_build,')) && !steps.skip.outputs.hit }}
@@ -352,7 +359,7 @@ jobs:
             vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-
             vitest_transforms-${{ runner.os }}-
     - name: Record Restored Package Caches
-      if: ${{ (steps.runner_caches.outputs.host == '') && !steps.skip.outputs.hit }}
+      if: ${{ (steps.runner_caches.outputs.host == '' && github.event_name != 'pull_request') && !steps.skip.outputs.hit }}
       continue-on-error: true
       run: enact ci cache-delta record
       env:
@@ -488,7 +495,7 @@ jobs:
         retention-days: "1"
     - name: Check Package Caches for New Entries
       id: cache_delta
-      if: ${{ (!cancelled() && steps.runner_caches.outputs.host == '' && env.ENACT_SAVE_EVENT == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && !steps.skip.outputs.hit }}
+      if: ${{ (!cancelled() && steps.runner_caches.outputs.host == '' && env.ENACT_SAVE_EVENT == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && github.event_name != 'pull_request') && !steps.skip.outputs.hit }}
       continue-on-error: true
       run: enact ci cache-delta check
       env:
@@ -499,7 +506,7 @@ jobs:
           node_l1_cache node_modules/.cache
         ENACT_UV_PRUNE: ${{ contains(matrix.technology, 'python') }}
     - name: Save Python build & venv cache
-      if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.cache_delta.outputs.python_l1_cache == 'true') && steps.python_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+      if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.cache_delta.outputs.python_l1_cache == 'true') && github.event_name != 'pull_request' && steps.python_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -509,7 +516,7 @@ jobs:
           /tmp/.cache/pip
     - parallel:
       - name: Save Node dependency cache
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && (contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node')) && steps.cache_delta.outputs.node_l1_cache == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.runner_caches.outputs.host == '') && steps.node_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && (contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node')) && steps.cache_delta.outputs.node_l1_cache == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.runner_caches.outputs.host == '') && github.event_name != 'pull_request' && steps.node_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
@@ -518,21 +525,21 @@ jobs:
             .enact/state/pnpm-store
             node_modules/.cache
       - name: Save Browsers [chromium]
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && matrix.browsers && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && steps.browsers_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && matrix.browsers && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && github.event_name != 'pull_request' && steps.browsers_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
           key: ${{ steps.browsers_l1_cache.outputs.cache-primary-key }}
           path: /tmp/.cache/ms-playwright
       - name: Save Cache [node_build]
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',node_build,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-{1}-{2}-', runner.os, matrix.task_id, hashFiles('package.json', 'pnpm-lock.yaml'))))) && steps.cache_node_build.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',node_build,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-{1}-{2}-', runner.os, matrix.task_id, hashFiles('package.json', 'pnpm-lock.yaml'))))) && github.event_name != 'pull_request' && steps.cache_node_build.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
           key: ${{ steps.cache_node_build.outputs.cache-primary-key }}
           path: .turbo
       - name: Save Cache [vitest_transforms]
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',vitest_transforms,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && steps.cache_vitest_transforms.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',vitest_transforms,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && github.event_name != 'pull_request' && steps.cache_vitest_transforms.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:

@@ -475,6 +475,7 @@ pipeline: schema.#Pipeline & {
 		cli: {
 			let P = _packages.cli
 			let Services = [n8n.services.postgres, n8n.services.redis]
+			let _migrationScope = _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
 			title:  "n8n CLI & Backend Service"
 			kind:   "service"
 			domain: "backend"
@@ -516,17 +517,20 @@ pipeline: schema.#Pipeline & {
 						}
 					}]
 				}
+				// Migrations run one file at a time in one process (`fileParallelism: false`):
+				// PostgreSQL and SQLite are two jobs of 1 cpu each, sharded side by side. A
+				// recording shard traces at most 2 workers (helpers/vitest-runner.sh).
 				migrate: {
 					recorder:         "own_linux"
 					recorded_by:      ["enact-node", "n8n-services"]
-					shards:           2
-					resources:        {cpus: 4.0, memory_mb: 6144}
-					record_resources: {cpus: 4.0, memory_mb: 6144}
-					target_scope:     _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
+					shards:           4
+					resources:        {cpus: 1.0, memory_mb: 4096}
+					record_resources: {cpus: 2.0, memory_mb: 6144}
+					target_scope:     _migrationScope
 					tasks: [
 						{
 							name:    "migrate"
-							command: "VITEST_MIGRATION=both helpers/vitest-runner.sh {relative_targets}"
+							command: "VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
 							timeout: "20m"
 							env: {
 								ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
@@ -534,6 +538,26 @@ pipeline: schema.#Pipeline & {
 								DB_TYPE:                  "postgresdb"
 								DB_POSTGRESDB_SCHEMA:     "alt_schema"
 								DB_TABLE_PREFIX:          "test_"
+							}
+						},
+					]
+				}
+				// The same tests on SQLite: PostgreSQL's footprints are its evidence, and a file
+				// none of them read runs it whole (code only SQLite's dialect may run).
+				migrate_sqlite: {
+					services:     false
+					shards:       4
+					resources:    {cpus: 1.0, memory_mb: 4096}
+					target_scope: _migrationScope & {footprints_from: "cli:migrate"}
+					tasks: [
+						{
+							name:    "migrate-sqlite"
+							command: "VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
+							timeout: "20m"
+							env: {
+								N8N_LOG_LEVEL:       "silent"
+								DB_TYPE:             "sqlite"
+								DB_SQLITE_POOL_SIZE: "4"
 							}
 						},
 					]

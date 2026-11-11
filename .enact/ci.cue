@@ -84,12 +84,6 @@ pipeline: schema.#Pipeline & {
 					}
 				}
 			}
-			gha_x64: {
-				labels: ["ubuntu-24.04"], arch: "x86_64", tier: "on_demand", cpus: 4, memory_mb: 16384, max_parallel: 16, cost_per_min: 0.016, boot_overhead_sec: 30, timeout_minutes: 90
-			}
-			gha_arm64: {
-				labels: ["ubuntu-24.04-arm"], arch: "aarch64", tier: "on_demand", cpus: 4, memory_mb: 16384, max_parallel: 16, cost_per_min: 0.016, boot_overhead_sec: 30, timeout_minutes: 90
-			}
 		}
 	}
 	workflows: {
@@ -102,13 +96,13 @@ pipeline: schema.#Pipeline & {
 			}
 			stages: [{
 				name: "test", matrix: true
-				select: [J.lint, J.typecheck, J.schema_check, J.test, J.migrate, J.integration, J.dev_server_smoke]
+				select: [J.lint, J.typecheck, J.schema_check, J.test, J.migrate, J.migrate_sqlite, J.integration, J.dev_server_smoke]
 				fail_fast: false, services: "on_demand"
 			}]
 		}
 		local: {
 			services: "on_demand"
-			stages:   [{name: "dev", select: [J.test, J.migrate, J.integration, J.dev_server_smoke]}]
+			stages:   [{name: "dev", select: [J.test, J.migrate, J.migrate_sqlite, J.integration, J.dev_server_smoke]}]
 		}
 	}
 }

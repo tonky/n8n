@@ -312,172 +312,8 @@ jobs:
         name: enact-reach-map
         path: ${{ runner.temp }}/enact-reach
         retention-days: "1"
-  reach:
-    name: Consolidate Reach Map
-    needs:
-    - detect
-    - test
-    - build-outputs
-    - test-built
-    if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
-    runs-on:
-    - self-hosted
-    - Linux
-    - X64
-    - tonky-ci
-    - tonky-ci-c2m4g
-    timeout-minutes: 10
-    steps:
-    - name: Probe Runner Caches
-      id: runner_caches
-      run: |
-        set -euo pipefail
-        host="${ENACT_HOST_CACHE:-}"
-        if [ -n "$host" ] && ! { [ -d "$host/repo" ] && [ -w "$host/repo" ]; }; then
-            echo "::warning::ENACT_HOST_CACHE=$host has no writable repo/ directory; using GitHub's cache"
-            host=""
-        fi
-        if [ -n "$host" ]; then
-            mkdir -p "$host/repo/git" "$host/repo/outputs"
-            echo "ENACT_GIT_MIRROR=$host/repo/git/${GITHUB_REPOSITORY##*/}.git" >> "$GITHUB_ENV"
-            echo "ENACT_OUTPUTS_CACHE=$host/repo/outputs" >> "$GITHUB_ENV"
-        fi
-        echo "ENACT_HOST_CACHE=$host" >> "$GITHUB_ENV"
-        printf 'host=%s\n' "$host" >> "$GITHUB_OUTPUT"
-        printf 'Host cache: %s\n' "${host:-none}"
-    - name: Checkout Repository (sparse) from the Host Mirror
-      id: host_checkout
-      if: ${{ steps.runner_caches.outputs.host != '' }}
-      continue-on-error: true
-      run: |
-        set -euo pipefail
-        git config --global --add safe.directory "*"
-        url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
-        mirror="$ENACT_GIT_MIRROR"
-        header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
-        refs=("+refs/heads/*:refs/heads/*")
-        case "$GITHUB_REF" in
-            refs/pull/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
-        esac
-        (
-            flock 9
-            if [ ! -f "$mirror/HEAD" ]; then
-                git init -q --bare "$mirror"
-                git -C "$mirror" config uploadpack.allowAnySHA1InWant true
-                git -C "$mirror" config gc.auto 0
-            fi
-            ref_current=""
-            case "$GITHUB_REF" in
-                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
-                *) ref_current="$GITHUB_SHA" ;;
-            esac
-            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
-                if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
-                fi
-            fi
-            touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
-        ) 9>"$mirror.lock"
-        cd "$GITHUB_WORKSPACE"
-        trap 'rm -rf "$GITHUB_WORKSPACE/.git"' ERR
-        find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-        git init -q .
-        echo "$mirror/objects" > .git/objects/info/alternates
-        [ ! -f "$mirror/shallow" ] || cp "$mirror/shallow" .git/shallow
-        git remote add origin "$url"
-        git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
-        git config --local gc.auto 0
-        git fetch -q --no-tags "$mirror" "+refs/heads/*:refs/remotes/origin/*"
-        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
-            mapfile -t cone < <(printf '%s\n' "$ENACT_SPARSE_CONE" | sed '/^[[:space:]]*$/d')
-            git sparse-checkout set --cone "${cone[@]}"
-        fi
-        case "$GITHUB_REF" in
-            refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
-            *) git checkout -q --force --detach "$GITHUB_SHA" ;;
-        esac
-        git log -1 --format='Checked out %H through the host mirror'
-      env:
-        ENACT_GIT_TOKEN: ${{ github.token }}
-        ENACT_SPARSE_CONE: |-
-          .enact
-          cue.mod
-          .github
-          bin
-    - name: Checkout Repository (sparse)
-      if: ${{ steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure' }}
-      uses: actions/checkout@v7
-      with:
-        fetch-depth: "1"
-        fetch-tags: "false"
-        lfs: "false"
-        show-progress: "false"
-        sparse-checkout: |-
-          .enact
-          cue.mod
-          .github
-          bin
-        sparse-checkout-cone-mode: "true"
-        submodules: "false"
-    - name: Install committed enact & enve builds
-      run: |
-        P="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
-        E="${GITHUB_WORKSPACE:-$PWD}/bin/$P/enact"
-        [ -f "$E" ] || E="${GITHUB_WORKSPACE:-$PWD}/bin/enact"
-        [ -f "$E" ] || E="$(command -v enact || echo "$HOME/.cargo/bin/enact")"
-        chmod +x "$E" 2>/dev/null || true
-        "$E" --version >/dev/null 2>&1 || { echo "::error title=No enact for $P::$E does not run on this $P runner; commit its build as bin/$P/enact"; exit 1; }
-        "$E" ci install-binaries
-    - name: Ensure enve & enact CLI on PATH
-      run: enact ci setup-runner
-    - name: Restore Reach Store
-      id: reach-store
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: enact-reach-${{ github.head_ref || github.ref_name }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-        path: .git/enact/reach
-        restore-keys: |-
-          enact-reach-${{ github.head_ref || github.ref_name }}-${{ github.sha }}-
-          enact-reach-${{ github.head_ref || github.ref_name }}-
-          enact-reach-${{ github.base_ref || github.event.repository.default_branch }}-
-    - name: Download Recorded Footprints
-      continue-on-error: true
-      uses: actions/download-artifact@v8
-      with:
-        path: ${{ runner.temp }}/enact-footprints
-        pattern: enact-footprints-*
-    - name: Consolidate the Reach Map
-      id: consolidate_reach
-      run: |-
-        cd "${GITHUB_WORKSPACE}"
-        if [ -n "$(find "$RUNNER_TEMP/enact-footprints" -name '*.bin' -print -quit 2>/dev/null)" ] || [ "$GITHUB_EVENT_NAME" = push ]; then
-          enact reach store pull || true
-          enact reach store push --deltas "$RUNNER_TEMP/enact-footprints"
-          echo "consolidated=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "🗺️  Reach store: no deltas to consolidate"
-        fi
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
-        AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
-        ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
-        ENACT_SAME_REPO_PR: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        GITHUB_BASE_REF: ${{ github.base_ref }}
-        GITHUB_HEAD_REF: ${{ github.head_ref }}
-        GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-    - name: Save Reach Store
-      if: ${{ always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) && steps.consolidate_reach.outputs.consolidated == 'true' }}
-      continue-on-error: true
-      uses: actions/cache/save@v6
-      with:
-        key: enact-reach-${{ github.head_ref || github.ref_name }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-        path: .git/enact/reach
   summary:
-    name: Telemetry & Summary
+    name: Consolidate Reach Map & Telemetry
     env:
       ENACT_OBSERVATIONS_ENABLED: "1"
     needs:
@@ -492,7 +328,7 @@ jobs:
     - X64
     - tonky-ci
     - tonky-ci-c2m4g
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
     - name: Probe Runner Caches
       id: runner_caches
@@ -634,6 +470,54 @@ jobs:
         name: enact-history-v1-${{ github.run_attempt }}
         path: ${{ runner.temp }}/enact-history-export/snapshot.json
         retention-days: "14"
+    - name: Restore Reach Store
+      id: reach-store
+      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: enact-reach-${{ github.head_ref || github.ref_name }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: .git/enact/reach
+        restore-keys: |-
+          enact-reach-${{ github.head_ref || github.ref_name }}-${{ github.sha }}-
+          enact-reach-${{ github.head_ref || github.ref_name }}-
+          enact-reach-${{ github.base_ref || github.event.repository.default_branch }}-
+    - name: Download Recorded Footprints
+      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
+      continue-on-error: true
+      uses: actions/download-artifact@v8
+      with:
+        path: ${{ runner.temp }}/enact-footprints
+        pattern: enact-footprints-*
+    - name: Consolidate the Reach Map
+      id: consolidate_reach
+      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
+      run: |-
+        cd "${GITHUB_WORKSPACE}"
+        if [ -n "$(find "$RUNNER_TEMP/enact-footprints" -name '*.bin' -print -quit 2>/dev/null)" ] || [ "$GITHUB_EVENT_NAME" = push ]; then
+          enact reach store pull || true
+          enact reach store push --deltas "$RUNNER_TEMP/enact-footprints"
+          echo "consolidated=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "🗺️  Reach store: no deltas to consolidate"
+        fi
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
+        AWS_REGION: auto
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
+        ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
+        ENACT_SAME_REPO_PR: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
+        GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    - name: Save Reach Store
+      if: ${{ always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) && steps.consolidate_reach.outputs.consolidated == 'true' && github.event_name != 'pull_request' }}
+      continue-on-error: true
+      uses: actions/cache/save@v6
+      with:
+        key: enact-reach-${{ github.head_ref || github.ref_name }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: .git/enact/reach
   test:
     name: Run Tests
     needs:
