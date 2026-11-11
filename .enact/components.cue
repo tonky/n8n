@@ -16,7 +16,7 @@ _lint: {
 	let _tasks = strings.Join(["lint", if #styles {"lint:styles"}, if #format {"format:check"}], " ")
 	let _depFilter = [if #pkg == "n8n-nodes-base" {"'" + #pkg + "...'"}, "'" + #pkg + "^...'"][0]
 	let _extraDeps = strings.Join(["@n8n/eslint-config", "@n8n/oxlint-config", if #styles {"@n8n/stylelint-config"}], " ")
-	command: "helpers/build-workspace-deps.sh " + _depFilter + " " + _extraDeps + " && pnpm turbo run --only --env-mode=loose " + _tasks + " --filter=" + #pkg + " --output-logs=errors-only"
+	command: "helpers/build-workspace-deps.sh " + _depFilter + " " + _extraDeps + " && pnpm turbo run --only --env-mode=loose " + _tasks + " --filter=" + #pkg + " --output-logs=errors-only --concurrency=2"
 	env: {GOMEMLIMIT: "3072MiB", GOGC: "50"}
 }
 
@@ -297,9 +297,9 @@ pipeline: schema.#Pipeline & {
 			}
 		}
 
-		for n in ["cli", "frontend", "nodes-base", "@n8n/n8n-nodes-langchain"] {
+		for n in ["cli", "nodes-base", "@n8n/n8n-nodes-langchain"] {
 			(n): jobs: {
-				lint:      resources: {cpus: 2.0, memory_mb: 3072}
+				lint:      resources: {cpus: 2.0, memory_mb: 4608}
 				typecheck: resources: {cpus: 2.0, memory_mb: 6144}
 			}
 		}
@@ -308,6 +308,8 @@ pipeline: schema.#Pipeline & {
 			resources:        {cpus: 2.0, memory_mb: 4096}
 			record_resources: {cpus: 2.0, memory_mb: 6144}
 			jobs: {
+				lint:      resources: {cpus: 2.0, memory_mb: 5632}
+				typecheck: resources: {cpus: 2.0, memory_mb: 7168}
 				test: tasks: [{name: "Run Tests", command: _vitest, timeout: _wholeSuiteTimeout}]
 			}
 		}
