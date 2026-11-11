@@ -297,13 +297,18 @@ if [ -n "${ENACT_FOOTPRINT_DIR:-}" ]; then
   fi
 fi
 
-# Transforms persist across runs (node_modules/.vitest-cache, keyed by each module's
-# content and the config: every run still reads the sources it uses, so traces see them):
-# halves a test file's start-up. VITEST_FS_CACHE=0 turns it off; multi-shard or bin-packed
-# runs disable it so parallel shards in a shared worktree don't race on `rmdir node_modules/.vitest-cache`.
+# Transforms persist across runs under `.enact/state/cache/vitest/<pkg>-...` (keyed by
+# package, DB mode and shard so the lockfile's two peer builds of vitest 5.0.1 never mix
+# transforms across packages, parallel shards never race on rmdir, and node_modules stays
+# clean; every run still reads the sources it uses, so traces see them): halves start-up.
+# VITEST_FS_CACHE=0 turns it off.
 CACHE_OPTS=()
-if [ "${VITEST_FS_CACHE:-1}" != 0 ] && [ "${ENACT_SHARD_TOTAL:-1}" -le 1 ] && [[ "${ENACT_MATRIX_COMMAND:-}" != *" --shard "*" --shard "* ]] && [[ "${ENACT_MATRIX_COMMAND:-}" != *" -c "*" -c "* ]]; then
-  CACHE_OPTS=(--fsModuleCache)
+if [ "${VITEST_FS_CACHE:-1}" != 0 ]; then
+  PKG_CACHE_KEY=$(printf '%s' "${PWD#"$REPO_ROOT"/}" | tr '/@:' '___')
+  CACHE_OPTS=(
+    --fsModuleCache
+    --fsModuleCachePath "$REPO_ROOT/.enact/state/cache/vitest/${PKG_CACHE_KEY}-${DB_TYPE:-default}-m${VITEST_MIGRATION:-0}-s${ENACT_SHARD_INDEX:-1}"
+  )
 fi
 
 # The package's vitest, as its `pnpm test` runs it: pnpm sets the environment its scripts

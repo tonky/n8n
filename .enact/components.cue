@@ -61,7 +61,6 @@ _target_scope: {
 		{match: ["docs/generated/**", ".tbls.*.yml", "packages/**/{README,AGENTS,CHANGELOG,LICENSE}*.md"], action: "ignore"},
 		if #dir != "packages/frontend/@n8n/i18n" {match: ["packages/frontend/@n8n/i18n/src/locales/*.json"], action: "ignore"},
 		if len(#runner) > 0 {match: #runner, action: "full_component"},
-		{match: [#dir + "/package.json"], action: "full_component"},
 		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue,md}", "packages/**/package.json"], engine: "reach"},
 		{match: ["packages/**/{src,evaluations,test,__tests__,nodes,credentials}/**/*.{json,yml,yaml,mjml}"], engine: "reach"},
 	]

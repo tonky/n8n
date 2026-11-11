@@ -14,6 +14,10 @@ set -euo pipefail
   done
 }
 [ -d "$REPO_ROOT/node_modules" ] || exit 0
+# Legacy default `--fsModuleCache` wrote into `$REPO_ROOT/node_modules/.vitest-cache`, mixing
+# the lockfile's two peer builds of vitest 5.0.1 across packages (`vitest-runner.sh` now uses
+# per-package `.enact/state/cache/vitest/`).
+[ ! -d "$REPO_ROOT/node_modules/.vitest-cache" ] || rm -rf "$REPO_ROOT/node_modules/.vitest-cache" 2>/dev/null || true
 
 # Node 24's IncomingMessage._destroy detaches [kAbortSignalSocket] with `!== null`; tests
 # that `Object.setPrototypeOf(Readable.from(buf), IncomingMessage.prototype)` skip the
