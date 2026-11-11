@@ -10,27 +10,22 @@ import (
 // playwright and @n8n/task-runner-python.
 
 _lint: {
+	#dir:    string
 	#pkg:    string
 	#styles: bool | *false
 	#format: bool | *false
-	let _tasks = strings.Join(["lint", if #styles {"lint:styles"}, if #format {"format:check"}], " ")
-	let _depFilter = [if #pkg == "n8n-nodes-base" {"'" + #pkg + "...'"}, "'" + #pkg + "^...'"][0]
-	let _extraDeps = strings.Join(["@n8n/eslint-config", "@n8n/oxlint-config", if #styles {"@n8n/stylelint-config"}], " ")
-	command: "helpers/build-workspace-deps.sh " + _depFilter + " " + _extraDeps + " && pnpm turbo run --only --env-mode=loose " + _tasks + " --filter=" + #pkg + " --output-logs=errors-only --concurrency=2"
+	command: "helpers/lint-runner.sh" + [if #styles {" --styles"}, ""][0] + [if #format {" --format"}, ""][0] + " " + #dir + " " + #pkg + " {relative_changed_files}"
 	env: {GOMEMLIMIT: "3072MiB", GOGC: "50"}
 }
 
 _typecheck: {
+	#dir:          string
 	#pkg:          string
 	#declarations: bool | *false
-	command: "helpers/build-workspace-deps.sh '" + #pkg + "^...' && pnpm turbo run --only --env-mode=loose typecheck --filter=" + #pkg + " --output-logs=errors-only" + [
-		if #declarations {" && RELEASE=true helpers/build-workspace-deps.sh --checked " + #pkg + " && test -f dist/index.d.ts"},
-		"",
-	][0]
+	command: "helpers/typecheck-runner.sh" + [if #declarations {" --declarations"}, ""][0] + " " + #dir + " " + #pkg
 }
 
-_browserCheck: {direct: true, services: false, resources: {cpus: 4.0, memory_mb: 10240}}
-_vitest:       "helpers/vitest-runner.sh {relative_targets}"
+_vitest: "helpers/vitest-runner.sh {relative_targets}"
 
 _chromiumBrowsers: schema.#Browsers & {
 	engine:   "chromium"
@@ -62,7 +57,7 @@ _target_scope: {
 		if #dir != "packages/frontend/@n8n/i18n" {match: ["packages/frontend/@n8n/i18n/src/locales/*.json"], action: "ignore"},
 		if len(#runner) > 0 {match: #runner, action: "full_component"},
 		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue,md}", "packages/**/package.json"], engine: "reach"},
-		{match: ["packages/**/{src,evaluations,test,__tests__,nodes,credentials}/**/*.{json,yml,yaml,mjml}"], engine: "reach"},
+		{match: ["packages/**/{src,evaluations,test,__tests__,nodes,credentials,data,expectations,templates}/**/*.{json,jsonl,yml,yaml,mjml,handlebars}"], engine: "reach"},
 	]
 }
 
@@ -232,7 +227,8 @@ pipeline: schema.#Pipeline & {
 				"tsconfig.json", "tsconfig.configs.json", "biome.jsonc", "vitest.workspace.ts",
 				".prettierrc.js", ".prettierignore", "lefthook.yml", "knip.ts",
 				".boundaries-baseline.json", ".code-health-baseline.json", "agent-harness.lock.json",
-				"patches/**", "scripts/**", "helpers/vitest-runner.sh", "helpers/repair-node-modules.sh", "helpers/pnpm-store.sh",
+				"patches/**", "scripts/**", "helpers/vitest-runner.sh", "helpers/lint-runner.sh", "helpers/typecheck-runner.sh",
+				"helpers/repair-node-modules.sh", "helpers/pnpm-store.sh",
 				"helpers/build-workspace-deps.sh", "helpers/schema-docs-postgres.mjs", "helpers/trace/**",
 			]
 			depends_on:      []
@@ -281,7 +277,7 @@ pipeline: schema.#Pipeline & {
 						direct:    true
 						services:  false
 						resources: {cpus: *2.0 | number, memory_mb: *3072 | int}
-						tasks:     [_lint & {#pkg: p.pkg, #styles: p.lint_styles, #format: p.format_check, name: "Run Linter"}]
+						tasks:     [_lint & {#dir: p.dir, #pkg: p.pkg, #styles: p.lint_styles, #format: p.format_check, name: "Run Linter"}]
 					}
 				}
 				if p.typecheck {
@@ -290,7 +286,7 @@ pipeline: schema.#Pipeline & {
 						direct:    true
 						services:  false
 						resources: {cpus: *2.0 | number, memory_mb: *3584 | int}
-						tasks:     [_typecheck & {#pkg: p.pkg, #declarations: p.declarations, name: "Typecheck"}]
+						tasks:     [_typecheck & {#dir: p.dir, #pkg: p.pkg, #declarations: p.declarations, name: "Typecheck"}]
 					}
 				}
 			}
@@ -304,8 +300,8 @@ pipeline: schema.#Pipeline & {
 		}
 
 		frontend: {
-			resources:        {cpus: 2.0, memory_mb: 4096}
-			record_resources: {cpus: 2.0, memory_mb: 6144}
+			resources:        {cpus: 4.0, memory_mb: 4096}
+			record_resources: {cpus: 4.0, memory_mb: 6144}
 			jobs: {
 				lint:      resources: {cpus: 2.0, memory_mb: 5632}
 				typecheck: resources: {cpus: 2.0, memory_mb: 7168}
@@ -342,8 +338,8 @@ pipeline: schema.#Pipeline & {
 		"@n8n/efficiency": {
 			browsers: _chromiumBrowsers
 			jobs: {
-				lint:      _browserCheck
-				typecheck: _browserCheck
+				lint:      needs: ["playwright:build", "@n8n/db:build"]
+				typecheck: needs: ["playwright:build", "@n8n/db:build"]
 			}
 		}
 
@@ -605,8 +601,8 @@ pipeline: schema.#Pipeline & {
 					}
 					tasks: [{command: "helpers/build-workspace-deps.sh 'n8n-playwright^...'"}]
 				}
-				lint:      _browserCheck
-				typecheck: _browserCheck
+				lint:      needs: ["build", "@n8n/db:build"]
+				typecheck: needs: ["build", "@n8n/db:build"]
 				dev_server_smoke: {
 					name:             "Dev-Server Boot Smoke"
 					needs:            ["build", "@n8n/db:build"]
@@ -635,6 +631,7 @@ pipeline: schema.#Pipeline & {
 							P.dir + "/tests/e2e/**/*.spec.ts",
 							for d in ["cli-workflows", "evals", "infrastructure", "performance"] {P.dir + "/tests/" + d + "/**/*.spec.ts"},
 							P.dir + "/**/*.test.{ts,mjs}",
+							P.dir + "/expectations/**",
 							for _, d in _packages if d.dir != P.dir && d.dir != _ed && d.dir != _vc {d.dir + "/**"},
 							_ed + "/**/*.{test,spec,stories}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}",
 							_ed + "/**/{__tests__,__mocks__,test,tests}/**",

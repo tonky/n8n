@@ -54,22 +54,40 @@ if [ -d node_modules ] && [ -d packages/@n8n ] && { [ -z "$stamp_dir" ] || [ ! -
 fi
 enact="${ENACT_EXE:-${ENACT_BIN:-$(command -v enact || true)}}"
 [ -n "$enact" ] || { echo "build-workspace-deps.sh: enact not found (set ENACT_EXE, ENACT_BIN, or put enact on PATH)" >&2; exit 2; }
-if [ "$task" = "build:unchecked" ] && [ $# -eq 1 ] && [ -d .enact ]; then
-  case "$1" in
-    n8n-playwright^... | n8n...)
-      if [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "playwright:build" ]; then
-        [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
-        # A cone without playwright's root (cli's) can't run its producer: restored outputs
-        # serve, else turbo builds `n8n...` below.
-        "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
-      fi
-      ;;
-    @n8n/db)
-      if [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "@n8n/db:build" ]; then
-        exec "$enact" helper ensure-outputs @n8n/db:build
-      fi
-      ;;
-  esac
+if [ "$task" = "build:unchecked" ] && [ -d .enact ]; then
+  extra_ok=1
+  for extra in "${@:2}"; do
+    case "$extra" in
+      @n8n/eslint-config | @n8n/oxlint-config | @n8n/stylelint-config) ;;
+      *) extra_ok=0; break ;;
+    esac
+  done
+  if [ "$extra_ok" -eq 1 ]; then
+    case "$1" in
+      n8n-playwright^... | @n8n/efficiency^...)
+        if [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "playwright:build" ]; then
+          if [ -d packages/@n8n/db ] && [ ! -f packages/@n8n/db/dist/index.d.ts ] && [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "@n8n/db:build" ]; then
+            "$enact" helper ensure-outputs @n8n/db:build || true
+          fi
+          [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
+          "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
+        fi
+        ;;
+      n8n...)
+        if [ $# -eq 1 ] && [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "playwright:build" ]; then
+          [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
+          # A cone without playwright's root (cli's) can't run its producer: restored outputs
+          # serve, else turbo builds `n8n...` below.
+          "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
+        fi
+        ;;
+      @n8n/db)
+        if [ $# -eq 1 ] && [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "@n8n/db:build" ]; then
+          exec "$enact" helper ensure-outputs @n8n/db:build
+        fi
+        ;;
+    esac
+  fi
 fi
 if [ -n "$stamp_dir" ]; then
   missing=0

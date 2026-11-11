@@ -14,6 +14,9 @@ set -euo pipefail
   done
 }
 [ -d "$REPO_ROOT/node_modules" ] || exit 0
+# Serialize across concurrent shards sharing a checkout (`FINDINGS#F-ops-lock-holder-fd-and-flock`).
+exec 9>"$REPO_ROOT/node_modules/.enact-repair.flock"
+flock 9
 # Legacy default `--fsModuleCache` wrote into `$REPO_ROOT/node_modules/.vitest-cache`, mixing
 # the lockfile's two peer builds of vitest 5.0.1 across packages (`vitest-runner.sh` now uses
 # per-package `.enact/state/cache/vitest/`).
@@ -24,7 +27,7 @@ set -euo pipefail
 # constructor and leave those symbols undefined unless defaulted on the prototype.
 HTTP_PRELOAD="$REPO_ROOT/node_modules/.enact-node24-http-preload.cjs"
 if [ -d "$REPO_ROOT/node_modules" ] && [ ! -f "$HTTP_PRELOAD" ]; then
-  cat > "$HTTP_PRELOAD" <<'EOF'
+  cat > "$HTTP_PRELOAD.tmp.$$" <<'EOF'
 const { IncomingMessage } = require('node:http');
 const sample = new IncomingMessage(null);
 for (const sym of Object.getOwnPropertySymbols(sample)) {
@@ -40,13 +43,14 @@ fs.writeFileSync = function (p, data, ...rest) {
 };
 try { require('node:module').syncBuiltinESMExports(); } catch {}
 EOF
+  mv -f "$HTTP_PRELOAD.tmp.$$" "$HTTP_PRELOAD"
 fi
 
 # On linux-arm64, tree-sitter@0.21.1 ships no prebuild and tree-sitter-bash@0.23.3 ships an
 # x86-64 ELF binary in prebuilds/linux-arm64; fall back to curlconverter's bundled WASM.
 CURL_PARSER="$REPO_ROOT/packages/frontend/editor-ui/node_modules/curlconverter/dist/src/shell/Parser.js"
 if [ -f "$CURL_PARSER" ] && [ ! -f "$REPO_ROOT/node_modules/.enact-curlconverter-healed-v1" ]; then
-  cat > "$CURL_PARSER" <<'EOF'
+  cat > "$CURL_PARSER.tmp.$$" <<'EOF'
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
@@ -65,6 +69,7 @@ try {
 }
 export default parser;
 EOF
+  mv -f "$CURL_PARSER.tmp.$$" "$CURL_PARSER"
   touch "$REPO_ROOT/node_modules/.enact-curlconverter-healed-v1" 2>/dev/null || true
 fi
 
@@ -76,7 +81,7 @@ if [ ! -f "$REPO_ROOT/node_modules/.enact-testing-library-timeout-healed-v1" ]; 
     "$REPO_ROOT"/node_modules/.pnpm/@testing-library+dom*/node_modules/@testing-library/dom/dist/@testing-library/dom.cjs.js \
     "$REPO_ROOT"/node_modules/.pnpm/@testing-library+dom*/node_modules/@testing-library/dom/dist/@testing-library/dom.esm.js; do
     if [ -f "$tl_file" ]; then
-      sed 's/asyncUtilTimeout: 1000,/asyncUtilTimeout: 10000,/g' "$tl_file" > "$tl_file.tmp" && mv -f "$tl_file.tmp" "$tl_file"
+      sed 's/asyncUtilTimeout: 1000,/asyncUtilTimeout: 10000,/g' "$tl_file" > "$tl_file.tmp.$$" && mv -f "$tl_file.tmp.$$" "$tl_file"
     fi
   done
   touch "$REPO_ROOT/node_modules/.enact-testing-library-timeout-healed-v1" 2>/dev/null || true

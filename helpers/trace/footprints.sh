@@ -111,6 +111,46 @@ def probe_paths(v):
                     yield f"{d}/{n}" if d else n
     else:
         yield from trie_paths(v or [])
+def to_trie(paths):
+    root = [{}, set()]
+    for raw in paths:
+        p = raw
+        while p.startswith("./"):
+            p = p[2:]
+        p = p.lstrip("/")
+        node = root
+        if "/" in p:
+            dirs, leaf = p.rsplit("/", 1)
+            for part in dirs.split("/"):
+                node = node[0].setdefault(part, [{}, set()])
+        else:
+            leaf = p
+        node[1].add(leaf)
+    def encode(node):
+        subs, files = node
+        if not subs:
+            return sorted(files)
+        items = []
+        if files:
+            items.append((".", sorted(files)))
+        for name in sorted(subs):
+            child = subs[name]
+            while not child[1] and len(child[0]) == 1:
+                sub_name, child = next(iter(child[0].items()))
+                name = f"{name}/{sub_name}"
+            items.append((name, encode(child)))
+        items.sort(key=lambda kv: kv[0])
+        return dict(items)
+    return encode(root)
+def to_probes(paths):
+    by_dir = {}
+    for p in paths:
+        d, n = p.rsplit("/", 1) if "/" in p else ("", p)
+        by_dir.setdefault(d, []).append(n)
+    by_names = {}
+    for d, ns in by_dir.items():
+        by_names.setdefault(tuple(sorted(set(ns))), []).append(d)
+    return [[to_trie(sorted(ds)), list(ns)] for ns, ds in sorted(by_names.items())]
 targets = m.get("targets") or {}
 for t in [t for t in targets if not wanted(t)]:
     del targets[t]
@@ -125,16 +165,21 @@ if len(targets) >= 2 and not m.get("shared"):
         f for fp in targets.values() for f in (fp.get("functions") or {}).keys()
     }
     shared = {}
-    for field, expand in (("files", trie_paths), ("loaded", trie_paths), ("installed", trie_paths), ("probes", probe_paths)):
+    for field, expand, pack in (
+        ("files", trie_paths, to_trie),
+        ("loaded", trie_paths, to_trie),
+        ("installed", trie_paths, to_trie),
+        ("probes", probe_paths, to_probes),
+    ):
         per_t = {t: set(expand(fp.get(field) or [])) for t, fp in targets.items()}
         common = set.intersection(*per_t.values())
         if field in ("files", "loaded"):
             common -= func_files
         if common:
-            shared[field] = sorted(common)
+            shared[field] = pack(common)
             for t, fp in targets.items():
-                own = sorted(per_t[t] - common)
-                if own: fp[field] = own
+                own = per_t[t] - common
+                if own: fp[field] = pack(own)
                 else: fp.pop(field, None)
     if shared:
         m["shared"] = shared
@@ -155,11 +200,12 @@ for fp in targets.values():
             d for d in trie_paths(fp["dirs"])
             if dir_counts.get(d, 0) < 16 and d.removeprefix("dir:").rstrip("/") in rdirs
         ]
-        if kept_dirs: fp["dirs"] = kept_dirs
+        if kept_dirs: fp["dirs"] = to_trie(kept_dirs)
         else: fp.pop("dirs", None)
-m["outcomes"] = True
+m.pop("outcomes", None)
+out = {"outcomes": True, **m}
 with open(to + ".part", "w", encoding="utf-8") as f:
-    json.dump(m, f, ensure_ascii=False, separators=(",", ":"))
+    json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
 os.replace(to + ".part", to)
 for t, fp in targets.items():
     print("🎯 [footprints] recorded \x27%s\x27 (%s)" % (t, "complete" if "outcome" not in fp else "incomplete"))

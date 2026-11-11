@@ -26,6 +26,7 @@ pipeline: schema.#Pipeline & {
 	ci: {
 		control_worker: "standard"
 		soft_placement: {fallback_seconds: 15}
+		scheduler: {makespan_tolerance: 1.05}
 		history: {workflow: ".github/workflows/enact-ci.yml"}
 		rerun: {labels: ["rerun", "showcase"], branch_prefixes: ["showcase/"]}
 		concurrency: max_parallel_jobs: 64
@@ -84,10 +85,10 @@ pipeline: schema.#Pipeline & {
 				}
 			}
 			gha_x64: {
-				labels: ["ubuntu-24.04"], arch: "x86_64", tier: "on_demand", cpus: 4, memory_mb: 16384, max_parallel: 16, cost_per_min: 0.016, boot_overhead_sec: 45, timeout_minutes: 90
+				labels: ["ubuntu-24.04"], arch: "x86_64", tier: "on_demand", cpus: 4, memory_mb: 16384, max_parallel: 16, cost_per_min: 0.016, boot_overhead_sec: 30, timeout_minutes: 90
 			}
 			gha_arm64: {
-				labels: ["ubuntu-24.04-arm"], arch: "aarch64", tier: "on_demand", cpus: 4, memory_mb: 16384, max_parallel: 16, cost_per_min: 0.016, boot_overhead_sec: 45, timeout_minutes: 90
+				labels: ["ubuntu-24.04-arm"], arch: "aarch64", tier: "on_demand", cpus: 4, memory_mb: 16384, max_parallel: 16, cost_per_min: 0.016, boot_overhead_sec: 30, timeout_minutes: 90
 			}
 		}
 	}
@@ -99,13 +100,11 @@ pipeline: schema.#Pipeline & {
 				push: branches:         ["main", "master", "perf/ci-modernization", "perf/ci-showcase"]
 				pull_request: branches: ["main", "master", "perf/ci-modernization", "perf/ci-showcase"]
 			}
-			stages: [
-				{
-					name:   "check-and-lint"
-					select: [J.lint, J.typecheck, J.schema_check], fail_fast: true, services: "on_demand"
-				},
-				{name: "test", matrix: true, select: [J.test, J.migrate, J.integration, J.dev_server_smoke], fail_fast: false, services: "on_demand"},
-			]
+			stages: [{
+				name: "test", matrix: true
+				select: [J.lint, J.typecheck, J.schema_check, J.test, J.migrate, J.integration, J.dev_server_smoke]
+				fail_fast: false, services: "on_demand"
+			}]
 		}
 		local: {
 			services: "on_demand"

@@ -508,6 +508,15 @@ jobs:
           /tmp/.cache/uv
           /tmp/.cache/pip
     - parallel:
+      - name: Save Node dependency cache
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && (contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node')) && steps.cache_delta.outputs.node_l1_cache == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.runner_caches.outputs.host == '') && steps.node_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ steps.node_l1_cache.outputs.cache-primary-key }}
+          path: |-
+            .enact/state/pnpm-store
+            node_modules/.cache
       - name: Save Browsers [chromium]
         if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && matrix.browsers && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && steps.browsers_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true
