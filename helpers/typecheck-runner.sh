@@ -20,13 +20,35 @@ if [ "${1:-}" = "--declarations" ]; then
 fi
 
 [ $# -eq 2 ] || { echo "usage: typecheck-runner.sh [--declarations] <pkg_dir> <pkg_name>" >&2; exit 64; }
-pkg_dir="${1%/}"
+raw_pkg_dir="${1%/}"
 pkg_name="$2"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ABS_PKG_DIR="$REPO_ROOT/$pkg_dir"
-PKG_SLUG="${pkg_dir//\//__}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+[ -n "$raw_pkg_dir" ] || raw_pkg_dir="."
+case "$raw_pkg_dir" in
+  . | ./* | .. | ../* | /*)
+    [ -d "$raw_pkg_dir" ] || { echo "typecheck-runner.sh: package directory not found: $raw_pkg_dir" >&2; exit 64; }
+    ABS_PKG_DIR="$(cd "$raw_pkg_dir" && pwd -P)"
+    ;;
+  *)
+    if [ -d "$REPO_ROOT/$raw_pkg_dir" ]; then
+      ABS_PKG_DIR="$(cd "$REPO_ROOT/$raw_pkg_dir" && pwd -P)"
+    elif [ -d "$raw_pkg_dir" ]; then
+      ABS_PKG_DIR="$(cd "$raw_pkg_dir" && pwd -P)"
+    else
+      echo "typecheck-runner.sh: package directory not found: $raw_pkg_dir" >&2
+      exit 64
+    fi
+    ;;
+esac
+if [ "$ABS_PKG_DIR" = "$REPO_ROOT" ]; then
+  pkg_dir="."
+  PKG_SLUG="root"
+else
+  pkg_dir="${ABS_PKG_DIR#"$REPO_ROOT"/}"
+  PKG_SLUG="${pkg_dir//\//__}"
+fi
 CACHE_BASE="$REPO_ROOT/.turbo/tsbuildinfo/$PKG_SLUG"
 
 copy_tsbuildinfo() {

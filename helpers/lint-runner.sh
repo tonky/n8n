@@ -27,14 +27,36 @@ while [ $# -gt 0 ]; do
 done
 
 [ $# -ge 2 ] || { echo "usage: lint-runner.sh [--styles] [--format] <pkg_dir> <pkg_name> <file...>" >&2; exit 64; }
-pkg_dir="${1%/}"
+raw_pkg_dir="${1%/}"
 pkg_name="$2"
 shift 2
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ABS_PKG_DIR="$REPO_ROOT/$pkg_dir"
-PKG_SLUG="${pkg_dir//\//__}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+[ -n "$raw_pkg_dir" ] || raw_pkg_dir="."
+case "$raw_pkg_dir" in
+  . | ./* | .. | ../* | /*)
+    [ -d "$raw_pkg_dir" ] || { echo "lint-runner.sh: package directory not found: $raw_pkg_dir" >&2; exit 64; }
+    ABS_PKG_DIR="$(cd "$raw_pkg_dir" && pwd -P)"
+    ;;
+  *)
+    if [ -d "$REPO_ROOT/$raw_pkg_dir" ]; then
+      ABS_PKG_DIR="$(cd "$REPO_ROOT/$raw_pkg_dir" && pwd -P)"
+    elif [ -d "$raw_pkg_dir" ]; then
+      ABS_PKG_DIR="$(cd "$raw_pkg_dir" && pwd -P)"
+    else
+      echo "lint-runner.sh: package directory not found: $raw_pkg_dir" >&2
+      exit 64
+    fi
+    ;;
+esac
+if [ "$ABS_PKG_DIR" = "$REPO_ROOT" ]; then
+  pkg_dir="."
+  PKG_SLUG="root"
+else
+  pkg_dir="${ABS_PKG_DIR#"$REPO_ROOT"/}"
+  PKG_SLUG="${pkg_dir//\//__}"
+fi
 
 build_lint_deps() {
   local dep_filter="${pkg_name}^..."
