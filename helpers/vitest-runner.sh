@@ -41,12 +41,16 @@ export VITE_CONFIG_NATIVE_IGNORE_WARNING=true
 export TURBO_TELEMETRY_DISABLED=1
 export NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-/tmp/.node_compile_cache}"
 if [ -n "${ENACT_ATTRIBUTION_FILE:-}" ] || [ -n "${ENACT_FOOTPRINT_DIR:-}" ]; then
-  export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=3072"
+  [[ "${NODE_OPTIONS:-}" == *"--max-old-space-size="* ]] || export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=3072"
   NPROCS=$(nproc 2>/dev/null || echo 2)
   [ "$NPROCS" -le 2 ] || NPROCS=2
   MAX_WORKERS="${MAX_WORKERS:-$NPROCS}"
+elif [ "${VITEST_MIGRATION:-}" = both ]; then
+  [[ "${NODE_OPTIONS:-}" == *"--max-old-space-size="* ]] || export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=2560"
+  NPROCS=$(nproc 2>/dev/null || echo 2)
+  MAX_WORKERS="${MAX_WORKERS:-${ENACT_SHARD_WORKERS:-$NPROCS}}"
 else
-  export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
+  [[ "${NODE_OPTIONS:-}" == *"--max-old-space-size="* ]] || export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
   NPROCS=$(nproc 2>/dev/null || echo 2)
   MAX_WORKERS="${MAX_WORKERS:-${ENACT_SHARD_WORKERS:-$NPROCS}}"
 fi
@@ -74,12 +78,13 @@ if [ -f "$REPO_ROOT/pnpm-lock.yaml" ] && [ ! -d "$REPO_ROOT/node_modules" ]; the
 fi
 
 # The repairs the installed tree needs (links, resolution, native-addon fallbacks).
-if [ -d "$REPO_ROOT/node_modules" ]; then
+if [ -d "$REPO_ROOT/node_modules" ] && [ "${N8N_NODE_MODULES_REPAIRED:-}" != 1 ]; then
   if [ "$SETUP_FIXTURE" = 1 ]; then
     REPO_ROOT="$REPO_ROOT" "$SCRIPT_DIR/repair-node-modules.sh" >&2
   else
     REPO_ROOT="$REPO_ROOT" "$SCRIPT_DIR/repair-node-modules.sh"
   fi
+  export N8N_NODE_MODULES_REPAIRED=1
 fi
 
 # Node 24's IncomingMessage symbols (repair-node-modules.sh writes the preload).
@@ -215,7 +220,7 @@ for target in "${OWN[@]}"; do
   # under its one config, nodes-base's own config leaves them out (its integration job's).
   if [ -n "$INTEGRATION_CONFIG" ] && { [[ "$clean_target" == *".integration.test.ts" ]] || [[ "/$clean_target" == *"/test/integration/"* ]]; }; then
     INTEGRATIONS+=("$clean_target")
-  elif [ -f vitest.config.migration.ts ] && { [ "${VITEST_MIGRATION:-}" = 1 ] || [[ "/$clean_target" == *"/test/migration/"* ]]; }; then
+  elif [ -f vitest.config.migration.ts ] && { [ "${VITEST_MIGRATION:-}" = 1 ] || [ "${VITEST_MIGRATION:-}" = both ] || [[ "/$clean_target" == *"/test/migration/"* ]]; }; then
     MIGRATIONS+=("$clean_target")
   else
     UNITS+=("$clean_target")
@@ -275,8 +280,21 @@ fi
 # Footprints enact asks for (ENACT_FOOTPRINT_DIR: `enact run` recording while it runs,
 # `enact reach record`): the wanted test files are traced one by one, the others run as
 # here. After the set-up above, so the traced tests find it done and don't record it.
-if [ -n "${ENACT_FOOTPRINT_DIR:-}" ] && [ "${DB_TYPE:-}" != sqlite ]; then
-  exec "$SCRIPT_DIR/trace/footprints.sh" "$SCRIPT_DIR/vitest-runner.sh" "${TARGETS[@]}"
+if [ -n "${ENACT_FOOTPRINT_DIR:-}" ]; then
+  if [ "${VITEST_MIGRATION:-}" = both ]; then
+    status=0
+    VITEST_MIGRATION=1 "$SCRIPT_DIR/trace/footprints.sh" "$SCRIPT_DIR/vitest-runner.sh" ${TARGETS[@]+"${TARGETS[@]}"} || status=$?
+    env -u PGHOST -u PGPORT -u PGDATABASE -u PGUSER -u PGPASSWORD \
+      -u DB_POSTGRESDB_HOST -u DB_POSTGRESDB_PORT -u DB_POSTGRESDB_DATABASE \
+      -u DB_POSTGRESDB_USER -u DB_POSTGRESDB_PASSWORD -u DB_POSTGRESDB_SCHEMA \
+      -u DB_TABLE_PREFIX -u ENACT_FOOTPRINT_DIR -u ENACT_FOOTPRINT_TARGETS \
+      VITEST_MIGRATION=1 DB_TYPE=sqlite DB_SQLITE_POOL_SIZE=4 \
+      "$SCRIPT_DIR/vitest-runner.sh" ${TARGETS[@]+"${TARGETS[@]}"} || status=$?
+    exit "$status"
+  fi
+  if [ "${DB_TYPE:-}" != sqlite ]; then
+    exec "$SCRIPT_DIR/trace/footprints.sh" "$SCRIPT_DIR/vitest-runner.sh" ${TARGETS[@]+"${TARGETS[@]}"}
+  fi
 fi
 
 # Transforms persist across runs (node_modules/.vitest-cache, keyed by each module's
@@ -352,18 +370,48 @@ run_integration() (
   run_vitest run "${CACHE_OPTS[@]}" --maxWorkers "$MAX_WORKERS" --config "$INTEGRATION_CONFIG" "$@"
 )
 
-# run_migration <vitest args...>: cli's migration config, sequentially against PostgreSQL
-# or SQLite (when DB_TYPE=sqlite is set by `migrate-sqlite`).
+# run_migration <vitest args...>: cli's migration config, against PostgreSQL or SQLite.
 run_migration() (
+  local cache_opts=(${CACHE_OPTS[@]+"${CACHE_OPTS[@]}"})
+  [ "${VITEST_FS_CACHE:-1}" != 0 ] || cache_opts=()
   if [ "${DB_TYPE:-}" = sqlite ]; then
     unset PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD \
-      DB_POSTGRESDB_HOST DB_POSTGRESDB_PORT DB_POSTGRESDB_DATABASE DB_POSTGRESDB_USER DB_POSTGRESDB_PASSWORD
+      DB_POSTGRESDB_HOST DB_POSTGRESDB_PORT DB_POSTGRESDB_DATABASE DB_POSTGRESDB_USER DB_POSTGRESDB_PASSWORD \
+      DB_POSTGRESDB_SCHEMA DB_TABLE_PREFIX
     export N8N_LOG_LEVEL=silent DB_SQLITE_POOL_SIZE=4 DB_TYPE=sqlite
   else
     export N8N_LOG_LEVEL=silent DB_TYPE=postgresdb DB_POSTGRESDB_USER=postgres PGUSER=postgres \
       DB_POSTGRESDB_DATABASE=n8n DB_POSTGRESDB_SCHEMA=alt_schema DB_TABLE_PREFIX=test_
   fi
-  run_vitest run "${CACHE_OPTS[@]}" --config vitest.config.migration.ts --coverage.enabled=false "$@"
+  run_vitest run ${cache_opts[@]+"${cache_opts[@]}"} --config vitest.config.migration.ts --coverage.enabled=false "$@"
+)
+
+# run_migration_both <vitest args...>: runs PostgreSQL and SQLite migrations concurrently in
+# non-recording CI runs, keeping logs ordered and disabling VITEST_FS_CACHE on SQLite.
+run_migration_both() (
+  local pg_log sqlite_log pg_pid="" sqlite_pid="" pg_rc=0 sqlite_rc=0
+  pg_log=$(mktemp "${TMPDIR:-/tmp}/vitest-migrate-pg.XXXXXX")
+  sqlite_log=$(mktemp "${TMPDIR:-/tmp}/vitest-migrate-sqlite.XXXXXX")
+  cleanup_migrate_logs() {
+    [ -z "$pg_pid" ] || kill "$pg_pid" 2>/dev/null || true
+    [ -z "$sqlite_pid" ] || kill "$sqlite_pid" 2>/dev/null || true
+    rm -f "$pg_log" "$sqlite_log"
+  }
+  trap cleanup_migrate_logs EXIT INT TERM
+  (DB_TYPE=postgresdb run_migration "$@") >"$pg_log" 2>&1 &
+  pg_pid=$!
+  (VITEST_FS_CACHE=0 DB_TYPE=sqlite DB_SQLITE_POOL_SIZE=4 run_migration "$@") >"$sqlite_log" 2>&1 &
+  sqlite_pid=$!
+  wait "$pg_pid" || pg_rc=$?
+  pg_pid=""
+  wait "$sqlite_pid" || sqlite_rc=$?
+  sqlite_pid=""
+  echo "── [postgresdb] ──"
+  cat "$pg_log"
+  echo "── [sqlite] ──"
+  cat "$sqlite_log"
+  [ "$pg_rc" -eq 0 ] || exit "$pg_rc"
+  exit "$sqlite_rc"
 )
 
 SHARD_OPTS=()
@@ -383,6 +431,11 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
   EMPTY_SHARD=()
   if [ ${#SHARD_OPTS[@]} -gt 0 ] && [ "${ENACT_SHARD_INDEX:-${SHARD:-1}}" -gt 1 ]; then
     EMPTY_SHARD=(--passWithNoTests)
+  fi
+  if [ "${VITEST_MIGRATION:-}" = both ]; then
+    echo "🎯 [enact] No targets specified, running migration test suite (postgresdb + sqlite) ${SHARD_OPTS[*]:-}"
+    run_migration_both ${SHARD_OPTS[@]+"${SHARD_OPTS[@]}"} ${EMPTY_SHARD[@]+"${EMPTY_SHARD[@]}"}
+    exit
   fi
   if [ "${VITEST_MIGRATION:-}" = 1 ]; then
     echo "🎯 [enact] No targets specified, running migration test suite (${DB_TYPE:-postgresdb}) ${SHARD_OPTS[*]:-}"
@@ -426,8 +479,13 @@ if [ ${#INTEGRATIONS[@]} -gt 0 ]; then
 fi
 
 if [ ${#MIGRATIONS[@]} -gt 0 ]; then
-  echo "🎯 [enact] Executing ${#MIGRATIONS[@]} migration test target(s) (${DB_TYPE:-postgresdb})..."
-  run_migration "${MIGRATIONS[@]}" || status=$?
+  if [ "${VITEST_MIGRATION:-}" = both ]; then
+    echo "🎯 [enact] Executing ${#MIGRATIONS[@]} migration test target(s) (postgresdb + sqlite)..."
+    run_migration_both "${MIGRATIONS[@]}" || status=$?
+  else
+    echo "🎯 [enact] Executing ${#MIGRATIONS[@]} migration test target(s) (${DB_TYPE:-postgresdb})..."
+    run_migration "${MIGRATIONS[@]}" || status=$?
+  fi
 fi
 exit $status
 

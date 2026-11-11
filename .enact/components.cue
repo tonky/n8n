@@ -58,10 +58,12 @@ _target_scope: {
 	tests:     #tests
 	rules: [
 		if len(#ignore) > 0 {match: #ignore, action: "ignore"},
+		{match: ["docs/generated/**", ".tbls.*.yml", "packages/**/{README,AGENTS,CHANGELOG,LICENSE}*.md"], action: "ignore"},
 		if #dir != "packages/frontend/@n8n/i18n" {match: ["packages/frontend/@n8n/i18n/src/locales/*.json"], action: "ignore"},
 		if len(#runner) > 0 {match: #runner, action: "full_component"},
-		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}"], engine: "reach"},
-		{match: ["packages/**/{src,evaluations,test,__tests__,nodes,credentials}/**/*.json"], engine: "reach"},
+		{match: [#dir + "/package.json"], action: "full_component"},
+		{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue,md}", "packages/**/package.json"], engine: "reach"},
+		{match: ["packages/**/{src,evaluations,test,__tests__,nodes,credentials}/**/*.{json,yml,yaml,mjml}"], engine: "reach"},
 	]
 }
 
@@ -298,7 +300,7 @@ pipeline: schema.#Pipeline & {
 		for n in ["cli", "frontend", "nodes-base", "@n8n/n8n-nodes-langchain"] {
 			(n): jobs: {
 				lint:      resources: {cpus: 2.0, memory_mb: 3072}
-				typecheck: resources: {cpus: 2.0, memory_mb: 4096}
+				typecheck: resources: {cpus: 2.0, memory_mb: 6144}
 			}
 		}
 
@@ -398,7 +400,10 @@ pipeline: schema.#Pipeline & {
 			target_scope: {
 				fallback: "all"
 				tests:    [Dir + "/tests/unit/test_*.py", Dir + "/tests/integration/test_*.py"]
-				rules:    [{match: [Dir + "/**/*.py"], engine: "python"}]
+				rules: [
+					{match: [Dir + "/**/*.py"], engine: "python"},
+					{match: [Dir + "/{pyproject.toml,uv.lock,.python-version,README.md}"], engine: "reach"},
+				]
 			}
 			lint:      "uv run --frozen --all-extras --group dev ruff format --check && uv run --frozen --all-extras --group dev ruff check"
 			typecheck: "uv run --frozen --all-extras --group dev ty check src/"
@@ -523,8 +528,8 @@ pipeline: schema.#Pipeline & {
 					tasks: [
 						{
 							name:    "migrate"
-							command: "VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
-							timeout: _wholeSuiteTimeout
+							command: "VITEST_MIGRATION=both helpers/vitest-runner.sh {relative_targets}"
+							timeout: "20m"
 							env: {
 								ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
 								N8N_LOG_LEVEL:            "silent"
@@ -532,13 +537,6 @@ pipeline: schema.#Pipeline & {
 								DB_POSTGRESDB_SCHEMA:     "alt_schema"
 								DB_TABLE_PREFIX:          "test_"
 							}
-						},
-						{
-							name:      "migrate-sqlite"
-							command:   "DB_TYPE=sqlite DB_SQLITE_POOL_SIZE=4 VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
-							timeout:   _wholeSuiteTimeout
-							env:       {ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " "), N8N_LOG_LEVEL: "silent", DB_SQLITE_POOL_SIZE: "4", DB_TYPE: "sqlite"}
-							unset_env: _unsetPgEnv
 						},
 					]
 				}
@@ -614,19 +612,40 @@ pipeline: schema.#Pipeline & {
 					recorder:         "trace"
 					record_resources: {cpus: 4.0, memory_mb: 10240}
 					target_scope: _target_scope & {
+						let _ed = "packages/frontend/editor-ui"
+						let _vc = "packages/frontend/@n8n/frontend-vite-config"
 						#dir:   P.dir
 						#tests: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]
 						#runner: [
-							"packages/frontend/editor-ui/vite.config.mts",
-							"packages/frontend/editor-ui/src/**",
-							"packages/frontend/@n8n/frontend-vite-config/**",
+							"helpers/playwright-runner.sh",
+							"helpers/pw-spec-env.mjs",
+							"helpers/n8n-ready.mjs",
+							_vc + "/**",
+							for f in ["index.html", "package.json", "postcss.config.cjs", "tailwind.config.js", "tsconfig.json", "vite.config.mts"] {_ed + "/" + f},
+							for d in ["public", "vite"] {_ed + "/" + d + "/**"},
+							_ed + "/src/*.{ts,scss}",
+							_ed + "/src/app/**",
+							for f in [
+								"core", "workflows/canvas", "workflows/components", "workflows/composables",
+								"workflows/workflowHistory", "ndv", "credentials", "collaboration", "shared",
+							] {_ed + "/src/features/" + f + "/**"},
 						]
 						#ignore: [
 							P.dir + "/tests/e2e/**/*.spec.ts",
 							for d in ["cli-workflows", "evals", "infrastructure", "performance"] {P.dir + "/tests/" + d + "/**/*.spec.ts"},
 							P.dir + "/**/*.test.{ts,mjs}",
-							for _, d in _packages if d.dir != P.dir && d.dir != "packages/frontend/editor-ui" && d.dir != "packages/frontend/@n8n/frontend-vite-config" {d.dir + "/**"},
-							"packages/frontend/editor-ui/*",
+							for _, d in _packages if d.dir != P.dir && d.dir != _ed && d.dir != _vc {d.dir + "/**"},
+							_ed + "/**/*.{test,spec,stories}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}",
+							_ed + "/**/{__tests__,__mocks__,test,tests}/**",
+							_vc + "/**/*.{test,spec}.{ts,mts,js,mjs}",
+							_vc + "/**/{__tests__,__mocks__,test,tests}/**",
+							for f in ["*.md", "biome.jsonc", "eslint.config.mjs", "stylelint.config.mjs", "vitest.config.mts", ".oxlintrc.json"] {_ed + "/" + f},
+							for d in ["data", "scripts"] {_ed + "/" + d + "/**"},
+							_ed + "/src/experiments/**",
+							for f in [
+								"agents", "ai", "execution", "integrations", "resolvers", "roles", "settings",
+								"setupPanel", "workflow-reviews", "workflows/readyToRun", "workflows/templates", "workflows/workflowDiff",
+							] {_ed + "/src/features/" + f + "/**"},
 						]
 					}
 					// `--trace=off`: the config's `trace: 'on'` writes and rereads trace resources

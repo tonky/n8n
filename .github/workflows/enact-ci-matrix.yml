@@ -24,8 +24,6 @@ env:
   ENVE_SUBSTITUTERS: https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev,https://cache.nixos.org
   ENVE_TRUSTED_PUBLIC_KEYS: enve-r2-1:ckHPTeWVef6mba+1AwWHjKYCsUWKPfP9IXPm5YXNoHg=
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-  GOCACHE: /tmp/go-build
-  GOPATH: /tmp/go
   NODE_OPTIONS: --max-old-space-size=6144
   UV_CACHE_DIR: /tmp/.cache/uv
   XDG_CACHE_HOME: /tmp/.cache
@@ -306,15 +304,6 @@ jobs:
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
         ENACT_OUTPUTS_STEPS: ${{ toJson(steps) }}
     - parallel:
-      - name: Restore enact Task CAS Cache
-        id: enact-tasks-cache
-        if: ${{ !steps.skip.outputs.hit }}
-        continue-on-error: true
-        uses: actions/cache/restore@v6
-        with:
-          key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
-          path: .enact/state/cache
-          restore-keys: ${{ runner.os }}-enact-tasks-
       - name: Restore Python build & venv cache
         id: python_l1_cache
         if: ${{ (contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '') && !steps.skip.outputs.hit }}
@@ -326,19 +315,6 @@ jobs:
             /tmp/.cache/uv
             /tmp/.cache/pip
           restore-keys: ${{ runner.os }}-python-
-      - name: Restore Go build cache
-        id: go_l1_cache
-        if: ${{ (contains(matrix.technology, 'go') && steps.runner_caches.outputs.host == '' && hashFiles('**/go.mod', '**/go.sum') != '') && !steps.skip.outputs.hit }}
-        continue-on-error: true
-        uses: actions/cache/restore@v6
-        with:
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.mod', '**/go.sum') }}-${{ github.sha }}
-          path: |-
-            /tmp/go-build
-            /tmp/go/pkg/mod
-          restore-keys: |-
-            ${{ runner.os }}-go-${{ hashFiles('**/go.mod', '**/go.sum') }}-
-            ${{ runner.os }}-go-
       - name: Restore Node dependency cache
         id: node_l1_cache
         if: ${{ ((contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node')) && steps.runner_caches.outputs.host == '') && !steps.skip.outputs.hit }}
@@ -521,7 +497,7 @@ jobs:
           python_l1_cache /tmp/.cache/pip
           node_l1_cache .enact/state/pnpm-store
           node_l1_cache node_modules/.cache
-        ENACT_UV_PRUNE: "true"
+        ENACT_UV_PRUNE: ${{ contains(matrix.technology, 'python') }}
     - name: Save Python build & venv cache
       if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.cache_delta.outputs.python_l1_cache == 'true') && steps.python_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
       continue-on-error: true
@@ -532,15 +508,6 @@ jobs:
           /tmp/.cache/uv
           /tmp/.cache/pip
     - parallel:
-      - name: Save Go build cache
-        if: ${{ (((env.ENACT_SAVE_EVENT == 'true' && contains(matrix.technology, 'go') && steps.runner_caches.outputs.host == '' && hashFiles('**/go.mod', '**/go.sum') != '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.go_l1_cache.outputs.cache-matched-key, format('{0}-go-{1}-', runner.os, hashFiles('**/go.mod', '**/go.sum'))))) && steps.go_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          key: ${{ steps.go_l1_cache.outputs.cache-primary-key }}
-          path: |-
-            /tmp/go-build
-            /tmp/go/pkg/mod
       - name: Save Browsers [chromium]
         if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && matrix.browsers && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && steps.browsers_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
         continue-on-error: true

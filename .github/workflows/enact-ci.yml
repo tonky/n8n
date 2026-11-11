@@ -50,8 +50,6 @@ env:
   ENVE_SUBSTITUTERS: https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev,https://cache.nixos.org
   ENVE_TRUSTED_PUBLIC_KEYS: enve-r2-1:ckHPTeWVef6mba+1AwWHjKYCsUWKPfP9IXPm5YXNoHg=
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-  GOCACHE: /tmp/go-build
-  GOPATH: /tmp/go
   NODE_OPTIONS: --max-old-space-size=6144
   UV_CACHE_DIR: /tmp/.cache/uv
   XDG_CACHE_HOME: /tmp/.cache
@@ -520,15 +518,6 @@ jobs:
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     - parallel:
-      - name: Restore enact Task CAS Cache
-        id: enact-tasks-cache
-        if: ${{ steps.stage_plan.outputs.stage_has_work == 'true' }}
-        continue-on-error: true
-        uses: actions/cache/restore@v6
-        with:
-          key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
-          path: .enact/state/cache
-          restore-keys: ${{ runner.os }}-enact-tasks-
       - name: Restore Node dependency cache
         id: node_l1_cache
         if: ${{ (steps.stage_plan.outputs.stage_needs_node == 'true' && steps.runner_caches.outputs.host == '') && steps.stage_plan.outputs.stage_has_work == 'true' }}
@@ -814,14 +803,6 @@ jobs:
           packages/@n8n/typescript-config
         sparse-checkout-cone-mode: "true"
         submodules: "false"
-    - name: Restore enact Task CAS Cache
-      id: enact-tasks-cache
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-enact-tasks-${{ github.sha }}
-        path: .enact/state/cache
-        restore-keys: ${{ runner.os }}-enact-tasks-
     - name: Restore Reach Store
       id: reach-store
       continue-on-error: true
