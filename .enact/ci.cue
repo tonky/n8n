@@ -49,7 +49,7 @@ pipeline: schema.#Pipeline & {
 						// Retain the existing cold JavaScript setup floor during the canary.
 						min: {cpus: 1, memory_mb: 4096}
 						max: {cpus: 6, memory_mb: 13312}
-						control: {cpus: 1, memory_mb: 4096}
+						control: {cpus: 2, memory_mb: 4096}
 					}
 				}
 			}
@@ -65,7 +65,7 @@ pipeline: schema.#Pipeline & {
 						runtime_reserve_mb: 2048
 						min: {cpus: 1, memory_mb: 4096}
 						max: {cpus: 6, memory_mb: 13312}
-						control: {cpus: 1, memory_mb: 4096}
+						control: {cpus: 2, memory_mb: 4096}
 					}
 				}
 			}
@@ -80,7 +80,7 @@ pipeline: schema.#Pipeline & {
 						runtime_reserve_mb: 2048
 						min: {cpus: 1, memory_mb: 4096}
 						max: {cpus: 6, memory_mb: 13312}
-						control: {cpus: 1, memory_mb: 4096}
+						control: {cpus: 2, memory_mb: 4096}
 					}
 				}
 			}

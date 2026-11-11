@@ -50,6 +50,16 @@ if [ -d node_modules ] && [ -d packages/@n8n ] && { [ -z "$stamp_dir" ] || [ ! -
     name="${pkg##*/}"
     [ -e "node_modules/@n8n/$name" ] || ln -sfn "../../$pkg" "node_modules/@n8n/$name" 2>/dev/null || true
   done
+  if [ ! -f packages/frontend/editor-ui/index.js ]; then
+    if [ ! -f node_modules/n8n-editor-ui/index.js ]; then
+      mkdir -p node_modules/n8n-editor-ui
+      printf '{"name":"n8n-editor-ui","main":"index.js"}\n' > node_modules/n8n-editor-ui/package.json 2>/dev/null || true
+      : > node_modules/n8n-editor-ui/index.js 2>/dev/null || true
+    fi
+    if [ -d packages/cli/node_modules ] && [ ! -e packages/cli/node_modules/n8n-editor-ui/index.js ]; then
+      ln -sfn "$PWD/node_modules/n8n-editor-ui" packages/cli/node_modules/n8n-editor-ui 2>/dev/null || true
+    fi
+  fi
   [ -z "$stamp_dir" ] || : > "$stamp_dir/symlinks.done"
 fi
 enact="${ENACT_EXE:-${ENACT_BIN:-$(command -v enact || true)}}"
@@ -73,11 +83,11 @@ if [ "$task" = "build:unchecked" ] && [ -d .enact ]; then
           "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
         fi
         ;;
-      n8n...)
+      n8n... | @n8n/performance^...)
         if [ $# -eq 1 ] && [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "playwright:build" ]; then
           [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
-          # A cone without playwright's root (cli's) can't run its producer: restored outputs
-          # serve, else turbo builds `n8n...` below.
+          # A cone without playwright's root (cli's or @n8n/performance's) can't run its producer:
+          # restored outputs serve, else turbo builds `n8n...` / `@n8n/performance^...` below.
           "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
         fi
         ;;
