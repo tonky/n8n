@@ -544,6 +544,9 @@ pipeline: schema.#Pipeline & {
 				}
 				// The same tests on SQLite: PostgreSQL's footprints are its evidence, and a file
 				// none of them read runs it whole (code only SQLite's dialect may run).
+				// `DB_TYPE=sqlite` is set in the command: enve.cue's `DB_TYPE: "postgresdb"`
+				// applies on top of a task's `env`, and the suite then waited on a postgres
+				// this job doesn't start (LEARNINGS: migration tests).
 				migrate_sqlite: {
 					services:     false
 					shards:       4
@@ -552,11 +555,10 @@ pipeline: schema.#Pipeline & {
 					tasks: [
 						{
 							name:    "migrate-sqlite"
-							command: "VITEST_MIGRATION=1 helpers/vitest-runner.sh {relative_targets}"
+							command: "VITEST_MIGRATION=1 DB_TYPE=sqlite helpers/vitest-runner.sh {relative_targets}"
 							timeout: "20m"
 							env: {
 								N8N_LOG_LEVEL:       "silent"
-								DB_TYPE:             "sqlite"
 								DB_SQLITE_POOL_SIZE: "4"
 							}
 						},

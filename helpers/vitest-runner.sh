@@ -385,8 +385,17 @@ run_migration() (
       DB_POSTGRESDB_SCHEMA DB_TABLE_PREFIX
     export N8N_LOG_LEVEL=silent DB_SQLITE_POOL_SIZE=4 DB_TYPE=sqlite
   else
+    # Each shard migrates a database of its own, by its service slot (ENACT_SERVICE_SLOT:
+    # unique among the run's running shards): the suite clears and re-migrates the database
+    # it connects to, and shards side by side on one postgres sharing `n8n` drop each
+    # other's tables mid-test (duplicate keys, `test_project` missing; LEARNINGS).
+    local db="n8n_migrate_${ENACT_SERVICE_SLOT:-0}"
     export N8N_LOG_LEVEL=silent DB_TYPE=postgresdb DB_POSTGRESDB_USER=postgres PGUSER=postgres \
-      DB_POSTGRESDB_DATABASE=n8n DB_POSTGRESDB_SCHEMA=alt_schema DB_TABLE_PREFIX=test_
+      DB_POSTGRESDB_DATABASE="$db" PGDATABASE="$db" DB_POSTGRESDB_SCHEMA=alt_schema DB_TABLE_PREFIX=test_
+    psql -h "${DB_POSTGRESDB_HOST:-127.0.0.1}" -p "${DB_POSTGRESDB_PORT:?the postgres port (enve.cue)}" \
+      -U postgres -d n8n -q -v ON_ERROR_STOP=1 \
+      -c "DROP DATABASE IF EXISTS $db WITH (FORCE)" -c "CREATE DATABASE $db" >/dev/null ||
+      { echo "❌ [vitest-runner] creating the shard's migration database $db failed" >&2; exit 1; }
   fi
   run_vitest run ${cache_opts[@]+"${cache_opts[@]}"} --config vitest.config.migration.ts --coverage.enabled=false "$@"
 )
