@@ -12,6 +12,8 @@ on:
       warm_reach:
         type: string
         required: false
+permissions:
+  contents: read
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
   COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
@@ -103,9 +105,13 @@ jobs:
       continue-on-error: true
       run: |
         set -euo pipefail
-        git config --global --add safe.directory "*"
         url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
         mirror="$ENACT_GIT_MIRROR"
+        export GIT_CONFIG_COUNT=2
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+        export GIT_CONFIG_KEY_1=safe.directory
+        export GIT_CONFIG_VALUE_1="$mirror"
         header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
         refs=("+refs/heads/*:refs/heads/*")
         case "$GITHUB_REF" in
@@ -202,7 +208,7 @@ jobs:
       if: ${{ (toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit }}
       run: |-
         cat > "$ENACT_OUTPUTS_PRODUCERS_FILE" <<'PRODUCERS_JSON'
-        {"-n8n-db--build":{"job":"@n8n/db:build","paths":"packages/@n8n/db/dist\npackages/@n8n/db/dist/index.js\npackages/@n8n/db/src/migrations/sqlite/index.ts\npackages/@n8n/db/src/migrations/postgresdb/index.ts\n.enact/state/outputs/-n8n-db--build.key"},"playwright--build":{"job":"playwright:build","paths":"packages/@n8n/agents/dist\npackages/@n8n/ai-node-sdk/dist\npackages/@n8n/ai-utilities/dist\npackages/@n8n/ai-workflow-builder.ee/dist\npackages/@n8n/api-types/dist\npackages/@n8n/backend-common/dist\npackages/@n8n/backend-network/dist\npackages/@n8n/backend-services/dist\npackages/@n8n/backend-test-utils/dist\npackages/@n8n/blob-storage/dist\npackages/@n8n/chat-hub/dist\npackages/@n8n/client-oauth2/dist\npackages/@n8n/codemirror-lang/dist\npackages/@n8n/codemirror-lang-html/dist\npackages/@n8n/codemirror-lang-sql/dist\npackages/@n8n/config/dist\npackages/@n8n/constants/dist\npackages/@n8n/decorators/dist\npackages/@n8n/di/dist\npackages/@n8n/engine/dist\npackages/@n8n/errors/dist\npackages/@n8n/eslint-config/dist\npackages/@n8n/eslint-plugin-community-nodes/dist\npackages/@n8n/expression-runtime/dist\npackages/@n8n/imap/dist\npackages/@n8n/inbound-auth/dist\npackages/@n8n/instance-ai/dist\npackages/@n8n/json-schema-to-zod/dist\npackages/@n8n/mcp-apps/dist\npackages/@n8n/mcp-browser/dist\npackages/@n8n/node-engine-compatibility/dist\npackages/@n8n/nodes-langchain/dist\npackages/@n8n/oxlint-config/dist\npackages/@n8n/permissions/dist\npackages/@n8n/scheduler/dist\npackages/@n8n/stylelint-config/dist\npackages/@n8n/syslog-client/dist\npackages/@n8n/task-runner/dist\npackages/@n8n/telemetry/dist\npackages/@n8n/tournament/dist\npackages/@n8n/typeorm/dist\npackages/@n8n/utils/dist\npackages/@n8n/vitest-config/dist\npackages/@n8n/workflow-sdk/dist\npackages/cli/dist\npackages/core/dist\npackages/frontend/@n8n/chat/dist\npackages/frontend/@n8n/composables/dist\npackages/frontend/@n8n/design-system/dist\npackages/frontend/@n8n/eslint-plugin-design-system/dist\npackages/frontend/@n8n/frontend-constants/dist\npackages/frontend/@n8n/frontend-utils/dist\npackages/frontend/@n8n/i18n/dist\npackages/frontend/@n8n/rest-api-client/dist\npackages/frontend/@n8n/stores/dist\npackages/frontend/editor-ui/dist\npackages/modules/apps/backend/dist\npackages/modules/insights/backend/dist\npackages/modules/quick-connect/backend/dist\npackages/modules/workflow-builder/backend/dist\npackages/nodes-base/dist\npackages/quality/policy/rules-engine/dist\npackages/quality/testing/janitor/dist\npackages/quality/testing/test-impact/dist\npackages/workflow/dist\npackages/cli/dist/commands/start.js\npackages/frontend/editor-ui/dist/index.html\n.enact/state/outputs/playwright--build.key"}}
+        {"-n8n-db--build":{"job":"@n8n/db:build","paths":"packages/@n8n/db/dist\npackages/@n8n/db/dist/index.js\npackages/@n8n/db/src/migrations/sqlite/index.ts\npackages/@n8n/db/src/migrations/postgresdb/index.ts\n.enact/state/outputs/-n8n-db--build.key"},"playwright--build":{"job":"playwright:build","paths":"packages/@n8n/agents/dist\npackages/@n8n/ai-node-sdk/dist\npackages/@n8n/ai-utilities/dist\npackages/@n8n/ai-workflow-builder.ee/dist\npackages/@n8n/api-types/dist\npackages/@n8n/backend-common/dist\npackages/@n8n/backend-network/dist\npackages/@n8n/backend-services/dist\npackages/@n8n/backend-test-utils/dist\npackages/@n8n/blob-storage/dist\npackages/@n8n/chat-hub/dist\npackages/@n8n/client-oauth2/dist\npackages/@n8n/codemirror-lang/dist\npackages/@n8n/codemirror-lang-html/dist\npackages/@n8n/codemirror-lang-sql/dist\npackages/@n8n/config/dist\npackages/@n8n/constants/dist\npackages/@n8n/decorators/dist\npackages/@n8n/di/dist\npackages/@n8n/engine/dist\npackages/@n8n/errors/dist\npackages/@n8n/eslint-config/dist\npackages/@n8n/expression-runtime/dist\npackages/@n8n/imap/dist\npackages/@n8n/inbound-auth/dist\npackages/@n8n/instance-ai/dist\npackages/@n8n/json-schema-to-zod/dist\npackages/@n8n/mcp-apps/dist\npackages/@n8n/mcp-browser/dist\npackages/@n8n/node-engine-compatibility/dist\npackages/@n8n/nodes-langchain/dist\npackages/@n8n/oxlint-config/dist\npackages/@n8n/permissions/dist\npackages/@n8n/scheduler/dist\npackages/@n8n/stylelint-config/dist\npackages/@n8n/syslog-client/dist\npackages/@n8n/task-runner/dist\npackages/@n8n/telemetry/dist\npackages/@n8n/tournament/dist\npackages/@n8n/typeorm/dist\npackages/@n8n/utils/dist\npackages/@n8n/vitest-config/dist\npackages/@n8n/workflow-sdk/dist\npackages/cli/dist\npackages/core/dist\npackages/frontend/@n8n/chat/dist\npackages/frontend/@n8n/composables/dist\npackages/frontend/@n8n/design-system/dist\npackages/frontend/@n8n/eslint-plugin-design-system/dist\npackages/frontend/@n8n/frontend-constants/dist\npackages/frontend/@n8n/frontend-utils/dist\npackages/frontend/@n8n/i18n/dist\npackages/frontend/@n8n/rest-api-client/dist\npackages/frontend/@n8n/stores/dist\npackages/frontend/editor-ui/dist\npackages/modules/apps/backend/dist\npackages/modules/insights/backend/dist\npackages/modules/quick-connect/backend/dist\npackages/modules/workflow-builder/backend/dist\npackages/nodes-base/dist\npackages/quality/policy/rules-engine/dist\npackages/quality/testing/janitor/dist\npackages/quality/testing/test-impact/dist\npackages/workflow/dist\npackages/cli/dist/commands/start.js\npackages/frontend/editor-ui/dist/index.html\n.enact/state/outputs/playwright--build.key"}}
         PRODUCERS_JSON
       env:
         ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
@@ -258,7 +264,6 @@ jobs:
           packages/@n8n/engine/dist
           packages/@n8n/errors/dist
           packages/@n8n/eslint-config/dist
-          packages/@n8n/eslint-plugin-community-nodes/dist
           packages/@n8n/expression-runtime/dist
           packages/@n8n/imap/dist
           packages/@n8n/inbound-auth/dist
@@ -390,8 +395,21 @@ jobs:
         ENACT_BROWSERS_ENV: PLAYWRIGHT_BROWSERS_PATH
         ENACT_BROWSERS_PATH: /tmp/.cache/ms-playwright
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
-    - name: Download the Reach Map
+    - name: Restore the Reach Map from the Host Cache
+      id: reach-host
       if: ${{ !steps.skip.outputs.hit }}
+      run: |-
+        HANDOFF_DIR="${ENACT_HOST_CACHE:-}/repo/reach-handoff/${GITHUB_RUN_ID:-0}-${GITHUB_RUN_ATTEMPT:-1}"
+        if [ -n "${ENACT_HOST_CACHE:-}" ] && [ -f "$HANDOFF_DIR/map.bin" ]; then
+          rm -rf "$RUNNER_TEMP/enact-reach" && mkdir -p "$RUNNER_TEMP"
+          if cp -a --reflink=auto "$HANDOFF_DIR" "$RUNNER_TEMP/enact-reach" 2>/dev/null || cp -R "$HANDOFF_DIR" "$RUNNER_TEMP/enact-reach"; then
+            if [ -f "$RUNNER_TEMP/enact-reach/map.bin" ]; then
+              echo "hit=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+        fi
+    - name: Download the Reach Map
+      if: ${{ (steps.reach-host.outputs.hit != 'true') && !steps.skip.outputs.hit }}
       continue-on-error: true
       uses: actions/download-artifact@v8
       with:
@@ -430,6 +448,7 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
         ENACT_COMPONENT_DIR: ${{ matrix.component_dir }}
+        ENACT_JOB_SERVICES: ${{ matrix.services }}
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
         ENVE_CACHE_CONCURRENCY: "16"
     - name: Check enve Stores into the Host Cache
@@ -460,6 +479,7 @@ jobs:
         ENACT_RUNNER_ALLOCATION: ${{ matrix.env.ENACT_RUNNER_ALLOCATION }}
         ENACT_RUNNER_TIER: ${{ matrix.runner_tier }}
         ENACT_SAME_REPO_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch }}
+        ENACT_SHARD_WEIGHTS: ${{ matrix.env.ENACT_SHARD_WEIGHTS || '' }}
         ENACT_TOPOLOGY: ${{ matrix.topology }}
     - name: Push Updated Dependencies to the Remote Cache
       if: ${{ (success() && env.ENACT_REMOTE_SAVE_EVENT == 'true') && !steps.skip.outputs.hit }}
@@ -470,6 +490,7 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
         ENACT_COMPONENT_DIR: ${{ matrix.component_dir }}
+        ENACT_JOB_SERVICES: ${{ matrix.services }}
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
         ENVE_CACHE_CONCURRENCY: "16"
     - name: Upload Execution Telemetry & Workflow Dashboard

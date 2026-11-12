@@ -36,6 +36,8 @@ on:
         description: Run every suite and record each test without a fresh reach footprint (on the default branch, after an enact upgrade)
         required: false
         default: "false"
+permissions:
+  contents: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
@@ -54,15 +56,26 @@ env:
   UV_CACHE_DIR: /tmp/.cache/uv
   XDG_CACHE_HOME: /tmp/.cache
 jobs:
-  build-outputs:
+  build-outputs--n8n-db--build:
     name: Build Outputs
     needs:
     - detect
-    if: ${{ needs.detect.outputs.builds != '{"include":[]}' && needs.detect.outputs.builds != '[]' && needs.detect.outputs.builds != '' }}
+    if: ${{ needs.detect.outputs.builds__n8n_db__build != '{"include":[]}' && needs.detect.outputs.builds__n8n_db__build != '[]' && needs.detect.outputs.builds__n8n_db__build != '' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
-      matrix: ${{ needs.detect.outputs.builds }}
+      matrix: ${{ needs.detect.outputs.builds__n8n_db__build }}
+      warm_reach: ${{ inputs.warm_reach }}
+    secrets: inherit
+  build-outputs-playwright--build:
+    name: Build Outputs
+    needs:
+    - detect
+    if: ${{ needs.detect.outputs.builds_playwright__build != '{"include":[]}' && needs.detect.outputs.builds_playwright__build != '[]' && needs.detect.outputs.builds_playwright__build != '' }}
+    uses: ./.github/workflows/enact-ci-matrix.yml
+    with:
+      history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
+      matrix: ${{ needs.detect.outputs.builds_playwright__build }}
       warm_reach: ${{ inputs.warm_reach }}
     secrets: inherit
   detect:
@@ -80,8 +93,10 @@ jobs:
     - tonky-ci-c2m4g
     timeout-minutes: 5
     outputs:
-      builds: ${{ steps.diff.outputs.builds }}
-      built: ${{ steps.diff.outputs.built }}
+      builds__n8n_db__build: ${{ steps.diff.outputs.builds__n8n_db__build }}
+      builds_playwright__build: ${{ steps.diff.outputs.builds_playwright__build }}
+      built__n8n_db__build: ${{ steps.diff.outputs.built__n8n_db__build }}
+      built__n8n_db__build_playwright__build: ${{ steps.diff.outputs.built__n8n_db__build_playwright__build }}
       history_input_artifact: ${{ steps.history_restore.outputs.artifact }}
       matrix: ${{ steps.diff.outputs.matrix }}
     steps:
@@ -108,9 +123,13 @@ jobs:
       continue-on-error: true
       run: |
         set -euo pipefail
-        git config --global --add safe.directory "*"
         url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
         mirror="$ENACT_GIT_MIRROR"
+        export GIT_CONFIG_COUNT=2
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+        export GIT_CONFIG_KEY_1=safe.directory
+        export GIT_CONFIG_VALUE_1="$mirror"
         header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
         refs=("+refs/heads/*:refs/heads/*")
         case "$GITHUB_REF" in
@@ -178,6 +197,7 @@ jobs:
           .prettierrc.js
           .prettierignore
           .boundaries-baseline.json
+          packages/@n8n/eslint-plugin-community-nodes
           packages/@n8n/module-cli
           packages/@n8n/typescript-config
     - name: Checkout Repository (sparse)
@@ -209,6 +229,7 @@ jobs:
           .prettierrc.js
           .prettierignore
           .boundaries-baseline.json
+          packages/@n8n/eslint-plugin-community-nodes
           packages/@n8n/module-cli
           packages/@n8n/typescript-config
         sparse-checkout-cone-mode: "true"
@@ -260,7 +281,6 @@ jobs:
     - name: Compute Affected Component Matrix
       id: diff
       run: |-
-        git config --global --add safe.directory "*" 2>/dev/null || true
         if [ -n "${GITHUB_WORKSPACE}" ] && [ -d "${GITHUB_WORKSPACE}" ]; then
           cd "${GITHUB_WORKSPACE}"
         fi
@@ -272,6 +292,20 @@ jobs:
           echo "::error::CI budget admission failed; report: $ADMISSION_REPORT" >&2
           exit "$status"
         }
+        if [ -n "${ENACT_HOST_CACHE:-}" ] && [ -d "$ENACT_HOST_CACHE/repo" ] && [ -w "$ENACT_HOST_CACHE/repo" ] && [ -d "$RUNNER_TEMP/enact-reach" ] && [ -f "$RUNNER_TEMP/enact-reach/map.bin" ]; then
+          HANDOFF_ROOT="$ENACT_HOST_CACHE/repo/reach-handoff"
+          HANDOFF_DEST="$HANDOFF_ROOT/${GITHUB_RUN_ID:-0}-${GITHUB_RUN_ATTEMPT:-1}"
+          HANDOFF_TMP="$HANDOFF_DEST.tmp.$$"
+          mkdir -p "$HANDOFF_ROOT" && rm -rf "$HANDOFF_TMP"
+          if cp -a --reflink=auto "$RUNNER_TEMP/enact-reach" "$HANDOFF_TMP" 2>/dev/null || cp -R "$RUNNER_TEMP/enact-reach" "$HANDOFF_TMP"; then
+            if [ -e "$HANDOFF_DEST" ]; then mv "$HANDOFF_DEST" "$HANDOFF_DEST.old.$$" 2>/dev/null || rm -rf "$HANDOFF_DEST"; fi
+            mv "$HANDOFF_TMP" "$HANDOFF_DEST" || rm -rf "$HANDOFF_TMP"
+            rm -rf "$HANDOFF_DEST.old.$$"
+          else
+            rm -rf "$HANDOFF_TMP"
+          fi
+          find "$HANDOFF_ROOT" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null || true
+        fi
         echo "$MATRIX"
         echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
       env:
@@ -294,6 +328,9 @@ jobs:
         ENACT_SAME_REPO_PR: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        GIT_CONFIG_COUNT: "1"
+        GIT_CONFIG_KEY_0: safe.directory
+        GIT_CONFIG_VALUE_0: ${{ github.workspace }}
     - name: Upload the Selection Record
       if: always()
       continue-on-error: true
@@ -319,8 +356,10 @@ jobs:
     needs:
     - detect
     - test
-    - build-outputs
-    - test-built
+    - build-outputs--n8n-db--build
+    - build-outputs-playwright--build
+    - test-built--n8n-db--build
+    - test-built--n8n-db--build-playwright--build
     if: "!cancelled()"
     runs-on:
     - self-hosted
@@ -353,9 +392,13 @@ jobs:
       continue-on-error: true
       run: |
         set -euo pipefail
-        git config --global --add safe.directory "*"
         url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
         mirror="$ENACT_GIT_MIRROR"
+        export GIT_CONFIG_COUNT=2
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+        export GIT_CONFIG_KEY_1=safe.directory
+        export GIT_CONFIG_VALUE_1="$mirror"
         header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
         refs=("+refs/heads/*:refs/heads/*")
         case "$GITHUB_REF" in
@@ -529,15 +572,28 @@ jobs:
       matrix: ${{ needs.detect.outputs.matrix }}
       warm_reach: ${{ inputs.warm_reach }}
     secrets: inherit
-  test-built:
+  test-built--n8n-db--build:
     name: Run Tests on Built Outputs
     needs:
     - detect
-    - build-outputs
-    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built != '{"include":[]}' && needs.detect.outputs.built != '[]' && needs.detect.outputs.built != '' }}
+    - build-outputs--n8n-db--build
+    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built__n8n_db__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build != '[]' && needs.detect.outputs.built__n8n_db__build != '' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
-      matrix: ${{ needs.detect.outputs.built }}
+      matrix: ${{ needs.detect.outputs.built__n8n_db__build }}
+      warm_reach: ${{ inputs.warm_reach }}
+    secrets: inherit
+  test-built--n8n-db--build-playwright--build:
+    name: Run Tests on Built Outputs
+    needs:
+    - detect
+    - build-outputs--n8n-db--build
+    - build-outputs-playwright--build
+    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built__n8n_db__build_playwright__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build_playwright__build != '[]' && needs.detect.outputs.built__n8n_db__build_playwright__build != '' }}
+    uses: ./.github/workflows/enact-ci-matrix.yml
+    with:
+      history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
+      matrix: ${{ needs.detect.outputs.built__n8n_db__build_playwright__build }}
       warm_reach: ${{ inputs.warm_reach }}
     secrets: inherit

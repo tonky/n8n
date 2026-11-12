@@ -80,7 +80,7 @@ pipeline: schema.#Pipeline & {
 			"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "turbo.json",
 			"tsconfig.json", "tsconfig.configs.json", "biome.jsonc", "vitest.workspace.ts",
 			".prettierrc.js", ".prettierignore", ".boundaries-baseline.json",
-			"packages/@n8n/module-cli", "packages/@n8n/typescript-config",
+			"packages/@n8n/eslint-plugin-community-nodes", "packages/@n8n/module-cli", "packages/@n8n/typescript-config",
 		]
 	}
 
@@ -89,7 +89,7 @@ pipeline: schema.#Pipeline & {
 	let _dualTsc = {"base": true, "@n8n/ai-node-sdk": true, "@n8n/ai-utilities": true}
 	let _nodePkg = {"nodes-base": true, "@n8n/n8n-nodes-langchain": true}
 	let _noSrcDir = {
-		"@n8n/code-health": true, "@n8n/eslint-config": true, "@n8n/eslint-plugin-community-nodes": true,
+		"@n8n/code-health": true, "@n8n/eslint-config": true,
 		"@n8n/json-schema-to-zod": true, "@n8n/oxlint-config": true, "@n8n/playwright-janitor": true,
 		"@n8n/rules-engine": true, "@n8n/stylelint-config": true, "@n8n/test-impact": true, "@n8n/vitest-config": true,
 	}
@@ -338,8 +338,8 @@ pipeline: schema.#Pipeline & {
 		"@n8n/efficiency": {
 			browsers: _chromiumBrowsers
 			jobs: {
-				lint:      needs: ["playwright:build", "@n8n/db:build"]
-				typecheck: needs: ["playwright:build", "@n8n/db:build"]
+				lint:      needs: ["@n8n/db:build"]
+				typecheck: needs: ["@n8n/db:build"]
 			}
 		}
 
@@ -628,8 +628,8 @@ pipeline: schema.#Pipeline & {
 					}
 					tasks: [{command: "helpers/build-workspace-deps.sh 'n8n-playwright^...'"}]
 				}
-				lint:      needs: ["build", "@n8n/db:build"]
-				typecheck: needs: ["build", "@n8n/db:build"]
+				lint:      needs: ["@n8n/db:build"]
+				typecheck: needs: ["@n8n/db:build"]
 				dev_server_smoke: {
 					name:             "Dev-Server Boot Smoke"
 					needs:            ["build", "@n8n/db:build"]

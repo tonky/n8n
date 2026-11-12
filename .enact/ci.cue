@@ -40,7 +40,7 @@ pipeline: schema.#Pipeline & {
 		budget: {enforce: true, untraced_tests: 20, wall_minutes: 30}
 		workers: {
 			standard: {
-				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], host_id: "ibp8", tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
+				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], host_id: "ibp8", tier: "dedicated", available: 1, throughput: 1.0, cost_per_min: 0.010, timeout_minutes: 90
 				pool: {
 					cpus: 14, memory_mb: 28672
 					quantization: {
@@ -54,7 +54,7 @@ pipeline: schema.#Pipeline & {
 				}
 			}
 			arm64: {
-				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci", "mac1"], host_id: "mac1", tier: "dedicated", available: 1, cost_per_min: 0.010, timeout_minutes: 90
+				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci", "mac1"], host_id: "mac1", tier: "dedicated", available: 1, throughput: 1.35, cost_per_min: 0.010, timeout_minutes: 90
 				pool: {
 					cpus: 16, memory_mb: 36864
 					// mac1's dispatcher runs 4c/8G while a Mac lane or gate holds the host
@@ -72,7 +72,7 @@ pipeline: schema.#Pipeline & {
 			l7: {
 				// A second X64 host (16t, ~13 GiB free), up to 6c/13G allocations when idle.
 				// A gate lane holding l7 drains its dispatcher to zero.
-				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], host_id: "l7", tier: "dedicated", available: 1, cost_per_min: 0.006, timeout_minutes: 90
+				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], host_id: "l7", tier: "dedicated", available: 1, throughput: 0.95, cost_per_min: 0.006, timeout_minutes: 90
 				pool: {
 					cpus: 16, memory_mb: 13312
 					quantization: {

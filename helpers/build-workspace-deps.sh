@@ -79,8 +79,23 @@ if [ "$task" = "build:unchecked" ] && [ -d .enact ]; then
           if [ -d packages/@n8n/db ] && [ ! -f packages/@n8n/db/dist/index.d.ts ] && [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "@n8n/db:build" ]; then
             "$enact" helper ensure-outputs @n8n/db:build || true
           fi
-          [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
-          "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
+          if [ "${ENACT_JOB:-}" = "lint" ] || [ "${ENACT_JOB:-}" = "typecheck" ]; then
+            [ -f .enact/state/outputs/playwright--build.key ] && exit 0
+            set -- \
+              '@n8n/db^...' \
+              '@n8n/api-types...' \
+              'n8n-core...' \
+              'n8n-containers...' \
+              '@n8n/playwright-janitor...' \
+              '@n8n/test-impact...' \
+              '@n8n/workflow-sdk...' \
+              '@n8n/eslint-config...' \
+              '@n8n/oxlint-config...' \
+              "${@:2}"
+          else
+            [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
+            "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
+          fi
         fi
         ;;
       n8n... | @n8n/performance^...)
