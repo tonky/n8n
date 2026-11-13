@@ -28,7 +28,8 @@ pipeline: schema.#Pipeline & {
 		soft_placement: {fallback_seconds: 15}
 		scheduler: {makespan_tolerance: 1.05}
 		history: {workflow: ".github/workflows/enact-ci.yml"}
-		rerun: {labels: ["rerun", "showcase"], branch_prefixes: ["showcase/"]}
+		rerun: {labels: ["rerun", "showcase"], branch_prefixes: ["proof/", "showcase/proof/"]}
+		allow_broad: branch_prefixes: ["mirror-broad/", "proof/", "showcase/proof/"]
 		concurrency: max_parallel_jobs: 64
 		remote_cache: {
 			secrets: {bucket: "R2_BUCKET", access_key_id: "R2_ACCESS_KEY_ID", secret_access_key: "R2_SECRET_ACCESS_KEY"}
@@ -39,6 +40,14 @@ pipeline: schema.#Pipeline & {
 		}
 		budget: {enforce: true, untraced_tests: 20, wall_minutes: 30}
 		workers: {
+			github: {
+				// Standard public-repository capacity; the quota is shared across images.
+				preset: "github-public", labels: ["ubuntu-24.04"]
+				tier: "on_demand", available: 20, cost_per_min: 0
+				// Conservative estimate until a matching cold hosted canary calibrates it.
+				setup_overhead_sec: 300
+				timeout_minutes: 90
+			}
 			standard: {
 				labels: ["self-hosted", "Linux", "X64", "tonky-ci"], host_id: "ibp8", tier: "dedicated", available: 1, throughput: 1.0, cost_per_min: 0.010, timeout_minutes: 90
 				pool: {

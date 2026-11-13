@@ -57,6 +57,9 @@ env:
   XDG_CACHE_HOME: /tmp/.cache
 jobs:
   build-outputs--n8n-db--build:
+    permissions:
+      actions: read
+      contents: read
     name: Build Outputs
     needs:
     - detect
@@ -67,11 +70,31 @@ jobs:
       matrix: ${{ needs.detect.outputs.builds__n8n_db__build }}
       warm_reach: ${{ inputs.warm_reach }}
     secrets: inherit
-  build-outputs-playwright--build:
+  build-outputs-cli--build:
+    permissions:
+      actions: read
+      contents: read
     name: Build Outputs
     needs:
     - detect
-    if: ${{ needs.detect.outputs.builds_playwright__build != '{"include":[]}' && needs.detect.outputs.builds_playwright__build != '[]' && needs.detect.outputs.builds_playwright__build != '' }}
+    - build-outputs--n8n-db--build
+    if: ${{ !cancelled() && !failure() && needs.detect.outputs.builds_cli__build != '{"include":[]}' && needs.detect.outputs.builds_cli__build != '[]' && needs.detect.outputs.builds_cli__build != '' }}
+    uses: ./.github/workflows/enact-ci-matrix.yml
+    with:
+      history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
+      matrix: ${{ needs.detect.outputs.builds_cli__build }}
+      warm_reach: ${{ inputs.warm_reach }}
+    secrets: inherit
+  build-outputs-playwright--build:
+    permissions:
+      actions: read
+      contents: read
+    name: Build Outputs
+    needs:
+    - detect
+    - build-outputs--n8n-db--build
+    - build-outputs-cli--build
+    if: ${{ !cancelled() && !failure() && needs.detect.outputs.builds_playwright__build != '{"include":[]}' && needs.detect.outputs.builds_playwright__build != '[]' && needs.detect.outputs.builds_playwright__build != '' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
@@ -94,9 +117,11 @@ jobs:
     timeout-minutes: 5
     outputs:
       builds__n8n_db__build: ${{ steps.diff.outputs.builds__n8n_db__build }}
+      builds_cli__build: ${{ steps.diff.outputs.builds_cli__build }}
       builds_playwright__build: ${{ steps.diff.outputs.builds_playwright__build }}
       built__n8n_db__build: ${{ steps.diff.outputs.built__n8n_db__build }}
-      built__n8n_db__build_playwright__build: ${{ steps.diff.outputs.built__n8n_db__build_playwright__build }}
+      built__n8n_db__build_cli__build: ${{ steps.diff.outputs.built__n8n_db__build_cli__build }}
+      built__n8n_db__build_cli__build_playwright__build: ${{ steps.diff.outputs.built__n8n_db__build_cli__build_playwright__build }}
       history_input_artifact: ${{ steps.history_restore.outputs.artifact }}
       matrix: ${{ steps.diff.outputs.matrix }}
     steps:
@@ -255,6 +280,7 @@ jobs:
         "$E" --version >/dev/null 2>&1 || { echo "::error title=No enact for $P::$E does not run on this $P runner; commit its build as bin/$P/enact"; exit 1; }
         "$E" ci install-binaries
     - name: Ensure enve & enact CLI on PATH
+      id: setup-runner
       run: enact ci setup-runner
     - name: Select Immutable CI History
       id: history_restore
@@ -269,6 +295,11 @@ jobs:
         ENACT_HISTORY_PIPELINE: .enact
         ENACT_HISTORY_WORKFLOW: .github/workflows/enact-ci.yml
         GH_TOKEN: ${{ github.token }}
+    - name: Cache history Handoff on the Receiving Host
+      continue-on-error: true
+      run: enact ci handoff history --publish --artifact "$ENACT_HANDOFF_ARTIFACT" --directory "$RUNNER_TEMP/enact-history-input"
+      env:
+        ENACT_HANDOFF_ARTIFACT: enact-history-input-v1-${{ github.run_attempt }}
     - name: Hand CI History to the Jobs
       uses: actions/upload-artifact@v7
       with:
@@ -292,20 +323,6 @@ jobs:
           echo "::error::CI budget admission failed; report: $ADMISSION_REPORT" >&2
           exit "$status"
         }
-        if [ -n "${ENACT_HOST_CACHE:-}" ] && [ -d "$ENACT_HOST_CACHE/repo" ] && [ -w "$ENACT_HOST_CACHE/repo" ] && [ -d "$RUNNER_TEMP/enact-reach" ] && [ -f "$RUNNER_TEMP/enact-reach/map.bin" ]; then
-          HANDOFF_ROOT="$ENACT_HOST_CACHE/repo/reach-handoff"
-          HANDOFF_DEST="$HANDOFF_ROOT/${GITHUB_RUN_ID:-0}-${GITHUB_RUN_ATTEMPT:-1}"
-          HANDOFF_TMP="$HANDOFF_DEST.tmp.$$"
-          mkdir -p "$HANDOFF_ROOT" && rm -rf "$HANDOFF_TMP"
-          if cp -a --reflink=auto "$RUNNER_TEMP/enact-reach" "$HANDOFF_TMP" 2>/dev/null || cp -R "$RUNNER_TEMP/enact-reach" "$HANDOFF_TMP"; then
-            if [ -e "$HANDOFF_DEST" ]; then mv "$HANDOFF_DEST" "$HANDOFF_DEST.old.$$" 2>/dev/null || rm -rf "$HANDOFF_DEST"; fi
-            mv "$HANDOFF_TMP" "$HANDOFF_DEST" || rm -rf "$HANDOFF_TMP"
-            rm -rf "$HANDOFF_DEST.old.$$"
-          else
-            rm -rf "$HANDOFF_TMP"
-          fi
-          find "$HANDOFF_ROOT" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null || true
-        fi
         echo "$MATRIX"
         echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
       env:
@@ -317,7 +334,7 @@ jobs:
         ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'master' }}
         ENACT_EVENT_BEFORE: ${{ github.event.before }}
         ENACT_FORCE_NO_CACHE: ${{ inputs.no_cache == 'true' || vars.ENACT_NO_CACHE == 'true' || contains(github.event.pull_request.title, '[no-cache]') || contains(github.event.pull_request.body, '[no-cache]') || contains(github.event.pull_request.labels.*.name, 'no-cache') }}
-        ENACT_FORCE_RERUN: ${{ contains(github.event.pull_request.title, '[rerun]') || contains(github.event.pull_request.body, '[rerun]') || contains(github.event.pull_request.labels.*.name, 'rerun') || contains(github.event.pull_request.labels.*.name, 'showcase') || startsWith(github.head_ref, 'showcase/') || startsWith(github.ref_name, 'showcase/') }}
+        ENACT_FORCE_RERUN: ${{ contains(github.event.pull_request.title, '[rerun]') || contains(github.event.pull_request.body, '[rerun]') || contains(github.event.pull_request.labels.*.name, 'rerun') || contains(github.event.pull_request.labels.*.name, 'showcase') || startsWith(github.head_ref, 'proof/') || startsWith(github.ref_name, 'proof/') || startsWith(github.head_ref, 'showcase/proof/') || startsWith(github.ref_name, 'showcase/proof/') }}
         ENACT_INPUT_ALL: ${{ inputs.all }}
         ENACT_INPUT_FILES: ${{ inputs.files }}
         ENACT_INPUT_UPDATED: ${{ inputs.updated }}
@@ -340,6 +357,11 @@ jobs:
         name: enact-selection
         path: .enact/state/selection.json
         retention-days: "30"
+    - name: Cache reach Handoff on the Receiving Host
+      continue-on-error: true
+      run: enact ci handoff reach --publish --artifact "$ENACT_HANDOFF_ARTIFACT" --directory "$RUNNER_TEMP/enact-reach"
+      env:
+        ENACT_HANDOFF_ARTIFACT: enact-reach-map
     - name: Hand the Reach Map to the Jobs
       if: always()
       continue-on-error: true
@@ -357,9 +379,11 @@ jobs:
     - detect
     - test
     - build-outputs--n8n-db--build
+    - build-outputs-cli--build
     - build-outputs-playwright--build
     - test-built--n8n-db--build
-    - test-built--n8n-db--build-playwright--build
+    - test-built--n8n-db--build-cli--build
+    - test-built--n8n-db--build-cli--build-playwright--build
     if: "!cancelled()"
     runs-on:
     - self-hosted
@@ -475,6 +499,7 @@ jobs:
         "$E" --version >/dev/null 2>&1 || { echo "::error title=No enact for $P::$E does not run on this $P runner; commit its build as bin/$P/enact"; exit 1; }
         "$E" ci install-binaries
     - name: Ensure enve & enact CLI on PATH
+      id: setup-runner
       run: enact ci setup-runner
     - name: Download All Component Telemetry
       continue-on-error: true
@@ -562,6 +587,9 @@ jobs:
         key: enact-reach-${{ github.head_ref || github.ref_name }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         path: .git/enact/reach
   test:
+    permissions:
+      actions: read
+      contents: read
     name: Run Tests
     needs:
     - detect
@@ -573,6 +601,9 @@ jobs:
       warm_reach: ${{ inputs.warm_reach }}
     secrets: inherit
   test-built--n8n-db--build:
+    permissions:
+      actions: read
+      contents: read
     name: Run Tests on Built Outputs
     needs:
     - detect
@@ -584,16 +615,36 @@ jobs:
       matrix: ${{ needs.detect.outputs.built__n8n_db__build }}
       warm_reach: ${{ inputs.warm_reach }}
     secrets: inherit
-  test-built--n8n-db--build-playwright--build:
+  test-built--n8n-db--build-cli--build:
+    permissions:
+      actions: read
+      contents: read
     name: Run Tests on Built Outputs
     needs:
     - detect
     - build-outputs--n8n-db--build
-    - build-outputs-playwright--build
-    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built__n8n_db__build_playwright__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build_playwright__build != '[]' && needs.detect.outputs.built__n8n_db__build_playwright__build != '' }}
+    - build-outputs-cli--build
+    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built__n8n_db__build_cli__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build_cli__build != '[]' && needs.detect.outputs.built__n8n_db__build_cli__build != '' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
-      matrix: ${{ needs.detect.outputs.built__n8n_db__build_playwright__build }}
+      matrix: ${{ needs.detect.outputs.built__n8n_db__build_cli__build }}
+      warm_reach: ${{ inputs.warm_reach }}
+    secrets: inherit
+  test-built--n8n-db--build-cli--build-playwright--build:
+    permissions:
+      actions: read
+      contents: read
+    name: Run Tests on Built Outputs
+    needs:
+    - detect
+    - build-outputs--n8n-db--build
+    - build-outputs-cli--build
+    - build-outputs-playwright--build
+    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '[]' && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '' }}
+    uses: ./.github/workflows/enact-ci-matrix.yml
+    with:
+      history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
+      matrix: ${{ needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build }}
       warm_reach: ${{ inputs.warm_reach }}
     secrets: inherit

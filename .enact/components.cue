@@ -2,6 +2,7 @@ package n8n
 
 import (
 	"enact.dev/schema"
+	"list"
 	"strings"
 )
 
@@ -26,14 +27,6 @@ _typecheck: {
 }
 
 _vitest: "helpers/vitest-runner.sh {relative_targets}"
-
-_chromiumBrowsers: schema.#Browsers & {
-	engine:   "chromium"
-	path:     "/tmp/.cache/ms-playwright"
-	env:      "PLAYWRIGHT_BROWSERS_PATH"
-	key:      ["packages/quality/testing/playwright/package.json", "pnpm-lock.yaml"]
-	artifact: "tools/playwright-browsers-linux-amd64.tar.zst"
-}
 
 // A whole traced suite on a fresh map (the nightly) runs past the 600 s default step limit,
 // which judges a shard with no recorded durations: frontend's 6 shards take ~1,200 s traced.
@@ -187,6 +180,13 @@ pipeline: schema.#Pipeline & {
 		},
 		{outputs: ["packages/cli/test-exports-*/**"], inputs: ["packages/cli/test/integration/environments/source-control-export.service.test.ts"]},
 		{
+			// schema-docs.mjs migrates this temporary SQLite database, then removes it.
+			// Its observed bytes depend on the DB implementation and schema helpers.
+			outputs: ["packages/@n8n/db/.tmp-schema-docs", "packages/@n8n/db/.tmp-schema-docs/**"]
+			inputs: ["packages/@n8n/db/src/**", "packages/@n8n/db/scripts/schema-docs.mjs", "helpers/schema-check.sh", "helpers/schema-docs-postgres.mjs"]
+			exclude: ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
+		},
+		{
 			outputs: ["packages/@n8n/workflow-sdk/test-fixtures/real-workflows/[0-9]*.json"]
 			inputs:  ["packages/@n8n/workflow-sdk/test-fixtures/real-workflows/public_published_templates.zip", "packages/@n8n/workflow-sdk/test-fixtures/real-workflows/manifest.json"]
 		},
@@ -213,16 +213,27 @@ pipeline: schema.#Pipeline & {
 	]
 
 	caches: {
-		vitest_transforms: {paths: ["node_modules/.vitest-cache"], key: ["pnpm-lock.yaml"], scope: "task", used_by: {components: ["@n8n/node-cli"], jobs: ["test"]}}
-		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml"], scope: "task", refresh: "rolling", used_by: jobs: ["build", "lint", "typecheck"]}
+		vitest_transforms: {paths: [".enact/state/cache/vitest"], key: ["pnpm-lock.yaml", "enve.lock", "helpers/vitest-runner.sh"], scope: "task", host: true, used_by: {components: [for n, p in _packages if len(p.tests) > 0 {n}], jobs: ["test", "integration", "migrate", "migrate_sqlite"]}}
+		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml", "enve.lock", "helpers/typecheck-runner.sh"], scope: "task", host: true, refresh: "rolling", used_by: jobs: ["build", "lint", "typecheck"]}
 	}
 
 	components: {
 		root: {
-			name: "root", title: "n8n Environment, Pipeline & pnpm Workspace", technology: "typescript", root: "."
+			name: "root", title: "n8n Environment & Pipeline", root: "."
 			watch_paths: [
 				"enve.cue", "enve.lock", "ENACT.md", ".enact/**", "cue.mod", "bin/**", ".github/workflows/**",
 				".githooks/**", ".gitignore", ".gitattributes", ".editorconfig",
+			]
+			depends_on:      []
+			workspace_scope: include_dependencies: true
+		}
+
+		"js-root": {
+			name: "js-root", title: "pnpm Workspace", technology: "typescript", root: "."
+			environment_file: ".enact/environments/checks/enve.cue"
+			depends_on: ["root"]
+			workspace_scope: include_dependencies: true
+			watch_paths: [
 				"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "turbo.json",
 				"tsconfig.json", "tsconfig.configs.json", "biome.jsonc", "vitest.workspace.ts",
 				".prettierrc.js", ".prettierignore", "lefthook.yml", "knip.ts",
@@ -231,8 +242,6 @@ pipeline: schema.#Pipeline & {
 				"helpers/repair-node-modules.sh", "helpers/pnpm-store.sh",
 				"helpers/build-workspace-deps.sh", "helpers/schema-docs-postgres.mjs", "helpers/trace/**",
 			]
-			depends_on:      []
-			workspace_scope: include_dependencies: true
 			jobs: lint: {
 				name:      "Workspace Integrity, Boundaries, Formatting & Packaging"
 				direct:    true
@@ -252,7 +261,7 @@ pipeline: schema.#Pipeline & {
 				name:        n
 				root:        p.dir
 				watch_paths: *[p.dir + "/**", for f in p.reads {f}] | [...string]
-				depends_on:  *["root", for d in p.deps {d}] | [...string]
+				depends_on:  *["js-root", for d in p.deps {d}] | [...string]
 				workspace_scope: {
 					include_dependencies: true
 					if len(p.reads) > 0 {include: [p.dir, for f in p.reads {f}]}
@@ -273,6 +282,7 @@ pipeline: schema.#Pipeline & {
 				if len(p.handoff) > 0 {target_scope: handoff: p.handoff}
 				if p.lint {
 					jobs: lint: {
+						environment_file: ".enact/environments/checks/enve.cue"
 						name:      "Lint"
 						direct:    true
 						services:  false
@@ -282,6 +292,7 @@ pipeline: schema.#Pipeline & {
 				}
 				if p.typecheck {
 					jobs: typecheck: {
+						environment_file: ".enact/environments/checks/enve.cue"
 						name:      "Typecheck"
 						direct:    true
 						services:  false
@@ -318,7 +329,7 @@ pipeline: schema.#Pipeline & {
 			// Its server entrypoint (`@n8n/mcp-apps/server`, imported by cli) is pure backend TS;
 			// its single-file UI preview imports primitives from @n8n/design-system source (staged
 			// via workspace_scope.include) without making cli depend on @n8n/design-system.
-			depends_on:      ["root", for d in P.deps if d != "@n8n/design-system" {d}]
+			depends_on:      ["js-root", for d in P.deps if d != "@n8n/design-system" {d}]
 			workspace_scope: include: [P.dir, for b in P.bundles {b}]
 		}
 
@@ -336,7 +347,6 @@ pipeline: schema.#Pipeline & {
 		}
 
 		"@n8n/efficiency": {
-			browsers: _chromiumBrowsers
 			jobs: {
 				lint:      needs: ["@n8n/db:build"]
 				typecheck: needs: ["@n8n/db:build"]
@@ -415,34 +425,44 @@ pipeline: schema.#Pipeline & {
 			kind:            "library"
 			domain:          "backend"
 			uses:            [{protocol: schema.#Protocol.Sql, target: "postgres", title: "Workflow & execution persistence"}]
-			watch_paths:     [P.dir + "/**", "docs/generated/**", ".tbls.*.yml"]
+			watch_paths:     [P.dir + "/**", "docs/generated/**", ".tbls.*.yml", "helpers/schema-check.sh"]
 			workspace_scope: include: [P.dir, "docs/generated", ".tbls.postgres.yml", ".tbls.sqlite.yml", "packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json"]
 			services:        Services
 			recorded_by:     ["enact-node", "n8n-services"]
 			jobs: {
 				build: {
-					name: "Build @n8n/db", services: false
+					environment_file: ".enact/environments/checks/enve.cue"
+					name: "Build @n8n/db", services: false, direct: true
 					// Preserve the previous cold producer allocation as a workload floor.
 					resources: {cpus: 4.0, memory_mb: 8192}
 					outputs: {
 						paths: [
-							P.dir + "/dist", P.dir + "/dist/index.js",
+							for d in _dbBuilds {d + "/dist"},
+							P.dir + "/dist/index.js",
 							P.dir + "/src/migrations/sqlite/index.ts",
 							P.dir + "/src/migrations/postgresdb/index.ts",
 						]
 						key: [
-							P.dir + "/**",
-							for d in P.deps if _packages[d].built {_packages[d].dir + "/**"},
+							for d in _dbBuilds {d + "/**"},
 							"helpers/build-workspace-deps.sh", "helpers/pnpm-store.sh",
 							"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml",
 							"tsconfig.json", "turbo.json",
 						]
 					}
-					tasks: [{command: "helpers/build-workspace-deps.sh " + P.pkg}]
+					tasks: [{command: "helpers/build-workspace-deps.sh --only " + strings.Join([for _, p in _packages if list.Contains(_dbBuilds, p.dir) {p.pkg}], " ")}]
 				}
 				schema_check: {
 					name:   "Schema Check"
-					direct: true
+					recorder: "trace"
+					recorded_by: ["enact-trace"]
+					target_scope: {
+						fallback: "all"
+						tests: [P.dir + "/scripts/schema-docs.mjs"]
+						rules: [
+							{match: ["helpers/schema-check.sh"], action: "full_component"},
+							{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}", "packages/**/package.json", "docs/generated/**", ".tbls.*.yml"], engine: "reach"},
+						]
+					}
 					let _schemaFilter = [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "docs/generated/sqlite-schema/**", "docs/generated/postgres-schema/**", ".tbls.sqlite.yml", ".tbls.postgres.yml"]
 					tasks: [
 						{
@@ -451,16 +471,9 @@ pipeline: schema.#Pipeline & {
 							filter:  {include: _schemaFilter, on_empty: "skip"}
 						},
 						{
-							name:      "Verify SQLite Schema Docs"
-							command:   "node scripts/schema-docs.mjs diff --db=sqlite"
+							name:      "Verify SQLite and Postgres Schema Docs"
+							command:   "helpers/schema-check.sh {relative_targets}"
 							unset_env: ["CI"]
-							filter:    {include: [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "docs/generated/sqlite-schema/**", ".tbls.sqlite.yml"], on_empty: "skip"}
-						},
-						{
-							name:      "Verify Postgres Schema Docs"
-							command:   "node --import $ENACT_RECORDERS_DIR/js/testcontainers-enve-shim.mjs scripts/schema-docs.mjs diff --db=postgres"
-							unset_env: ["CI"]
-							filter:    {include: [P.dir + "/src/migrations/**", P.dir + "/src/entities/**", P.dir + "/scripts/schema-docs.mjs", "docs/generated/postgres-schema/**", ".tbls.postgres.yml"], on_empty: "skip"}
 						},
 					]
 				}
@@ -499,7 +512,18 @@ pipeline: schema.#Pipeline & {
 				reason: "assume single-connection SQLite test:integration timing/locks: credentials.cmd.test.ts asserts 2 DbLockService.withLock calls while PostgreSQL DbConnection.migrate() adds a 3rd; ldap.api.test.ts:381 calls getPersonalProject(memberUser) without await so beforeEach UserRepository.delete() races on PostgreSQL's pool"
 			}]
 			jobs: {
+				build: {
+					environment_file: ".enact/environments/checks/enve.cue"
+					name: "Build CLI runtime dependencies", services: false, direct: true, resources: {cpus: 4.0, memory_mb: 8192}
+					needs: ["@n8n/db:build"]
+					outputs: {
+						paths: [for d in _cliBuilds {d + "/dist"}, "packages/cli/dist/constants.js"]
+						key: [for d in _cliBuilds {d + "/**"}, "helpers/build-workspace-deps.sh", "helpers/pnpm-store.sh", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "turbo.json"]
+					}
+					tasks: [{command: "helpers/build-workspace-deps.sh --only --upstream-key-file=.enact/state/outputs/-n8n-db--build.key " + strings.Join([for _, p in _packages if list.Contains(_cliBuilds, p.dir) {p.pkg}], " ")}]
+				}
 				test: {
+					needs: ["build"]
 					fixture: {
 						scope:   "shard"
 						setup:   "helpers/vitest-runner.sh --setup-fixture {relative_targets}"
@@ -521,6 +545,7 @@ pipeline: schema.#Pipeline & {
 				// PostgreSQL and SQLite are two jobs of 1 cpu each, sharded side by side. A
 				// recording shard traces at most 2 workers (helpers/vitest-runner.sh).
 				migrate: {
+					needs: ["build"]
 					recorder:         "own_linux"
 					recorded_by:      ["enact-node", "n8n-services"]
 					shards:           4
@@ -542,23 +567,33 @@ pipeline: schema.#Pipeline & {
 						},
 					]
 				}
-				// The same tests on SQLite: PostgreSQL's footprints are its evidence, and a file
-				// none of them read runs it whole (code only SQLite's dialect may run).
-				// `DB_TYPE=sqlite` is set in the command: enve.cue's `DB_TYPE: "postgresdb"`
-				// applies on top of a task's `env`, and the suite then waited on a postgres
-				// this job doesn't start (LEARNINGS: migration tests).
+				// SQLite owns a whole-command trace, distinct from PostgreSQL's per-file keys.
+				// Its one script runs up to four nonempty partitions; a reached command runs all tests.
 				migrate_sqlite: {
-					services:     false
-					shards:       4
-					resources:    {cpus: 1.0, memory_mb: 4096}
-					target_scope: _migrationScope & {footprints_from: "cli:migrate"}
+					needs: ["build"]
+					services: false
+					shards: 1
+					resources: {cpus: 4.0, memory_mb: 10240}
+					record_resources: {cpus: 4.0, memory_mb: 10240}
+					recorder: "trace"
+					recorded_by: ["enact-trace"]
+					target_scope: {
+						fallback: "all"
+						tests: [P.dir + "/scripts/check-migrations-sqlite.sh"]
+						rules: [
+							{match: [P.dir + "/scripts/check-migrations-sqlite.sh", "helpers/vitest-runner.sh"], action: "full_component"},
+							{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}", "packages/**/package.json"], engine: "reach"},
+						]
+					}
 					tasks: [
 						{
 							name:    "migrate-sqlite"
-							command: "VITEST_MIGRATION=1 DB_TYPE=sqlite helpers/vitest-runner.sh {relative_targets}"
+							command: "scripts/check-migrations-sqlite.sh {relative_targets}"
 							timeout: "20m"
 							env: {
 								N8N_LOG_LEVEL:       "silent"
+								// Declared build need settles before this command is traced.
+								N8N_WORKSPACE_DEPS_BUILT: "1"
 								DB_SQLITE_POOL_SIZE: "4"
 							}
 						},
@@ -573,7 +608,6 @@ pipeline: schema.#Pipeline & {
 			kind:        "verification"
 			domain:      "verification"
 			watch_paths: [P.dir + "/**", "helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs"]
-			browsers:    _chromiumBrowsers
 			shards:      4
 			recorder:    "own"
 			target_scope: _target_scope & {
@@ -581,7 +615,6 @@ pipeline: schema.#Pipeline & {
 				#tests: [P.dir + "/tests/**/*.spec.ts", P.dir + "/**/*.test.{ts,mjs}"]
 				#ignore: [
 					P.dir + "/tests/dev-server-smoke/**/*.spec.ts",
-					for _, d in _packages if d.dir != P.dir {d.dir + "/**"},
 				]
 				exclude: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]
 				#runner: ["helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs"]
@@ -611,13 +644,15 @@ pipeline: schema.#Pipeline & {
 			resources: {cpus: 4.0, memory_mb: 10240}
 			jobs: {
 				build: {
-					name: "Build Playwright workspace dependencies", services: false, resources: {cpus: 4.0, memory_mb: 8192}
+					environment_file: ".enact/environments/checks/enve.cue"
+					name: "Build Playwright workspace dependencies", services: false, direct: true, resources: {cpus: 4.0, memory_mb: 8192}
+					needs: ["cli:build"]
 					outputs: {
 						// Every package build the suite imports or serves, not only cli's and the
 						// editor's: a shard restoring these runs on them as they are.
 						paths: [
-							for d in _e2eBuilds {d + "/dist"},
-							"packages/cli/dist/commands/start.js", "packages/frontend/editor-ui/dist/index.html",
+							for d in _e2eBuilds if !list.Contains(_cliBuilds, d) && !list.Contains(_dbBuilds, d) {d + "/dist"},
+							"packages/frontend/editor-ui/dist/index.html",
 						]
 						key: [
 							for _, d in _packages if d.built {d.dir + "/**"},
@@ -626,7 +661,7 @@ pipeline: schema.#Pipeline & {
 							"tsconfig.json", "turbo.json",
 						]
 					}
-					tasks: [{command: "helpers/build-workspace-deps.sh 'n8n-playwright^...'"}]
+					tasks: [{command: "helpers/build-workspace-deps.sh --only --upstream-key-file=.enact/state/outputs/cli--build.key " + strings.Join([for _, p in _packages if list.Contains(_e2eBuilds, p.dir) && !list.Contains(_cliBuilds, p.dir) && !list.Contains(_dbBuilds, p.dir) {p.pkg}], " ")}]
 				}
 				lint:      needs: ["@n8n/db:build"]
 				typecheck: needs: ["@n8n/db:build"]
@@ -658,19 +693,11 @@ pipeline: schema.#Pipeline & {
 							P.dir + "/tests/e2e/**/*.spec.ts",
 							for d in ["cli-workflows", "evals", "infrastructure", "performance"] {P.dir + "/tests/" + d + "/**/*.spec.ts"},
 							P.dir + "/**/*.test.{ts,mjs}",
-							P.dir + "/expectations/**",
-							for _, d in _packages if d.dir != P.dir && d.dir != _ed && d.dir != _vc {d.dir + "/**"},
 							_ed + "/**/*.{test,spec,stories}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}",
 							_ed + "/**/{__tests__,__mocks__,test,tests}/**",
 							_vc + "/**/*.{test,spec}.{ts,mts,js,mjs}",
 							_vc + "/**/{__tests__,__mocks__,test,tests}/**",
-							for f in ["*.md", "biome.jsonc", "eslint.config.mjs", "stylelint.config.mjs", "vitest.config.mts", ".oxlintrc.json"] {_ed + "/" + f},
-							for d in ["data", "scripts"] {_ed + "/" + d + "/**"},
-							_ed + "/src/experiments/**",
-							for f in [
-								"agents", "ai", "execution", "integrations", "resolvers", "roles", "settings",
-								"setupPanel", "workflow-reviews", "workflows/readyToRun", "workflows/templates", "workflows/workflowDiff",
-							] {_ed + "/src/features/" + f + "/**"},
+							_ed + "/*.md",
 						]
 					}
 					// `--trace=off`: the config's `trace: 'on'` writes and rereads trace resources

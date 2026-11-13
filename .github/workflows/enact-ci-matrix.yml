@@ -32,7 +32,11 @@ jobs:
   entry:
     name: ${{ matrix.component }}${{ matrix.env.ENACT_SCHEDULING_HINT }}
     env:
+      ENACT_ENVIRONMENT_FILE: ${{ matrix.environment_file || '' }}
       ENACT_OBSERVATIONS_ENABLED: "1"
+    permissions:
+      actions: read
+      contents: read
     if: ${{ inputs.matrix != '{"include":[]}' && inputs.matrix != '[]' && inputs.matrix != '' }}
     strategy:
       fail-fast: false
@@ -67,7 +71,8 @@ jobs:
         store="${ENACT_OUTPUTS_CACHE:-}"
         entry="$store/${GITHUB_REPOSITORY:-repo}/$ENACT_OUTPUTS_KEY"
         hit=false
-        if [ -n "$store" ] && [ -f "$entry/.enact-ready" ]; then
+        if [ -n "$store" ] && [ -f "$entry/.enact-ready" ] && \
+            ENACT_OUTPUTS_VERIFY_ROOT="$entry" "${ENACT_OUTPUTS_VERIFIER:-enact}" ci host-outputs verify >/dev/null 2>&1; then
             hit=true
             while IFS= read -r pattern; do
                 [ -n "$pattern" ] || continue
@@ -190,31 +195,54 @@ jobs:
         "$E" --version >/dev/null 2>&1 || { echo "::error title=No enact for $P::$E does not run on this $P runner; commit its build as bin/$P/enact"; exit 1; }
         "$E" ci install-binaries
     - name: Ensure enve & enact CLI on PATH
+      id: setup-runner
       if: ${{ !steps.skip.outputs.hit }}
       run: enact ci setup-runner
+    - name: Recover Built Outputs with the Installed CLI
+      id: outputs-host-recover
+      if: ${{ success() && steps.runner_caches.outputs.host != '' && !steps.skip.outputs.hit && matrix.output_key != '' }}
+      continue-on-error: true
+      run: enact ci host-outputs restore-build
+      env:
+        ENACT_OUTPUTS_KEY: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
+        ENACT_OUTPUTS_PATHS: ${{ matrix.output_paths }}
+    - name: Restore history Handoff
+      id: history-host
+      if: ${{ !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: enact ci handoff history --artifact "$ENACT_HANDOFF_ARTIFACT" --directory "$RUNNER_TEMP/enact-history-input"
+      env:
+        ENACT_HANDOFF_ARTIFACT: ${{ inputs.history_input_artifact }}
+        GH_TOKEN: ${{ github.token }}
     - name: Download the Selected CI History
-      if: ${{ !steps.skip.outputs.hit }}
+      if: ${{ (steps.history-host.outputs.ready != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.history_input_artifact }}
         path: ${{ runner.temp }}/enact-history-input
     - name: Import the Selected CI History
-      if: ${{ !steps.skip.outputs.hit }}
+      if: ${{ !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: |-
         export ENACT_HISTORY_DIR="$RUNNER_TEMP/enact-history"
         printf 'ENACT_HISTORY_DIR=%s\n' "$ENACT_HISTORY_DIR" >> "$GITHUB_ENV"
         enact ci history import --input "$RUNNER_TEMP/enact-history-input/snapshot.json" --manifest "$RUNNER_TEMP/enact-history-input/snapshot.manifest.json" --output "$ENACT_HISTORY_DIR"
+    - name: Cache history Handoff on the Receiving Host
+      if: ${{ !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: enact ci handoff history --publish --artifact "$ENACT_HANDOFF_ARTIFACT" --directory "$RUNNER_TEMP/enact-history-input"
+      env:
+        ENACT_HANDOFF_ARTIFACT: ${{ inputs.history_input_artifact }}
     - name: Write the Build Outputs Producers
-      if: ${{ (toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit }}
+      if: ${{ (toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: |-
         cat > "$ENACT_OUTPUTS_PRODUCERS_FILE" <<'PRODUCERS_JSON'
-        {"-n8n-db--build":{"job":"@n8n/db:build","paths":"packages/@n8n/db/dist\npackages/@n8n/db/dist/index.js\npackages/@n8n/db/src/migrations/sqlite/index.ts\npackages/@n8n/db/src/migrations/postgresdb/index.ts\n.enact/state/outputs/-n8n-db--build.key"},"playwright--build":{"job":"playwright:build","paths":"packages/@n8n/agents/dist\npackages/@n8n/ai-node-sdk/dist\npackages/@n8n/ai-utilities/dist\npackages/@n8n/ai-workflow-builder.ee/dist\npackages/@n8n/api-types/dist\npackages/@n8n/backend-common/dist\npackages/@n8n/backend-network/dist\npackages/@n8n/backend-services/dist\npackages/@n8n/backend-test-utils/dist\npackages/@n8n/blob-storage/dist\npackages/@n8n/chat-hub/dist\npackages/@n8n/client-oauth2/dist\npackages/@n8n/codemirror-lang/dist\npackages/@n8n/codemirror-lang-html/dist\npackages/@n8n/codemirror-lang-sql/dist\npackages/@n8n/config/dist\npackages/@n8n/constants/dist\npackages/@n8n/decorators/dist\npackages/@n8n/di/dist\npackages/@n8n/engine/dist\npackages/@n8n/errors/dist\npackages/@n8n/eslint-config/dist\npackages/@n8n/expression-runtime/dist\npackages/@n8n/imap/dist\npackages/@n8n/inbound-auth/dist\npackages/@n8n/instance-ai/dist\npackages/@n8n/json-schema-to-zod/dist\npackages/@n8n/mcp-apps/dist\npackages/@n8n/mcp-browser/dist\npackages/@n8n/node-engine-compatibility/dist\npackages/@n8n/nodes-langchain/dist\npackages/@n8n/oxlint-config/dist\npackages/@n8n/permissions/dist\npackages/@n8n/scheduler/dist\npackages/@n8n/stylelint-config/dist\npackages/@n8n/syslog-client/dist\npackages/@n8n/task-runner/dist\npackages/@n8n/telemetry/dist\npackages/@n8n/tournament/dist\npackages/@n8n/typeorm/dist\npackages/@n8n/utils/dist\npackages/@n8n/vitest-config/dist\npackages/@n8n/workflow-sdk/dist\npackages/cli/dist\npackages/core/dist\npackages/frontend/@n8n/chat/dist\npackages/frontend/@n8n/composables/dist\npackages/frontend/@n8n/design-system/dist\npackages/frontend/@n8n/eslint-plugin-design-system/dist\npackages/frontend/@n8n/frontend-constants/dist\npackages/frontend/@n8n/frontend-utils/dist\npackages/frontend/@n8n/i18n/dist\npackages/frontend/@n8n/rest-api-client/dist\npackages/frontend/@n8n/stores/dist\npackages/frontend/editor-ui/dist\npackages/modules/apps/backend/dist\npackages/modules/insights/backend/dist\npackages/modules/quick-connect/backend/dist\npackages/modules/workflow-builder/backend/dist\npackages/nodes-base/dist\npackages/quality/policy/rules-engine/dist\npackages/quality/testing/janitor/dist\npackages/quality/testing/test-impact/dist\npackages/workflow/dist\npackages/cli/dist/commands/start.js\npackages/frontend/editor-ui/dist/index.html\n.enact/state/outputs/playwright--build.key"}}
+        {"-n8n-db--build":{"job":"@n8n/db:build","paths":"packages/@n8n/api-types/dist\npackages/@n8n/backend-common/dist\npackages/@n8n/backend-network/dist\npackages/@n8n/blob-storage/dist\npackages/@n8n/client-oauth2/dist\npackages/@n8n/config/dist\npackages/@n8n/constants/dist\npackages/@n8n/db/dist\npackages/@n8n/decorators/dist\npackages/@n8n/di/dist\npackages/@n8n/errors/dist\npackages/@n8n/eslint-config/dist\npackages/@n8n/expression-runtime/dist\npackages/@n8n/inbound-auth/dist\npackages/@n8n/oxlint-config/dist\npackages/@n8n/permissions/dist\npackages/@n8n/tournament/dist\npackages/@n8n/typeorm/dist\npackages/@n8n/utils/dist\npackages/@n8n/vitest-config/dist\npackages/@n8n/workflow-sdk/dist\npackages/core/dist\npackages/frontend/@n8n/eslint-plugin-design-system/dist\npackages/workflow/dist\npackages/@n8n/db/dist/index.js\npackages/@n8n/db/src/migrations/sqlite/index.ts\npackages/@n8n/db/src/migrations/postgresdb/index.ts\n.enact/state/outputs/-n8n-db--build.key\n.enact/state/outputs/-n8n-db--build.manifest-v1.json"},"cli--build":{"job":"cli:build","paths":"packages/@n8n/agents/dist\npackages/@n8n/ai-node-sdk/dist\npackages/@n8n/ai-utilities/dist\npackages/@n8n/ai-workflow-builder.ee/dist\npackages/@n8n/backend-services/dist\npackages/@n8n/backend-test-utils/dist\npackages/@n8n/chat-hub/dist\npackages/@n8n/engine/dist\npackages/@n8n/imap/dist\npackages/@n8n/instance-ai/dist\npackages/@n8n/json-schema-to-zod/dist\npackages/@n8n/mcp-apps/dist\npackages/@n8n/mcp-browser/dist\npackages/@n8n/node-engine-compatibility/dist\npackages/@n8n/nodes-langchain/dist\npackages/@n8n/scheduler/dist\npackages/@n8n/stylelint-config/dist\npackages/@n8n/syslog-client/dist\npackages/@n8n/task-runner/dist\npackages/@n8n/telemetry/dist\npackages/cli/dist\npackages/frontend/@n8n/composables/dist\npackages/frontend/@n8n/design-system/dist\npackages/frontend/@n8n/frontend-constants/dist\npackages/frontend/@n8n/frontend-utils/dist\npackages/frontend/@n8n/i18n/dist\npackages/modules/apps/backend/dist\npackages/modules/insights/backend/dist\npackages/modules/quick-connect/backend/dist\npackages/modules/workflow-builder/backend/dist\npackages/nodes-base/dist\npackages/cli/dist/constants.js\n.enact/state/outputs/cli--build.key\n.enact/state/outputs/cli--build.manifest-v1.json"},"playwright--build":{"job":"playwright:build","paths":"packages/@n8n/codemirror-lang/dist\npackages/@n8n/codemirror-lang-html/dist\npackages/@n8n/codemirror-lang-sql/dist\npackages/frontend/@n8n/chat/dist\npackages/frontend/@n8n/rest-api-client/dist\npackages/frontend/@n8n/stores/dist\npackages/frontend/editor-ui/dist\npackages/quality/policy/rules-engine/dist\npackages/quality/testing/janitor/dist\npackages/quality/testing/test-impact/dist\npackages/frontend/editor-ui/dist/index.html\n.enact/state/outputs/playwright--build.key\n.enact/state/outputs/playwright--build.manifest-v1.json"}}
         PRODUCERS_JSON
       env:
         ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
     - name: Restore Built Outputs from the Host Cache
       id: outputs-host
-      if: ${{ (steps.runner_caches.outputs.host != '' && toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit }}
+      if: ${{ (steps.runner_caches.outputs.host != '' && toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       run: enact ci host-outputs restore
       env:
@@ -223,104 +251,132 @@ jobs:
         ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
     - name: Restore Built Outputs (@n8n/db:build)
       id: outputs--n8n-db--build
-      if: ${{ (matrix.output_keys['-n8n-db--build'] != '' && steps.outputs-host.outputs['-n8n-db--build'] != 'true') && !steps.skip.outputs.hit }}
+      if: ${{ (matrix.output_keys['-n8n-db--build'] != '' && steps.outputs-host.outputs['-n8n-db--build'] != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
         key: enact-outputs--n8n-db--build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_keys['-n8n-db--build'] }}
         path: |-
+          packages/@n8n/api-types/dist
+          packages/@n8n/backend-common/dist
+          packages/@n8n/backend-network/dist
+          packages/@n8n/blob-storage/dist
+          packages/@n8n/client-oauth2/dist
+          packages/@n8n/config/dist
+          packages/@n8n/constants/dist
           packages/@n8n/db/dist
+          packages/@n8n/decorators/dist
+          packages/@n8n/di/dist
+          packages/@n8n/errors/dist
+          packages/@n8n/eslint-config/dist
+          packages/@n8n/expression-runtime/dist
+          packages/@n8n/inbound-auth/dist
+          packages/@n8n/oxlint-config/dist
+          packages/@n8n/permissions/dist
+          packages/@n8n/tournament/dist
+          packages/@n8n/typeorm/dist
+          packages/@n8n/utils/dist
+          packages/@n8n/vitest-config/dist
+          packages/@n8n/workflow-sdk/dist
+          packages/core/dist
+          packages/frontend/@n8n/eslint-plugin-design-system/dist
+          packages/workflow/dist
           packages/@n8n/db/dist/index.js
           packages/@n8n/db/src/migrations/sqlite/index.ts
           packages/@n8n/db/src/migrations/postgresdb/index.ts
           .enact/state/outputs/-n8n-db--build.key
-    - name: Restore Built Outputs (playwright:build)
-      id: outputs-playwright--build
-      if: ${{ (matrix.output_keys['playwright--build'] != '' && steps.outputs-host.outputs['playwright--build'] != 'true') && !steps.skip.outputs.hit }}
+          .enact/state/outputs/-n8n-db--build.manifest-v1.json
+    - name: Restore Built Outputs (cli:build)
+      id: outputs-cli--build
+      if: ${{ (matrix.output_keys['cli--build'] != '' && steps.outputs-host.outputs['cli--build'] != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
-        key: enact-outputs-playwright--build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_keys['playwright--build'] }}
+        key: enact-outputs-cli--build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_keys['cli--build'] }}
         path: |-
           packages/@n8n/agents/dist
           packages/@n8n/ai-node-sdk/dist
           packages/@n8n/ai-utilities/dist
           packages/@n8n/ai-workflow-builder.ee/dist
-          packages/@n8n/api-types/dist
-          packages/@n8n/backend-common/dist
-          packages/@n8n/backend-network/dist
           packages/@n8n/backend-services/dist
           packages/@n8n/backend-test-utils/dist
-          packages/@n8n/blob-storage/dist
           packages/@n8n/chat-hub/dist
-          packages/@n8n/client-oauth2/dist
-          packages/@n8n/codemirror-lang/dist
-          packages/@n8n/codemirror-lang-html/dist
-          packages/@n8n/codemirror-lang-sql/dist
-          packages/@n8n/config/dist
-          packages/@n8n/constants/dist
-          packages/@n8n/decorators/dist
-          packages/@n8n/di/dist
           packages/@n8n/engine/dist
-          packages/@n8n/errors/dist
-          packages/@n8n/eslint-config/dist
-          packages/@n8n/expression-runtime/dist
           packages/@n8n/imap/dist
-          packages/@n8n/inbound-auth/dist
           packages/@n8n/instance-ai/dist
           packages/@n8n/json-schema-to-zod/dist
           packages/@n8n/mcp-apps/dist
           packages/@n8n/mcp-browser/dist
           packages/@n8n/node-engine-compatibility/dist
           packages/@n8n/nodes-langchain/dist
-          packages/@n8n/oxlint-config/dist
-          packages/@n8n/permissions/dist
           packages/@n8n/scheduler/dist
           packages/@n8n/stylelint-config/dist
           packages/@n8n/syslog-client/dist
           packages/@n8n/task-runner/dist
           packages/@n8n/telemetry/dist
-          packages/@n8n/tournament/dist
-          packages/@n8n/typeorm/dist
-          packages/@n8n/utils/dist
-          packages/@n8n/vitest-config/dist
-          packages/@n8n/workflow-sdk/dist
           packages/cli/dist
-          packages/core/dist
-          packages/frontend/@n8n/chat/dist
           packages/frontend/@n8n/composables/dist
           packages/frontend/@n8n/design-system/dist
-          packages/frontend/@n8n/eslint-plugin-design-system/dist
           packages/frontend/@n8n/frontend-constants/dist
           packages/frontend/@n8n/frontend-utils/dist
           packages/frontend/@n8n/i18n/dist
-          packages/frontend/@n8n/rest-api-client/dist
-          packages/frontend/@n8n/stores/dist
-          packages/frontend/editor-ui/dist
           packages/modules/apps/backend/dist
           packages/modules/insights/backend/dist
           packages/modules/quick-connect/backend/dist
           packages/modules/workflow-builder/backend/dist
           packages/nodes-base/dist
+          packages/cli/dist/constants.js
+          .enact/state/outputs/cli--build.key
+          .enact/state/outputs/cli--build.manifest-v1.json
+    - name: Restore Built Outputs (playwright:build)
+      id: outputs-playwright--build
+      if: ${{ (matrix.output_keys['playwright--build'] != '' && steps.outputs-host.outputs['playwright--build'] != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: enact-outputs-playwright--build-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_keys['playwright--build'] }}
+        path: |-
+          packages/@n8n/codemirror-lang/dist
+          packages/@n8n/codemirror-lang-html/dist
+          packages/@n8n/codemirror-lang-sql/dist
+          packages/frontend/@n8n/chat/dist
+          packages/frontend/@n8n/rest-api-client/dist
+          packages/frontend/@n8n/stores/dist
+          packages/frontend/editor-ui/dist
           packages/quality/policy/rules-engine/dist
           packages/quality/testing/janitor/dist
           packages/quality/testing/test-impact/dist
-          packages/workflow/dist
-          packages/cli/dist/commands/start.js
           packages/frontend/editor-ui/dist/index.html
           .enact/state/outputs/playwright--build.key
+          .enact/state/outputs/playwright--build.manifest-v1.json
     - name: Require Built Outputs
-      if: ${{ (toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit }}
+      if: ${{ (toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: enact ci host-outputs require
       env:
         ENACT_OUTPUTS_NEEDED: ${{ toJson(matrix.output_keys) }}
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
         ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
         ENACT_OUTPUTS_STEPS: ${{ toJson(steps) }}
+    - name: restore Host Cache [node_build]
+      id: host_cache_node_build
+      if: ${{ (steps.runner_caches.outputs.host != '' && contains(format(',{0},', matrix.caches), ',node_build,')) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: enact ci host-cache restore
+      env:
+        ENACT_HOST_CACHE_KEY: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'helpers/typecheck-runner.sh') }}
+        ENACT_HOST_CACHE_PATHS: .turbo
+    - name: restore Host Cache [vitest_transforms]
+      id: host_cache_vitest_transforms
+      if: ${{ (steps.runner_caches.outputs.host != '' && contains(format(',{0},', matrix.caches), ',vitest_transforms,')) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: enact ci host-cache restore
+      env:
+        ENACT_HOST_CACHE_KEY: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
+        ENACT_HOST_CACHE_PATHS: .enact/state/cache/vitest
     - parallel:
       - name: Restore Python build & venv cache
         id: python_l1_cache
-        if: ${{ (contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '') && !steps.skip.outputs.hit }}
+        if: ${{ (contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
@@ -331,7 +387,7 @@ jobs:
           restore-keys: ${{ runner.os }}-python-
       - name: Restore Node dependency cache
         id: node_l1_cache
-        if: ${{ ((contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node')) && steps.runner_caches.outputs.host == '') && !steps.skip.outputs.hit }}
+        if: ${{ ((contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node')) && steps.runner_caches.outputs.host == '') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
@@ -342,29 +398,29 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ runner.arch }}-node-v3-
       - name: Restore Cache [node_build]
         id: cache_node_build
-        if: ${{ (contains(format(',{0},', matrix.caches), ',node_build,')) && !steps.skip.outputs.hit }}
+        if: ${{ (contains(format(',{0},', matrix.caches), ',node_build,') && steps.host_cache_node_build.outputs.hit != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
-          key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-${{ github.sha }}
+          key: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'helpers/typecheck-runner.sh') }}-${{ github.sha }}
           path: .turbo
           restore-keys: |-
-            node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}-
+            node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'helpers/typecheck-runner.sh') }}-
             node_build-${{ runner.os }}-${{ matrix.task_id }}-
             node_build-${{ runner.os }}-
       - name: Restore Cache [vitest_transforms]
         id: cache_vitest_transforms
-        if: ${{ (contains(format(',{0},', matrix.caches), ',vitest_transforms,')) && !steps.skip.outputs.hit }}
+        if: ${{ (contains(format(',{0},', matrix.caches), ',vitest_transforms,') && steps.host_cache_vitest_transforms.outputs.hit != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
-          key: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('pnpm-lock.yaml') }}
-          path: node_modules/.vitest-cache
+          key: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
+          path: .enact/state/cache/vitest
           restore-keys: |-
             vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-
             vitest_transforms-${{ runner.os }}-
     - name: Record Restored Package Caches
-      if: ${{ (steps.runner_caches.outputs.host == '' && github.event_name != 'pull_request') && !steps.skip.outputs.hit }}
+      if: ${{ (steps.runner_caches.outputs.host == '' && github.event_name != 'pull_request') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       run: enact ci cache-delta record
       env:
@@ -373,61 +429,44 @@ jobs:
           python_l1_cache /tmp/.cache/pip
           node_l1_cache .enact/state/pnpm-store
           node_l1_cache node_modules/.cache
-    - name: Restore Browsers [chromium]
-      id: browsers_l1_cache
-      if: ${{ (matrix.browsers) && !steps.skip.outputs.hit }}
+    - name: Restore reach Handoff
+      id: reach-native
+      if: ${{ (toJSON(matrix.needs_reach) != 'false') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: ${{ runner.os }}-browsers-chromium-${{ hashFiles('packages/quality/testing/playwright/package.json', 'pnpm-lock.yaml') }}
-        path: /tmp/.cache/ms-playwright
-    - name: Provision Browsers [chromium]
-      if: ${{ (matrix.browsers) && !steps.skip.outputs.hit }}
-      continue-on-error: true
-      run: |-
-        enact ci browser-cache provision
-        enact ci browser-cache hydrate
+      run: enact ci handoff reach --artifact "$ENACT_HANDOFF_ARTIFACT" --directory "$RUNNER_TEMP/enact-reach"
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
-        AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
-        ENACT_BROWSERS_ARTIFACT: tools/playwright-browsers-linux-amd64.tar.zst
-        ENACT_BROWSERS_ENV: PLAYWRIGHT_BROWSERS_PATH
-        ENACT_BROWSERS_PATH: /tmp/.cache/ms-playwright
-        ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
-    - name: Restore the Reach Map from the Host Cache
-      id: reach-host
-      if: ${{ !steps.skip.outputs.hit }}
-      run: |-
-        HANDOFF_DIR="${ENACT_HOST_CACHE:-}/repo/reach-handoff/${GITHUB_RUN_ID:-0}-${GITHUB_RUN_ATTEMPT:-1}"
-        if [ -n "${ENACT_HOST_CACHE:-}" ] && [ -f "$HANDOFF_DIR/map.bin" ]; then
-          rm -rf "$RUNNER_TEMP/enact-reach" && mkdir -p "$RUNNER_TEMP"
-          if cp -a --reflink=auto "$HANDOFF_DIR" "$RUNNER_TEMP/enact-reach" 2>/dev/null || cp -R "$HANDOFF_DIR" "$RUNNER_TEMP/enact-reach"; then
-            if [ -f "$RUNNER_TEMP/enact-reach/map.bin" ]; then
-              echo "hit=true" >> "$GITHUB_OUTPUT"
-            fi
-          fi
-        fi
+        ENACT_HANDOFF_ARTIFACT: enact-reach-map
+        GH_TOKEN: ${{ github.token }}
     - name: Download the Reach Map
-      if: ${{ (steps.reach-host.outputs.hit != 'true') && !steps.skip.outputs.hit }}
+      if: ${{ (toJSON(matrix.needs_reach) != 'false' && (steps.reach-native.outputs.ready != 'true')) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       uses: actions/download-artifact@v8
       with:
         name: enact-reach-map
         path: ${{ runner.temp }}/enact-reach
+    - name: Cache reach Handoff on the Receiving Host
+      id: reach-verified
+      if: ${{ (toJSON(matrix.needs_reach) != 'false') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: enact ci handoff reach --publish --artifact "$ENACT_HANDOFF_ARTIFACT" --directory "$RUNNER_TEMP/enact-reach"
+      env:
+        ENACT_HANDOFF_ARTIFACT: enact-reach-map
     - name: Plan with the Detected Reach Map
-      if: ${{ !steps.skip.outputs.hit }}
+      id: reach-pin
+      if: ${{ !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: |-
+        if [ "$ENACT_HANDOFF_READY" != true ]; then exit 0; fi
         if [ -n "${GITHUB_HEAD_SHA:-}" ] && [ -z "$(git rev-list -n1 --no-walk --ignore-missing --missing=allow-any "$GITHUB_HEAD_SHA" -- 2>/dev/null)" ]; then
           git fetch --no-tags --depth=1 --filter=blob:none origin "$GITHUB_HEAD_SHA" 2>/dev/null || true
         fi
-        if [ -f "$RUNNER_TEMP/enact-reach/map.bin" ]; then
+        if [ "$ENACT_HANDOFF_READY" = true ] && [ -f "$RUNNER_TEMP/enact-reach/map.bin" ]; then
           echo "ENACT_REACH_FILE=$RUNNER_TEMP/enact-reach/map.bin" >> "$GITHUB_ENV"
         fi
       env:
+        ENACT_HANDOFF_READY: ${{ steps.reach-verified.outputs.ready }}
         GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     - name: Fetch the Revisions Selection Ages By
-      if: ${{ (matrix.selects_in_job) && !steps.skip.outputs.hit }}
+      if: ${{ (matrix.selects_in_job) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       run: |-
         FETCH="git fetch --no-tags --depth=1 --filter=blob:none origin"
@@ -441,29 +480,32 @@ jobs:
       env:
         ENACT_SELECT_BASE: ${{ matrix.select_base }}
     - name: Pull Dependencies via enve
-      if: ${{ !steps.skip.outputs.hit }}
+      if: ${{ !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: enact ci deps pull --component --remote signed
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
         ENACT_COMPONENT_DIR: ${{ matrix.component_dir }}
+        ENACT_ENVIRONMENT_FILE: ${{ matrix.environment_file || '' }}
         ENACT_JOB_SERVICES: ${{ matrix.services }}
+        ENACT_PREPARE_ENVIRONMENT_FILES: ${{ toJSON(matrix.preparation_environment_files || fromJSON('[]')) }}
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
         ENVE_CACHE_CONCURRENCY: "16"
     - name: Check enve Stores into the Host Cache
-      if: ${{ (steps.runner_caches.outputs.host != '') && !steps.skip.outputs.hit }}
+      if: ${{ (steps.runner_caches.outputs.host != '') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: enact ci check-store
     - name: Install Project Dependencies
-      if: ${{ (hashFiles('package.json') != '' && (contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node'))) && !steps.skip.outputs.hit }}
+      if: ${{ (hashFiles('package.json') != '' && (contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node'))) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: enact ci deps install node --manager pnpm --filters
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        ENACT_ENVIRONMENT_FILE: .enact/environments/checks/enve.cue
         ENACT_MATRIX_FILTER_ARGS: ${{ matrix.filter_args }}
         GITHUB_TOKEN: ""
         npm_config_build_from_source: "false"
     - name: Execute Component Task
-      if: ${{ !steps.skip.outputs.hit }}
+      if: ${{ !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: eval "$ENACT_MATRIX_COMMAND"
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
@@ -471,6 +513,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
         CI_COMPONENT: ${{ matrix.component }}
         ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        ENACT_ENVIRONMENT_FILE: ${{ matrix.environment_file || '' }}
         ENACT_MATRIX_COMMAND: ${{ matrix.command }}
         ENACT_MAX_PARALLEL: ${{ matrix.max_parallel }}
         ENACT_PREEMPTION_NOTICE_SEC: ${{ matrix.preemption_notice_sec }}
@@ -482,7 +525,7 @@ jobs:
         ENACT_SHARD_WEIGHTS: ${{ matrix.env.ENACT_SHARD_WEIGHTS || '' }}
         ENACT_TOPOLOGY: ${{ matrix.topology }}
     - name: Push Updated Dependencies to the Remote Cache
-      if: ${{ (success() && env.ENACT_REMOTE_SAVE_EVENT == 'true') && !steps.skip.outputs.hit }}
+      if: ${{ (success() && env.ENACT_REMOTE_SAVE_EVENT == 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       run: enact ci deps push --signed
       env:
@@ -490,11 +533,13 @@ jobs:
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
         ENACT_COMPONENT_DIR: ${{ matrix.component_dir }}
+        ENACT_ENVIRONMENT_FILE: ${{ matrix.environment_file || '' }}
         ENACT_JOB_SERVICES: ${{ matrix.services }}
+        ENACT_PREPARE_ENVIRONMENT_FILES: ${{ toJSON(matrix.preparation_environment_files || fromJSON('[]')) }}
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
         ENVE_CACHE_CONCURRENCY: "16"
     - name: Upload Execution Telemetry & Workflow Dashboard
-      if: ${{ (always()) && !steps.skip.outputs.hit }}
+      if: ${{ (always()) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       uses: actions/upload-artifact@v7
       with:
@@ -506,7 +551,7 @@ jobs:
           .enact/state/runs/*/services/*.log
         retention-days: "1"
     - name: Upload Recorded Footprints
-      if: ${{ (always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch)) && !steps.skip.outputs.hit }}
+      if: ${{ (always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch)) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       uses: actions/upload-artifact@v7
       with:
@@ -514,9 +559,25 @@ jobs:
         name: enact-footprints-${{ matrix.task_id }}
         path: .enact/state/cache/trace-reach.d/
         retention-days: "1"
+    - name: save Host Cache [node_build]
+      id: save_host_cache_node_build
+      if: ${{ (steps.runner_caches.outputs.host != '' && contains(format(',{0},', matrix.caches), ',node_build,')) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: enact ci host-cache save
+      env:
+        ENACT_HOST_CACHE_KEY: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'helpers/typecheck-runner.sh') }}
+        ENACT_HOST_CACHE_PATHS: .turbo
+    - name: save Host Cache [vitest_transforms]
+      id: save_host_cache_vitest_transforms
+      if: ${{ (steps.runner_caches.outputs.host != '' && contains(format(',{0},', matrix.caches), ',vitest_transforms,')) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: enact ci host-cache save
+      env:
+        ENACT_HOST_CACHE_KEY: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
+        ENACT_HOST_CACHE_PATHS: .enact/state/cache/vitest
     - name: Check Package Caches for New Entries
       id: cache_delta
-      if: ${{ (!cancelled() && steps.runner_caches.outputs.host == '' && env.ENACT_SAVE_EVENT == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && github.event_name != 'pull_request') && !steps.skip.outputs.hit }}
+      if: ${{ (!cancelled() && steps.runner_caches.outputs.host == '' && env.ENACT_SAVE_EVENT == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && github.event_name != 'pull_request') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       run: enact ci cache-delta check
       env:
@@ -527,7 +588,7 @@ jobs:
           node_l1_cache node_modules/.cache
         ENACT_UV_PRUNE: ${{ contains(matrix.technology, 'python') }}
     - name: Save Python build & venv cache
-      if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.cache_delta.outputs.python_l1_cache == 'true') && github.event_name != 'pull_request' && steps.python_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+      if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(matrix.technology, 'python') && steps.runner_caches.outputs.host == '' && hashFiles('**/uv.lock', '**/pyproject.toml', '**/requirements.txt', '**/poetry.lock') != '' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.cache_delta.outputs.python_l1_cache == 'true') && github.event_name != 'pull_request' && steps.python_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
@@ -537,7 +598,7 @@ jobs:
           /tmp/.cache/pip
     - parallel:
       - name: Save Node dependency cache
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && (contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node')) && steps.cache_delta.outputs.node_l1_cache == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.runner_caches.outputs.host == '') && github.event_name != 'pull_request' && steps.node_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && (contains(matrix.technology, 'typescript') || contains(matrix.technology, 'javascript') || contains(matrix.technology, 'node')) && steps.cache_delta.outputs.node_l1_cache == 'true' && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.runner_caches.outputs.host == '') && github.event_name != 'pull_request' && steps.node_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
@@ -545,27 +606,20 @@ jobs:
           path: |-
             .enact/state/pnpm-store
             node_modules/.cache
-      - name: Save Browsers [chromium]
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && matrix.browsers && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && github.event_name != 'pull_request' && steps.browsers_l1_cache.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          key: ${{ steps.browsers_l1_cache.outputs.cache-primary-key }}
-          path: /tmp/.cache/ms-playwright
       - name: Save Cache [node_build]
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',node_build,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-{1}-{2}-', runner.os, matrix.task_id, hashFiles('package.json', 'pnpm-lock.yaml'))))) && github.event_name != 'pull_request' && steps.cache_node_build.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',node_build,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.host_cache_node_build.outputs.hit != 'true' && steps.cache_node_build.outputs.cache-primary-key != '' && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-{1}-{2}-', runner.os, matrix.task_id, hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'helpers/typecheck-runner.sh'))))) && github.event_name != 'pull_request' && steps.cache_node_build.outputs.cache-hit != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
           key: ${{ steps.cache_node_build.outputs.cache-primary-key }}
           path: .turbo
       - name: Save Cache [vitest_transforms]
-        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',vitest_transforms,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1')) && github.event_name != 'pull_request' && steps.cache_vitest_transforms.outputs.cache-hit != 'true') && !steps.skip.outputs.hit }}
+        if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',vitest_transforms,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.host_cache_vitest_transforms.outputs.hit != 'true' && steps.cache_vitest_transforms.outputs.cache-primary-key != '') && github.event_name != 'pull_request' && steps.cache_vitest_transforms.outputs.cache-hit != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
           key: ${{ steps.cache_vitest_transforms.outputs.cache-primary-key }}
-          path: node_modules/.vitest-cache
+          path: .enact/state/cache/vitest
     - name: Save Built Outputs to the Host Cache
       if: ${{ success() && steps.runner_caches.outputs.host != '' && !steps.skip.outputs.hit && matrix.output_key != '' }}
       continue-on-error: true
@@ -581,6 +635,9 @@ jobs:
         set -euo pipefail
         store="${ENACT_OUTPUTS_CACHE:-}"
         entry="$store/${GITHUB_REPOSITORY:-repo}/$ENACT_OUTPUTS_KEY"
+        verify_outputs() {
+            ENACT_OUTPUTS_VERIFY_ROOT="$1" "${ENACT_OUTPUTS_VERIFIER:-enact}" ci host-outputs verify >/dev/null 2>&1
+        }
         clone_item() {
             rm -rf "$2"
             mkdir -p "$(dirname "$2")"
@@ -589,7 +646,7 @@ jobs:
         case "$ENACT_OUTPUTS_MODE" in
             restore)
                 hit=false
-                if [ -n "$store" ] && [ -f "$entry/.enact-ready" ]; then
+                if [ -n "$store" ] && [ -f "$entry/.enact-ready" ] && verify_outputs "$entry"; then
                     hit=true
                     while IFS= read -r pattern; do
                         [ -n "$pattern" ] || continue
@@ -601,6 +658,7 @@ jobs:
                         done
                     done <<<"$ENACT_OUTPUTS_PATHS"
                 fi
+                if [ "$hit" = true ] && ! verify_outputs .; then hit=false; fi
                 if [ "$hit" = true ]; then
                     touch "$entry/.enact-ready" 2>/dev/null || true
                 fi
@@ -608,7 +666,8 @@ jobs:
                 ;;
             save)
                 [ -n "$store" ] || exit 0
-                [ ! -f "$entry/.enact-ready" ] || exit 0
+                verify_outputs . || { echo "producer output integrity check failed" >&2; exit 1; }
+                if [ -f "$entry/.enact-ready" ] && verify_outputs "$entry"; then exit 0; fi
                 mkdir -p "$(dirname "$entry")"
                 tmp=$(mktemp -d "$entry.tmp.XXXXXX")
                 trap 'rm -rf "$tmp"' EXIT
@@ -620,8 +679,9 @@ jobs:
                         clone_item "$src" "$tmp/$src"
                     done
                 done <<<"$ENACT_OUTPUTS_PATHS"
+                verify_outputs "$tmp" || exit 1
                 touch "$tmp/.enact-ready"
-                chmod -R a+rX "$tmp" 2>/dev/null || true
+                [ ! -d "$entry" ] || rm -rf "$entry"
                 if ! mv -n "$tmp" "$entry" 2>/dev/null && [ ! -d "$entry" ]; then
                     rm -rf "$entry"
                     mv "$tmp" "$entry"

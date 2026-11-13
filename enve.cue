@@ -6,7 +6,7 @@ import (
 )
 
 // package.json's `packageManager` pnpm, exactly (checked by tests/conformance.rs).
-let pnpm = schema.#ArchiveBuildSpec & {
+#Pnpm: schema.#ArchiveBuildSpec & {
 	pname:   "pnpm"
 	version: "12.4.2"
 	src: {
@@ -26,21 +26,34 @@ let pnpm = schema.#ArchiveBuildSpec & {
 
 // Every PostgreSQL service's server flags and its n8n database, in UTC.
 let _postgres = {
-	command:     "postgres -D \"$DATA_DIR\" -k \"$SOCKET_DIR\" -p $PORT -c shared_buffers=32MB -c work_mem=4MB -c max_connections=100 -c max_locks_per_transaction=256 -c fsync=off -c synchronous_commit=off"
+	command: "postgres -D \"$DATA_DIR\" -k \"$SOCKET_DIR\" -p $PORT -c shared_buffers=32MB -c work_mem=4MB -c max_connections=100 -c max_locks_per_transaction=256 -c fsync=off -c synchronous_commit=off"
 	environment: {TZ: "UTC", PGTZ: "UTC"}
 	lifecycle: postStart: "createdb -h 127.0.0.1 -p $PORT -U postgres n8n 2>/dev/null || true; psql -h 127.0.0.1 -p $PORT -U postgres -c \"ALTER DATABASE n8n SET timezone TO 'UTC';\" -c \"ALTER ROLE postgres SET timezone TO 'UTC';\" || true"
 }
 
-profiles: dev: schema.#Profile & {
+profiles: dev: schema.#Profile & #Runtime & {
 	name: "n8n-platform-dev"
 	tools: [
-		pnpm, pkgs.nodejs & {version: "24"}, pkgs.postgresql, pkgs.redis, {pname: "tbls"},
-		{pname: "curl"}, {pname: "ripgrep"}, {pname: "bash"}, {pname: "coreutils"},
-		pkgs.python & {version: "3.13"}, pkgs.uv, {pname: "flock"},
+		#Pnpm,
+		pkgs.nodejs & {version: "24"},
+		pkgs.postgresql,
+		pkgs.redis,
+		{pname: "tbls"},
+		{pname: "curl"},
+		{pname: "ripgrep"},
+		{pname: "bash"},
+		{pname: "coreutils"},
+		pkgs.python & {version: "3.13"},
+		pkgs.uv,
+		{pname: "flock"},
 		// nodes-base's Kafka integration test drives the broker's CLI (kafka-topics.sh, ...).
 		pkgs.kafka,
 		pkgs.#PlaywrightBrowsers & {version: "1.62.1", features: ["chromium-headless-shell", "ffmpeg"]},
 	]
+}
+
+// Shared service ports and application variables; tools are role-specific.
+#Runtime: {
 	services: {
 		postgres: _postgres & {name: "postgres", port: 5438}
 		// nodes-base's Kafka and MySQL integration tests (n8n-containers' kafka and mysql
@@ -52,10 +65,10 @@ profiles: dev: schema.#Profile & {
 		}
 		redis: {name: "redis", port: 6386}
 		cli: {
-			name:      "cli"
-			command:   "sh -c 'mkdir -p node_modules/@n8n && for p in packages/@n8n/*; do [ -d \"$p\" ] && [ ! -e \"node_modules/@n8n/$(basename \"$p\")\" ] && ln -sfn \"$PWD/$p\" \"node_modules/@n8n/$(basename \"$p\")\"; done; helpers/build-workspace-deps.sh n8n... && exec node packages/cli/bin/n8n start'"
-			port:      5678
-			ports:     {broker: 5679}
+			name:    "cli"
+			command: "sh -c 'mkdir -p node_modules/@n8n && for p in packages/@n8n/*; do [ -d \"$p\" ] && [ ! -e \"node_modules/@n8n/$(basename \"$p\")\" ] && ln -sfn \"$PWD/$p\" \"node_modules/@n8n/$(basename \"$p\")\"; done; helpers/build-workspace-deps.sh n8n... && exec node packages/cli/bin/n8n start'"
+			port:    5678
+			ports: {broker: 5679}
 			dependsOn: [{service: "postgres"}, {service: "redis"}]
 			environment: {
 				N8N_PORT:                          "${ENVE_SERVICE_CLI_PORT}"

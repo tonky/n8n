@@ -1,5 +1,5 @@
 {
-	"globalEnv": ["CI", "BUILD_WITH_COVERAGE"],
+	"globalEnv": ["CI", "BUILD_WITH_COVERAGE", "ENACT_UPSTREAM_OUTPUT_KEY"],
 	"globalPassThroughEnv": ["CODECOV_TOKEN", "COVERAGE_ENABLED", "SENTRY_AUTH_TOKEN"],
 	"boundaries": {
 		// `~icons/*` is a vite virtual module injected by unplugin-icons (design-system
