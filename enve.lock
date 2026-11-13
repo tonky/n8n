@@ -2,8 +2,8 @@
   "platforms": {
     "aarch64-darwin": {
       "binding": {
-        "environment_sha256": "73b34ce6a49b418eb83cc5f2a40219f2b671608b9a5bb12260f9a96967155563",
-        "inventory_sha256": "74b5abdd0db5dc0f39c835fe998fce63686e1c0b30e0876121e9ae32b48e9f82",
+        "environment_sha256": "917902ff6e1ced55832681d54e7bb87011b182e787687972be382d5c08897a33",
+        "inventory_sha256": "a803b583b846e6c347b59e6b4e5fed89dffa46f469baae90f5862e01b34559c8",
         "profile": null,
         "version": 2
       },
@@ -237,15 +237,6 @@
           "references": [
             "82fb09q2gbhbhpc8ykkqwkcdj6h9c7f1-coreutils-9.11",
             "8hkmzp44hd4zgdza7zv700ify7hp4k6d-gmp-with-cxx-6.3.0"
-          ]
-        },
-        {
-          "hash_name": "8695l4w33knhkrc97dm6snv9d081gvpv-unzip-6.0",
-          "nar_hash": "sha256:0wgkvksm4mwsjkqcx8jw44fxiaam2bfllg8r6bb7vmih73fjmvl2",
-          "nar_size": 583448,
-          "references": [
-            "0fz1gcmyam04pahr91fzjph2c5mi6rv0-bzip2-1.0.8",
-            "f0b9dbw2gl596cm03pvdsss72381qhlp-bash-5.3p15"
           ]
         },
         {
@@ -955,9 +946,6 @@
           ]
         },
         {
-          "hash_name": "r943xbay6qh7kiw5rif4jk2kiamq21iq-playwright-browsers-1.62.1"
-        },
-        {
           "hash_name": "r9cljv2bvqi3ci3n6m0z0wi3ldpvlyzq-sqlite-3.53.3-dev",
           "nar_hash": "sha256:05nxsp1v5s8f4x6yrkq1mpvzd2awjmimm08r8s98a0q6fw7i7dir",
           "nar_size": 732112,
@@ -1377,40 +1365,6 @@
       "coherence": {
         "buildIdentities": {
           "n8n-mockserver": [
-            57,
-            168,
-            18,
-            166,
-            245,
-            153,
-            151,
-            6,
-            131,
-            119,
-            138,
-            81,
-            112,
-            62,
-            211,
-            164,
-            113,
-            188,
-            188,
-            71,
-            97,
-            194,
-            46,
-            17,
-            68,
-            250,
-            102,
-            57,
-            217,
-            127,
-            254,
-            169
-          ],
-          "playwright-browsers": [
             57,
             168,
             18,
@@ -1866,34 +1820,6 @@
             },
             {
               "constraint": {
-                "attr": "unzip",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-darwin",
-                "version": null
-              },
-              "package": {
-                "attr_path": "unzip",
-                "name": "unzip",
-                "origin": {
-                  "Channel": {
-                    "build": 347290640,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/8695l4w33knhkrc97dm6snv9d081gvpv-unzip-6.0"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/8695l4w33knhkrc97dm6snv9d081gvpv-unzip-6.0"
-                ],
-                "version": "6.0"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "uv",
                 "context": "profiles.dev",
                 "output": null,
@@ -1929,7 +1855,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "511b1b3d741a8e2c7d050e8678f6fbbfe4c08e34cf46d44c9801c30eeb9502b3"
+        "projectSha256": "926f5fb8a9a5a64e2acd25f9ccb76850e63edff19e8b330c659da4d37a4ab4ad"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -1959,12 +1885,11 @@
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
-        "ENVE_SERVICE_PROXY_PORT": "1080",
-        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
+        "ENVE_SERVICE_PROXY_PORT": "1088",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1088",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
-        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/r943xbay6qh7kiw5rif4jk2kiamq21iq-playwright-browsers-1.62.1/fonts.conf",
         "KAFKA_BROKERS": "127.0.0.1:9095",
         "KAFKA_HOST": "127.0.0.1",
         "KAFKA_PORT": "9095",
@@ -1983,15 +1908,13 @@
         "PGDATABASE": "n8n",
         "PGTZ": "UTC",
         "PGUSER": "postgres",
-        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/r943xbay6qh7kiw5rif4jk2kiamq21iq-playwright-browsers-1.62.1",
-        "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS": "1",
         "PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS": "false",
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "PROXY_HOST": "127.0.0.1",
-        "PROXY_PORT": "1080",
-        "PROXY_URL": "http://127.0.0.1:1080",
+        "PROXY_PORT": "1088",
+        "PROXY_URL": "http://127.0.0.1:1088",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -2177,50 +2100,6 @@
           },
           "version": "24.21.0"
         },
-        "playwright-browsers": {
-          "buildIdentity": [
-            57,
-            168,
-            18,
-            166,
-            245,
-            153,
-            151,
-            6,
-            131,
-            119,
-            138,
-            81,
-            112,
-            62,
-            211,
-            164,
-            113,
-            188,
-            188,
-            71,
-            97,
-            194,
-            46,
-            17,
-            68,
-            250,
-            102,
-            57,
-            217,
-            127,
-            254,
-            169
-          ],
-          "buildInputs": [
-            "82fb09q2gbhbhpc8ykkqwkcdj6h9c7f1-coreutils-9.11",
-            "8695l4w33knhkrc97dm6snv9d081gvpv-unzip-6.0",
-            "s2vi23sgwpjv4qvnyfknv7l041m8vm94-bash-interactive-5.3p15",
-            "sjzhqc66j881n9lyg3m15aqiykad4h5k-bash-interactive-5.3p15-dev"
-          ],
-          "closure": "r943xbay6qh7kiw5rif4jk2kiamq21iq-playwright-browsers-1.62.1",
-          "version": "1.62.1"
-        },
         "pnpm": {
           "buildIdentity": [
             57,
@@ -2358,22 +2237,12 @@
     },
     "aarch64-linux": {
       "binding": {
-        "environment_sha256": "73b34ce6a49b418eb83cc5f2a40219f2b671608b9a5bb12260f9a96967155563",
-        "inventory_sha256": "56323f94946575c4721f8fc5cb23ebcd543db671f8389d6a16c7301175e6c6e6",
+        "environment_sha256": "917902ff6e1ced55832681d54e7bb87011b182e787687972be382d5c08897a33",
+        "inventory_sha256": "89db249502ec7a37ef69b81096cc86648a00b6984a7531fe9711dd593584b3da",
         "profile": null,
         "version": 2
       },
       "closures": [
-        {
-          "hash_name": "035iqfar56y5ky2xk2gifjr8xzwk9kbd-expat-2.8.5-dev",
-          "nar_hash": "sha256:0n9lqvci8x3jfd6av0ipd8wab5bprh2b874vcwy4wls7wszca0rn",
-          "nar_size": 153072,
-          "references": [
-            "035iqfar56y5ky2xk2gifjr8xzwk9kbd-expat-2.8.5-dev",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "n7yllvdnm8p1g85b1g0rfc9dicgs0rhp-expat-2.8.5"
-          ]
-        },
         {
           "hash_name": "08xbcm1nz0p9wjyl7c8lcsa4nli2wg26-nghttp3-1.17.0-dev",
           "nar_hash": "sha256:0zjhv56mym0n5vc3235fx00xagqflrzyad8ckqjd336qcrgjrsyd",
@@ -2409,42 +2278,12 @@
           ]
         },
         {
-          "hash_name": "0cnja1l91qiy8kriyplycn53dmqv09w2-alsa-lib-1.2.16.1",
-          "nar_hash": "sha256:09jbh2vf8qdq48x131zqbs5vymxwchnimmc7yr1c31rdz785vca4",
-          "nar_size": 1885704,
-          "references": [
-            "0cnja1l91qiy8kriyplycn53dmqv09w2-alsa-lib-1.2.16.1",
-            "967xmnd2nlz3ybkgsjns3nkddifii225-alsa-topology-conf-1.2.5.1",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "ss8lsi8bckx9qlljayp7c5q5svr58n7y-alsa-ucm-conf-1.2.16.1"
-          ]
-        },
-        {
           "hash_name": "0p6lqr7m6qr4q5wbyvwmmsng6fzrabvi-binutils-2.46-lib",
           "nar_hash": "sha256:1qsmza1lm0xygzrjybhp579wrqrz6c8j3p1zq51in1mavl3q85nr",
           "nar_size": 3976928,
           "references": [
             "0p6lqr7m6qr4q5wbyvwmmsng6fzrabvi-binutils-2.46-lib",
             "7d907izyink96xhqazkbw4wicvgkm76c-zlib-1.3.2",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "0qj4jr39s8mdsk2vnbljmcidwl8mw82v-libxrender-0.9.12",
-          "nar_hash": "sha256:08j289rcak1nxqrlpks7gh4d3kgm4d23x7wqy9a4hk3g8b32550v",
-          "nar_size": 76392,
-          "references": [
-            "0qj4jr39s8mdsk2vnbljmcidwl8mw82v-libxrender-0.9.12",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "0vn898zlha6w8khhkc8ialj1nql46zn1-libxau-1.0.12",
-          "nar_hash": "sha256:07s0977ls5wjaf9kib8kvsi1nd84hqkiq3yn90hsxdhlnbjq8vyb",
-          "nar_size": 78416,
-          "references": [
-            "0vn898zlha6w8khhkc8ialj1nql46zn1-libxau-1.0.12",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
           ]
         },
@@ -2482,40 +2321,12 @@
           ]
         },
         {
-          "hash_name": "1sk0j24qkhwn98g47fhkhmxdw30lvkwn-libxcb-1.17.0",
-          "nar_hash": "sha256:135h8d0xd81820szdr7k5w2qsg6lrb7zsv1ya7ypjj8hzd726hkg",
-          "nar_size": 2520544,
-          "references": [
-            "0vn898zlha6w8khhkc8ialj1nql46zn1-libxau-1.0.12",
-            "1sk0j24qkhwn98g47fhkhmxdw30lvkwn-libxcb-1.17.0",
-            "1zwawn88anm0bh4b53wa9f309hjncgx1-libxdmcp-1.1.5",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "1zwawn88anm0bh4b53wa9f309hjncgx1-libxdmcp-1.1.5",
-          "nar_hash": "sha256:1xcpaiv18nz2np7kry8fihh3v3gd82hsnnhdzfy6sb3wh5c56bip",
-          "nar_size": 74240,
-          "references": [
-            "1zwawn88anm0bh4b53wa9f309hjncgx1-libxdmcp-1.1.5",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
           "hash_name": "222cbsq222qs0f9dx027izxyj3cs60wz-qrencode-4.1.1",
           "nar_hash": "sha256:0lq6asazhskch8qps7z4ip7yh1hvhqc618qxv1h3j1d8gvm18qk4",
           "nar_size": 77832,
           "references": [
             "222cbsq222qs0f9dx027izxyj3cs60wz-qrencode-4.1.1",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "26dr42ng2k6mqp661ln3fymgjipp10hf-xkeyboard-config-2.48",
-          "nar_hash": "sha256:1y47p1503n51nvkv9scpyfq8z4xzywmzpghqdlxf24jggi53fmh9",
-          "nar_size": 10828808,
-          "references": [
-            "26dr42ng2k6mqp661ln3fymgjipp10hf-xkeyboard-config-2.48"
           ]
         },
         {
@@ -2615,16 +2426,6 @@
           "references": []
         },
         {
-          "hash_name": "3j952h66v0aw172my0wnsrmfqs96iqf7-libdrm-2.4.134-dev",
-          "nar_hash": "sha256:041y1313i2rzc8h6fyfidbibs6mh6vzbzwnrb3rwkhwmkrcn38hq",
-          "nar_size": 838008,
-          "references": [
-            "3j952h66v0aw172my0wnsrmfqs96iqf7-libdrm-2.4.134-dev",
-            "8khaadm1a4wribkkfnb613x1781ls3hg-libdrm-2.4.134",
-            "av5lqm8l93si5f46fmn3wf0c8ic0h7j6-libdrm-2.4.134-bin"
-          ]
-        },
-        {
           "hash_name": "3vykrwvqlgzvsk87fyqmi778z9xn50m4-c-ares-1.34.8-dev",
           "nar_hash": "sha256:0madx0ddr4v1mdpsvdcjq2ikkmzf3kg4axw30z6qs3sh43di9sr5",
           "nar_size": 132088,
@@ -2656,16 +2457,6 @@
           ]
         },
         {
-          "hash_name": "46gg5rkwhvxz4dpidgbrvq33p5rdzzf4-libxkbcommon-1.13.2-dev",
-          "nar_hash": "sha256:1n2cwc5djr4i5s8dnp4yfagdxxf2ffp2zzax8vy3ayk4f6ijsnca",
-          "nar_size": 417152,
-          "references": [
-            "26dr42ng2k6mqp661ln3fymgjipp10hf-xkeyboard-config-2.48",
-            "46gg5rkwhvxz4dpidgbrvq33p5rdzzf4-libxkbcommon-1.13.2-dev",
-            "jbzhl5gm9n5xkljz34p37mhx1wrbx6mm-libxkbcommon-1.13.2"
-          ]
-        },
-        {
           "hash_name": "4av0n5zs4n8vk5allf6s4lig68crwl92-readline-8.3p3",
           "nar_hash": "sha256:0wm8qj1ip7p3ffaanlc0a5gsycnnzxgx5bhz82kfanapvn5vcyh2",
           "nar_size": 553648,
@@ -2681,17 +2472,6 @@
           "references": [
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "jv7npga16bn65m0k8r4wqkwnnpx4fpbq-libxcrypt-4.5.2"
-          ]
-        },
-        {
-          "hash_name": "4k6kz6xz22sjb04mwxnjdhyhf3xhz3yz-at-spi2-core-2.60.6-dev",
-          "nar_hash": "sha256:09ykn19n38qvzhs5v2kjjbn49lsb04vx5ks14snbw2b6m8wm1ycx",
-          "nar_size": 2218800,
-          "references": [
-            "4k6kz6xz22sjb04mwxnjdhyhf3xhz3yz-at-spi2-core-2.60.6-dev",
-            "bhh0hzr35a9ci6pdwbl0v9cjpa4ak2ws-dbus-1.16.2-dev",
-            "frxsz7y1ziz5ymzf6gmcvg2mq1idgnbj-at-spi2-core-2.60.6",
-            "k7dhicbxwpb574vmg3an70ay62pphnr8-glib-2.88.3-dev"
           ]
         },
         {
@@ -2712,35 +2492,6 @@
           "references": [
             "4n3mlp0w4dnb273fqd9j052y3ykfwv45-libuv-1.52.1-dev",
             "ag002afcmk9gdsv38vpm1kbhh1mxm6zi-libuv-1.52.1"
-          ]
-        },
-        {
-          "hash_name": "4zlxqzzbws9z259rx9qa55pb3y4rqy5h-libxtst-1.2.5",
-          "nar_hash": "sha256:0iak6xhl903x48dr695qzkdx2g34ygbk1mshs4r0hhjv8cv1mpwz",
-          "nar_size": 162368,
-          "references": [
-            "4zlxqzzbws9z259rx9qa55pb3y4rqy5h-libxtst-1.2.5",
-            "7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13",
-            "lgb3bicx86r5njf4b3f3kjgmsqhgkkjc-libxi-1.8.3"
-          ]
-        },
-        {
-          "hash_name": "59kan36gpiwyfs9m4zp613khh2mri9mv-systemd-minimal-261.3",
-          "nar_hash": "sha256:0sg3sxsl941fm0a85hnlg9scnwvd6wi3kqh3836xmgwjhlpqi8yg",
-          "nar_size": 31942344,
-          "references": [
-            "4bib3g05l5b5mb4zw2ly1m3apqdvi3bb-util-linux-minimal-2.42.3-login",
-            "59kan36gpiwyfs9m4zp613khh2mri9mv-systemd-minimal-261.3",
-            "5dp2wq1lgiivjyjj8v1jzhjvlqpdlqx0-util-linux-minimal-2.42.3-mount",
-            "8zb5xchsi8srv7fkrjp3d5nsiziq2i41-kmod-31",
-            "9a7mjnwa7mcjy2ll40rwwxfdk9jx5dnq-util-linux-minimal-2.42.3-swap",
-            "dq1apsyiah48nmc4n45dpwc33k887hdn-coreutils-9.11",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "jv7npga16bn65m0k8r4wqkwnnpx4fpbq-libxcrypt-4.5.2",
-            "kq7m9dp5cjy0yxz2n9mbcwx4xscjwrsj-kmod-31-lib",
-            "lngldcdpyc39i41g3zrsf7n9rh7mn2gs-util-linux-minimal-2.42.3-lib"
           ]
         },
         {
@@ -2765,15 +2516,6 @@
           "references": [
             "5l2pjvrbxby6yrl2k3g07sp28j2bxrzv-ncurses-6.6",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "5x73y49ccdjj689i7sr4siygjnb4ngp5-libffi-3.8.0-dev",
-          "nar_hash": "sha256:1pf2syajnp9hq9qb1yzg4v29niv4fl1zrw9049cbbfqirnyqhkwr",
-          "nar_size": 21224,
-          "references": [
-            "5x73y49ccdjj689i7sr4siygjnb4ngp5-libffi-3.8.0-dev",
-            "932xczyyw1mkrappjd5pn1rh3i09xyx6-libffi-3.8.0"
           ]
         },
         {
@@ -2855,12 +2597,6 @@
           ]
         },
         {
-          "hash_name": "6vxm5bsj4xwkk1s4pa3y8gdyivy942gn-dejavu-fonts-minimal-2.37",
-          "nar_hash": "sha256:1fkxijysp5k0q49bai9b4wrmg85w4iix76cgq1kf7ph22qdjic5y",
-          "nar_size": 760472,
-          "references": []
-        },
-        {
           "hash_name": "6yi5v7iswrvg0hsl8rai9bjrmgfhkhpl-libarchive-3.8.9-lib",
           "nar_hash": "sha256:0kd37rb3vn3f139sphn6d2f193sh1mrg9i9rsn3nsblq5rgnv37v",
           "nar_size": 1067328,
@@ -2912,16 +2648,6 @@
           ]
         },
         {
-          "hash_name": "7720pia6yslqs061v31smcpxwx3c730p-libxdamage-1.1.7-dev",
-          "nar_hash": "sha256:0viqjbsphy6ml4w5g0cgs27j3aa7cd7cg4j0b8z6fgzr1zwfyzv8",
-          "nar_size": 4632,
-          "references": [
-            "7720pia6yslqs061v31smcpxwx3c730p-libxdamage-1.1.7-dev",
-            "m64pfzf9yxpyranl4ypkgamzn5zh87s6-libxdamage-1.1.7",
-            "ylsa2p5zfbxk5dvpw4jcmfpb2zk5hl3b-xorgproto-2025.1"
-          ]
-        },
-        {
           "hash_name": "7cymsp67cnp84xwa7nigdd1hrnqmh0cy-glibc-2.44-25-dev",
           "nar_hash": "sha256:0zqmg3n3kvrcmjm4c1zawrdkiz3lvwq7sd88hgp39w20c5bfgs0i",
           "nar_size": 2454584,
@@ -2947,65 +2673,6 @@
             "7ds55fbsssa9ybbmp9i5z87ssalf27y6-glibc-2.44-25-bin",
             "ficwc08a9q1rigvr4jv9l3xsvmx3yfqn-xgcc-16.2.0-libgcc",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "7i8bg9nbj8164q1qf8nh2yiihn9gdn66-libxcomposite-0.4.7-dev",
-          "nar_hash": "sha256:0ak7m3rbpxkd18zrxf145c6dp69d5v1iq6d8ymf9srbmgvn2d76p",
-          "nar_size": 6240,
-          "references": [
-            "7i8bg9nbj8164q1qf8nh2yiihn9gdn66-libxcomposite-0.4.7-dev",
-            "aqhk0j1g0q94lsyhddppjhihr7rylznw-libxcomposite-0.4.7",
-            "ylsa2p5zfbxk5dvpw4jcmfpb2zk5hl3b-xorgproto-2025.1",
-            "z5jjq635b8n3yaf7i4dw1rkfv4bxfzl5-libxfixes-6.0.2-dev"
-          ]
-        },
-        {
-          "hash_name": "7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7",
-          "nar_hash": "sha256:1g7xcrhz3nbch0g0cxxbqcbkzh305c68simsvd2y234n2gsph0h5",
-          "nar_size": 151472,
-          "references": [
-            "7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "7miqa97jp58gh795298wvqf6a0qkrrrq-python3-3.14.7-env",
-          "nar_hash": "sha256:0r3g7dy0vxh4xgf52wlcajgdzqxqnclz0fv6xpdlwffg3ix8qry5",
-          "nar_size": 840504,
-          "references": [
-            "7miqa97jp58gh795298wvqf6a0qkrrrq-python3-3.14.7-env",
-            "81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7",
-            "9wah15nss3qpr3khvbka56ldp81vn670-python3.14-pyelftools-0.32",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib"
-          ]
-        },
-        {
-          "hash_name": "81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7",
-          "nar_hash": "sha256:1ywmwyv5g509is0lw6vbx5aafmllnz3srqdswxwz9ffivbndg0c6",
-          "nar_size": 146666000,
-          "references": [
-            "2lyx0wc6ccabpdwpviksww3x5xhsmnvk-sqlite-3.53.3",
-            "37pj113a0sm14a3c8mymvfrm6msfcy82-zstd-1.5.7",
-            "3anfddw01ai5ykdf393s3pbia6agx3df-bzip2-1.0.8",
-            "4av0n5zs4n8vk5allf6s4lig68crwl92-readline-8.3p3",
-            "5g0149dc72bz1rdxjc10qnr4vdh9yp1x-tzdata-2026d",
-            "5l2pjvrbxby6yrl2k3g07sp28j2bxrzv-ncurses-6.6",
-            "7d907izyink96xhqazkbw4wicvgkm76c-zlib-1.3.2",
-            "81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7",
-            "932xczyyw1mkrappjd5pn1rh3i09xyx6-libffi-3.8.0",
-            "d8aaaq83sdrzsqyxx19qfc14slcrdjix-xz-5.8.4",
-            "db07pw9avlwysb3v68cfp9cijg2mmfns-openssl-3.5.8",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "jiscfdlw4w8kmwfk8kwk5f72q66ncdz4-mpdecimal-4.0.1",
-            "lngldcdpyc39i41g3zrsf7n9rh7mn2gs-util-linux-minimal-2.42.3-lib",
-            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15",
-            "n7yllvdnm8p1g85b1g0rfc9dicgs0rhp-expat-2.8.5",
-            "n9arsp4izcszcydsggkbrlbxbzzr3dnr-gdbm-1.26-lib",
-            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib",
-            "xpzpw9ik1hwrb2dvsybgi5pwb3xmf5rl-mailcap-2.1.54"
           ]
         },
         {
@@ -3044,26 +2711,6 @@
           "references": []
         },
         {
-          "hash_name": "8aimx510wyy0rzy7mllcjad5299jd17a-gettext-1.0",
-          "nar_hash": "sha256:0xmfkaliya2lif1ar69vapcl9yam54292679lj7j9jhrgj4p9m9v",
-          "nar_size": 25990168,
-          "references": [
-            "8aimx510wyy0rzy7mllcjad5299jd17a-gettext-1.0",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15",
-            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib"
-          ]
-        },
-        {
-          "hash_name": "8asx3903dksw391gsynbfg0h4j45s5xb-dconf-0.49.0-lib",
-          "nar_hash": "sha256:1mx270wq0mgf2pdgxvn083iwghp7nvi8615yxxgcbir5z0axp9ff",
-          "nar_size": 480880,
-          "references": [
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "k35v740z5dfa098gw641r0db6kah9fvs-glib-2.88.3"
-          ]
-        },
-        {
           "hash_name": "8fwphi2lfya3vild2mh26vv44nvkdck5-lz4-1.10.0",
           "nar_hash": "sha256:1p2c82j453rcnfs98bd55lshi7hkz50ywiwm4z71lgs713fghfif",
           "nar_size": 418504,
@@ -3089,16 +2736,6 @@
             "ibj9znh6k4nz4641yrfcgz9h1b27i7xr-libpsl-0.21.5",
             "kivcwv9nzmjpjq5qdaq7xd836cq34p22-krb5-1.22.2-lib",
             "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15"
-          ]
-        },
-        {
-          "hash_name": "8khaadm1a4wribkkfnb613x1781ls3hg-libdrm-2.4.134",
-          "nar_hash": "sha256:0xzbd4k8260kw676y046nr58kq8bq55d69lsbxizg7p7schzlc2m",
-          "nar_size": 995256,
-          "references": [
-            "8khaadm1a4wribkkfnb613x1781ls3hg-libdrm-2.4.134",
-            "amqf3hvh3pwf7hi1vivc43r7fgvwxdmz-libpciaccess-0.19",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
           ]
         },
         {
@@ -3189,12 +2826,6 @@
           ]
         },
         {
-          "hash_name": "967xmnd2nlz3ybkgsjns3nkddifii225-alsa-topology-conf-1.2.5.1",
-          "nar_hash": "sha256:0pjnlwgic5c8lgi67kc8fh6i5y101v5nkxfp66izymy8dwin8vry",
-          "nar_size": 344168,
-          "references": []
-        },
-        {
           "hash_name": "99zij8qfs8wzbb2njrj18ys8hpnrcj3p-gcc-wrapper-16.2.0",
           "nar_hash": "sha256:1d125x45dsbji7y9slw72hyj04y3iqddj5g73avk4gb0g07w5i03",
           "nar_size": 71768,
@@ -3222,17 +2853,6 @@
           ]
         },
         {
-          "hash_name": "9i8ayjprpvflvnahkmf338s3dfvqslxz-libxext-1.3.7-dev",
-          "nar_hash": "sha256:07fmw446jg7ijcys8p0728n5gp7v9baqbsyxnbna9x6vkwqgwfrf",
-          "nar_size": 60336,
-          "references": [
-            "7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7",
-            "9i8ayjprpvflvnahkmf338s3dfvqslxz-libxext-1.3.7-dev",
-            "lsmnv7la79zyl2brpznvgaj5hmd4367l-libxau-1.0.12-dev",
-            "ylsa2p5zfbxk5dvpw4jcmfpb2zk5hl3b-xorgproto-2025.1"
-          ]
-        },
-        {
           "hash_name": "9kjvfp5xvh014yxgndfp4w6k0jqlgfr6-libedit-20260508-3.1-dev",
           "nar_hash": "sha256:19z8lf176rskxrfa0d7q398hfh51w8bs7ng1lz7snkgsya1njj2g",
           "nar_size": 21792,
@@ -3243,33 +2863,12 @@
           ]
         },
         {
-          "hash_name": "9wah15nss3qpr3khvbka56ldp81vn670-python3.14-pyelftools-0.32",
-          "nar_hash": "sha256:1ndyl08p6lffa7f3i7n20wxmcmdid31ir2m1kd0ak0475hk5mi55",
-          "nar_size": 2249944,
-          "references": [
-            "81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7",
-            "9wah15nss3qpr3khvbka56ldp81vn670-python3.14-pyelftools-0.32",
-            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15"
-          ]
-        },
-        {
           "hash_name": "a8lx7rdphjf8zigkzrb3xkxph3hzxl9r-pkg-config-0.29.2",
           "nar_hash": "sha256:0lb2xb3zcib29pkb5ffjp94lmk7az3qccl0lnq3ql4ggmjd2a188",
           "nar_size": 755160,
           "references": [
             "a8lx7rdphjf8zigkzrb3xkxph3hzxl9r-pkg-config-0.29.2",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "aax0xv0i4i8dg7z3hscfqb7bpxaxjbw7-nss-3.112.5-dev",
-          "nar_hash": "sha256:0j6a5b4vjgrhaxw34qvgw6b15rmy2iq3px7y8rnppvcv9nznf72y",
-          "nar_size": 1430672,
-          "references": [
-            "aax0xv0i4i8dg7z3hscfqb7bpxaxjbw7-nss-3.112.5-dev",
-            "haki3j065zbrwivisvn3h6fjcj4j10ib-nspr-4.40-dev",
-            "j1wk1wrk86dwlif23byzn8dvkczgzh39-nss-3.112.5",
-            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15"
           ]
         },
         {
@@ -3297,35 +2896,6 @@
             "aj6f60pqbbiavmmcif6xy694494wp3sg-libtirpc-1.3.7",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "kivcwv9nzmjpjq5qdaq7xd836cq34p22-krb5-1.22.2-lib"
-          ]
-        },
-        {
-          "hash_name": "amqf3hvh3pwf7hi1vivc43r7fgvwxdmz-libpciaccess-0.19",
-          "nar_hash": "sha256:07dbs40nvc3kvlvn4rga4q3jfwdimdynwl7s8q33imskkry35ilx",
-          "nar_size": 231752,
-          "references": [
-            "amqf3hvh3pwf7hi1vivc43r7fgvwxdmz-libpciaccess-0.19",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "yhy6anadkqdw5ksr32lczlq5ndyfm6vx-hwdata-0.411"
-          ]
-        },
-        {
-          "hash_name": "aqhk0j1g0q94lsyhddppjhihr7rylznw-libxcomposite-0.4.7",
-          "nar_hash": "sha256:012yqzp2kfwswd07ggr3sz0mkyzssxhwzafd520v3wkd55sh4w67",
-          "nar_size": 79936,
-          "references": [
-            "aqhk0j1g0q94lsyhddppjhihr7rylznw-libxcomposite-0.4.7",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "av5lqm8l93si5f46fmn3wf0c8ic0h7j6-libdrm-2.4.134-bin",
-          "nar_hash": "sha256:1763ycqznplwpn38pl20nvifzjchdqiypvr8vvfyijmny7jw7dz4",
-          "nar_size": 1459384,
-          "references": [
-            "8khaadm1a4wribkkfnb613x1781ls3hg-libdrm-2.4.134",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
           ]
         },
         {
@@ -3357,16 +2927,6 @@
           "references": [
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib"
-          ]
-        },
-        {
-          "hash_name": "bhh0hzr35a9ci6pdwbl0v9cjpa4ak2ws-dbus-1.16.2-dev",
-          "nar_hash": "sha256:1ij7zgbcp1px7pbsbjrg4djnzhqgdjhyqygpz6y0g71lmn25fsrn",
-          "nar_size": 134784,
-          "references": [
-            "bhh0hzr35a9ci6pdwbl0v9cjpa4ak2ws-dbus-1.16.2-dev",
-            "pkrbzjg78m0yxgmhfyld8jbds9jid1wh-dbus-1.16.2-lib",
-            "svp8jj40jigqzf5a8546ircz5rbxj7hw-dbus-1.16.2"
           ]
         },
         {
@@ -3490,16 +3050,6 @@
           ]
         },
         {
-          "hash_name": "d8jihl9qsp401pllh7jphlf9frfad4fx-glib-2.88.3-bin",
-          "nar_hash": "sha256:01aflwn7062ynliz64d7i3lz8zaq1s6r6zf7sxkc7v79swnwnn72",
-          "nar_size": 795960,
-          "references": [
-            "932xczyyw1mkrappjd5pn1rh3i09xyx6-libffi-3.8.0",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "k35v740z5dfa098gw641r0db6kah9fvs-glib-2.88.3"
-          ]
-        },
-        {
           "hash_name": "daqa0rl5l80vxgmi03l2x6wpdf4r2ql1-nbytes-0.1.4-dev",
           "nar_hash": "sha256:15j63nkf6qslvwq68vcafnf5idi9z173bmcdl8zg3nf09wwakix6",
           "nar_size": 31632,
@@ -3569,36 +3119,10 @@
           "references": []
         },
         {
-          "hash_name": "frxsz7y1ziz5ymzf6gmcvg2mq1idgnbj-at-spi2-core-2.60.6",
-          "nar_hash": "sha256:0bzqrjr0q83j62d53769b4mggwnm2a63fpnbs1pdw0v8m6clqfys",
-          "nar_size": 2606760,
-          "references": [
-            "17dy9y57znv7gzzq8k03rdnh6dlw0rh2-systemd-minimal-libs-261.3",
-            "4zlxqzzbws9z259rx9qa55pb3y4rqy5h-libxtst-1.2.5",
-            "8asx3903dksw391gsynbfg0h4j45s5xb-dconf-0.49.0-lib",
-            "frxsz7y1ziz5ymzf6gmcvg2mq1idgnbj-at-spi2-core-2.60.6",
-            "g3y8lgvx34xaqnjx839bq298nxnk08bz-gsettings-desktop-schemas-50.1",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "k35v740z5dfa098gw641r0db6kah9fvs-glib-2.88.3",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13",
-            "lgb3bicx86r5njf4b3f3kjgmsqhgkkjc-libxi-1.8.3",
-            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15",
-            "pkrbzjg78m0yxgmhfyld8jbds9jid1wh-dbus-1.16.2-lib"
-          ]
-        },
-        {
           "hash_name": "fryh69xlvrrfx4wcr3hz7ch9sqang640-zlib-1.3.2-static",
           "nar_hash": "sha256:045s0c9lcx7gq151wavhsg5afwp0s0b3jc1rwla7amvnl4ami91x",
           "nar_size": 153136,
           "references": []
-        },
-        {
-          "hash_name": "g3y8lgvx34xaqnjx839bq298nxnk08bz-gsettings-desktop-schemas-50.1",
-          "nar_hash": "sha256:1i1dah3m6iblk3r1ylizqf2b7rc8bd3z7icb2phj9mrkj7mq4r42",
-          "nar_size": 6483088,
-          "references": [
-            "g3y8lgvx34xaqnjx839bq298nxnk08bz-gsettings-desktop-schemas-50.1"
-          ]
         },
         {
           "hash_name": "g46cy22inn05s2ivimmalivgkxvqpija-libbpf-1.7.0",
@@ -3652,18 +3176,6 @@
           ]
         },
         {
-          "hash_name": "grqis5zpfxsw528p7dkadivr5mw1ln10-libxrandr-1.5.5",
-          "nar_hash": "sha256:0vy5v2l6ywimhspz59y7dkp03bpl85nspapzas2pzx15zm1k0rwz",
-          "nar_size": 85392,
-          "references": [
-            "0qj4jr39s8mdsk2vnbljmcidwl8mw82v-libxrender-0.9.12",
-            "7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7",
-            "grqis5zpfxsw528p7dkadivr5mw1ln10-libxrandr-1.5.5",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
-          ]
-        },
-        {
           "hash_name": "gxljc46qyjqzvhrnf5wk5ypyg73qv84n-libidn2-2.3.8",
           "nar_hash": "sha256:18599cw0w0wm2wv1ad31rx00n0643i8z2zgra1j66ikfwcs5q8g0",
           "nar_size": 374928,
@@ -3694,16 +3206,6 @@
           ]
         },
         {
-          "hash_name": "haki3j065zbrwivisvn3h6fjcj4j10ib-nspr-4.40-dev",
-          "nar_hash": "sha256:125h0v6b3yiaznxvy1qy8nq4f1ri9m0da50n9yd68y5jgcr6jxl4",
-          "nar_size": 591672,
-          "references": [
-            "haki3j065zbrwivisvn3h6fjcj4j10ib-nspr-4.40-dev",
-            "k8djsad91026pr50mj1cafzhnxnn7lb2-nspr-4.40",
-            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15"
-          ]
-        },
-        {
           "hash_name": "hcfvjnm2l2i40ir44mc60cwafvibnx80-openjdk-headless-21.0.12.1+1",
           "nar_hash": "sha256:1pw5xgsiww1pgncd23f5lxwc6w0f29r2w16gg8m221s87zxnbsbf",
           "nar_size": 587493624,
@@ -3727,16 +3229,6 @@
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15",
             "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib"
-          ]
-        },
-        {
-          "hash_name": "hjyv2h55k9mmq4wrw20q71l71z26qhyb-libxrandr-1.5.5-dev",
-          "nar_hash": "sha256:0q9ji8747xchj93jfanvh707lnhij44wypvf3nvbspvdk1255qsl",
-          "nar_size": 19376,
-          "references": [
-            "grqis5zpfxsw528p7dkadivr5mw1ln10-libxrandr-1.5.5",
-            "hjyv2h55k9mmq4wrw20q71l71z26qhyb-libxrandr-1.5.5-dev",
-            "pjwc5ciq56k23xmmnhcxyhwj2dyr8f9p-libxrender-0.9.12-dev"
           ]
         },
         {
@@ -3790,30 +3282,6 @@
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "ibj9znh6k4nz4641yrfcgz9h1b27i7xr-libpsl-0.21.5",
             "nw0d09yavkym519xh5cyizds4wihanvm-publicsuffix-list-0-unstable-2026-09-02"
-          ]
-        },
-        {
-          "hash_name": "iki0yf368aq3mxsljhbm5z4p82nc7nc1-mesa-libgbm-26.1.3",
-          "nar_hash": "sha256:1ich53kknqx5cb8z0m3fyr9d6cw5nmaqphazw7vnc9dscy4hd781",
-          "nar_size": 107600,
-          "references": [
-            "3j952h66v0aw172my0wnsrmfqs96iqf7-libdrm-2.4.134-dev",
-            "8khaadm1a4wribkkfnb613x1781ls3hg-libdrm-2.4.134",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "iki0yf368aq3mxsljhbm5z4p82nc7nc1-mesa-libgbm-26.1.3"
-          ]
-        },
-        {
-          "hash_name": "j1wk1wrk86dwlif23byzn8dvkczgzh39-nss-3.112.5",
-          "nar_hash": "sha256:1kd6i2ga4jl9jcmlxpa22z73lh562hib26cw74b1hkc42kpjzja6",
-          "nar_size": 4709504,
-          "references": [
-            "2lyx0wc6ccabpdwpviksww3x5xhsmnvk-sqlite-3.53.3",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "j1wk1wrk86dwlif23byzn8dvkczgzh39-nss-3.112.5",
-            "k8djsad91026pr50mj1cafzhnxnn7lb2-nspr-4.40",
-            "ldzh1q6av5qfmibmj38sz6qppkn5z5d8-p11-kit-0.26.2",
-            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib"
           ]
         },
         {
@@ -3871,45 +3339,11 @@
           ]
         },
         {
-          "hash_name": "jbzhl5gm9n5xkljz34p37mhx1wrbx6mm-libxkbcommon-1.13.2",
-          "nar_hash": "sha256:1d183k4z23hpf2gfjm1vypdzl6hfj6pg3lhd02yb6w46znv3hywb",
-          "nar_size": 1595816,
-          "references": [
-            "1sk0j24qkhwn98g47fhkhmxdw30lvkwn-libxcb-1.17.0",
-            "26dr42ng2k6mqp661ln3fymgjipp10hf-xkeyboard-config-2.48",
-            "c7dh1d8iig2cy3q5vxhs1bwq0zynj72d-libxml2-2.15.4",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "jbzhl5gm9n5xkljz34p37mhx1wrbx6mm-libxkbcommon-1.13.2",
-            "jnsrkq7brvcv7vk8clrzmzda31v4ns80-wayland-1.26.0",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
-          ]
-        },
-        {
           "hash_name": "jiscfdlw4w8kmwfk8kwk5f72q66ncdz4-mpdecimal-4.0.1",
           "nar_hash": "sha256:0qpjcqzlfys9d5s2j6x01kmazj9xrmz2gz7l1xp62rx1harqj4p4",
           "nar_size": 289368,
           "references": [
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "jnhyay8hqg0iaxsgmlm7q9dlcrz632zz-libxfixes-6.0.2",
-          "nar_hash": "sha256:1papgzaclws26pzwmmqkk009ac6vw4wcfzqkzdc7lzsw266cpp37",
-          "nar_size": 76896,
-          "references": [
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "jnhyay8hqg0iaxsgmlm7q9dlcrz632zz-libxfixes-6.0.2",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "jnsrkq7brvcv7vk8clrzmzda31v4ns80-wayland-1.26.0",
-          "nar_hash": "sha256:0jg8zr1k1gx8vk3j9dw5crnl5za87piziixzd0rlb7pd7vdg2ypx",
-          "nar_size": 460168,
-          "references": [
-            "932xczyyw1mkrappjd5pn1rh3i09xyx6-libffi-3.8.0",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "jnsrkq7brvcv7vk8clrzmzda31v4ns80-wayland-1.26.0"
           ]
         },
         {
@@ -3957,56 +3391,6 @@
             "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15",
             "qh50ns4l8q4qn7qxqga563hd1cb8x0gs-openjdk-headless-17.0.20.1+1",
             "wgxz9zr5a70v52nkqinbarf56f1c5jsi-bash-interactive-5.3p15"
-          ]
-        },
-        {
-          "hash_name": "k35v740z5dfa098gw641r0db6kah9fvs-glib-2.88.3",
-          "nar_hash": "sha256:10hsv0xaadwv6dg5dwb0d51c207a44nrc7lnyp5fmvi5vzfc2rrf",
-          "nar_size": 16700440,
-          "references": [
-            "932xczyyw1mkrappjd5pn1rh3i09xyx6-libffi-3.8.0",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "k35v740z5dfa098gw641r0db6kah9fvs-glib-2.88.3",
-            "lngldcdpyc39i41g3zrsf7n9rh7mn2gs-util-linux-minimal-2.42.3-lib",
-            "rcdkdkync4pgcdk38sxd6q7mkahp2861-pcre2-10.48",
-            "ygj13zc26qjnl6hw6nw0kwagzdrx1ynz-libselinux-3.10"
-          ]
-        },
-        {
-          "hash_name": "k7dhicbxwpb574vmg3an70ay62pphnr8-glib-2.88.3-dev",
-          "nar_hash": "sha256:1jys4maimzksn2x53zyg7dlwx5vhpfjscalizhljrki6skin83g6",
-          "nar_size": 15982904,
-          "references": [
-            "5x73y49ccdjj689i7sr4siygjnb4ngp5-libffi-3.8.0-dev",
-            "81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7",
-            "8aimx510wyy0rzy7mllcjad5299jd17a-gettext-1.0",
-            "d8jihl9qsp401pllh7jphlf9frfad4fx-glib-2.88.3-bin",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "k35v740z5dfa098gw641r0db6kah9fvs-glib-2.88.3",
-            "k7dhicbxwpb574vmg3an70ay62pphnr8-glib-2.88.3-dev",
-            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15",
-            "pmhpwb60zpmxzgkp36lvvkdnlq295gzx-glibc-iconv-2.44",
-            "wmz81b5i48kxn0w0gj4mxbyb883zxcql-elfutils-0.195",
-            "xs601a79fywk3qwsz74gl66p7hv2p2sm-zlib-1.3.2-dev"
-          ]
-        },
-        {
-          "hash_name": "k8djsad91026pr50mj1cafzhnxnn7lb2-nspr-4.40",
-          "nar_hash": "sha256:0abn1z1cxk1b9as3s3qyr5wi4hwf29dp2qs9586hml05jvp46jay",
-          "nar_size": 526384,
-          "references": [
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "k8djsad91026pr50mj1cafzhnxnn7lb2-nspr-4.40"
-          ]
-        },
-        {
-          "hash_name": "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13",
-          "nar_hash": "sha256:1hwi6xyi977r2rbrkqznf458zsxrf2arvk6zfqs9cd3lx9aji3xy",
-          "nar_size": 2794464,
-          "references": [
-            "1sk0j24qkhwn98g47fhkhmxdw30lvkwn-libxcb-1.17.0",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
           ]
         },
         {
@@ -4099,12 +3483,6 @@
           ]
         },
         {
-          "hash_name": "l41bn8rq8lg0k94amsi0pikr063995c8-noto-fonts-color-emoji-2.051",
-          "nar_hash": "sha256:0rl6hp9x3lj5bywdpypw0a4g32048bg3kh9k6h8xbypq0bilmcl2",
-          "nar_size": 10674080,
-          "references": []
-        },
-        {
           "hash_name": "la7shckvcd5ngy44vd535ryl6mfq6pvv-llhttp-9.4.3-dev",
           "nar_hash": "sha256:0lq62kgfw2945kpak7mvfcmhwzg3wb3s5rx411nb65dpfhdx2dg0",
           "nar_size": 42640,
@@ -4122,17 +3500,6 @@
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "ldzh1q6av5qfmibmj38sz6qppkn5z5d8-p11-kit-0.26.2",
             "zxxlg1hpnbpzl5lrmaxc0qdnw72pz5i5-libtasn1-4.21.0"
-          ]
-        },
-        {
-          "hash_name": "lgb3bicx86r5njf4b3f3kjgmsqhgkkjc-libxi-1.8.3",
-          "nar_hash": "sha256:0rba2hlxz2l6h9snv5bb8gs61kcgxk3dbkhbgx5v5kc5f5yvxmjs",
-          "nar_size": 146048,
-          "references": [
-            "7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13",
-            "lgb3bicx86r5njf4b3f3kjgmsqhgkkjc-libxi-1.8.3"
           ]
         },
         {
@@ -4156,33 +3523,12 @@
           ]
         },
         {
-          "hash_name": "lsmnv7la79zyl2brpznvgaj5hmd4367l-libxau-1.0.12-dev",
-          "nar_hash": "sha256:10lh6difmh0b5249f2rry06kbl5x7z9wswid8dxcdx26a6yrjl0m",
-          "nar_size": 7000,
-          "references": [
-            "0vn898zlha6w8khhkc8ialj1nql46zn1-libxau-1.0.12",
-            "lsmnv7la79zyl2brpznvgaj5hmd4367l-libxau-1.0.12-dev",
-            "ylsa2p5zfbxk5dvpw4jcmfpb2zk5hl3b-xorgproto-2025.1"
-          ]
-        },
-        {
           "hash_name": "m28xvsp0sdvckkw63w9xyxn815v2d76m-ngtcp2-1.23.0-dev",
           "nar_hash": "sha256:1l6cp172a0zchrlbms8viv15nxp1lm6fns1d65fpjqa7v1bx6l96",
           "nar_size": 309944,
           "references": [
             "cj6f94005924dcq8says7xgrmydfwzif-ngtcp2-1.23.0",
             "m28xvsp0sdvckkw63w9xyxn815v2d76m-ngtcp2-1.23.0-dev"
-          ]
-        },
-        {
-          "hash_name": "m64pfzf9yxpyranl4ypkgamzn5zh87s6-libxdamage-1.1.7",
-          "nar_hash": "sha256:0syk45h9zvpfh70yzxj18avd3a1q9rkcv3n48c7yia89lyi3cx2y",
-          "nar_size": 72632,
-          "references": [
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "jnhyay8hqg0iaxsgmlm7q9dlcrz632zz-libxfixes-6.0.2",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13",
-            "m64pfzf9yxpyranl4ypkgamzn5zh87s6-libxdamage-1.1.7"
           ]
         },
         {
@@ -4211,16 +3557,6 @@
             "db07pw9avlwysb3v68cfp9cijg2mmfns-openssl-3.5.8",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "m9xpj129716c3dn7mcja91cb84mplpv9-openssl-3.5.8-bin"
-          ]
-        },
-        {
-          "hash_name": "mdhh6r4qrlclv77dnnkkdc52myixhn2d-libx11-1.8.13-dev",
-          "nar_hash": "sha256:1hbyprshqq8iw103ydki6gsjl1r4r1gz2n8lr46177jdbd1w0si9",
-          "nar_size": 256488,
-          "references": [
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13",
-            "mdhh6r4qrlclv77dnnkkdc52myixhn2d-libx11-1.8.13-dev",
-            "ylsa2p5zfbxk5dvpw4jcmfpb2zk5hl3b-xorgproto-2025.1"
           ]
         },
         {
@@ -4371,36 +3707,6 @@
           ]
         },
         {
-          "hash_name": "pjwc5ciq56k23xmmnhcxyhwj2dyr8f9p-libxrender-0.9.12-dev",
-          "nar_hash": "sha256:0gkvqhh9r4jdxavzzq8df2izm6zkr2a4r2iblpsqhr8x82vsa6kp",
-          "nar_size": 36160,
-          "references": [
-            "0qj4jr39s8mdsk2vnbljmcidwl8mw82v-libxrender-0.9.12",
-            "mdhh6r4qrlclv77dnnkkdc52myixhn2d-libx11-1.8.13-dev",
-            "pjwc5ciq56k23xmmnhcxyhwj2dyr8f9p-libxrender-0.9.12-dev",
-            "ylsa2p5zfbxk5dvpw4jcmfpb2zk5hl3b-xorgproto-2025.1"
-          ]
-        },
-        {
-          "hash_name": "pkrbzjg78m0yxgmhfyld8jbds9jid1wh-dbus-1.16.2-lib",
-          "nar_hash": "sha256:0yibkr5109yd5xiyxis3imf8w4zb89vl3jbh2p32fqciy63pndg0",
-          "nar_size": 549256,
-          "references": [
-            "59kan36gpiwyfs9m4zp613khh2mri9mv-systemd-minimal-261.3",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13",
-            "pkrbzjg78m0yxgmhfyld8jbds9jid1wh-dbus-1.16.2-lib"
-          ]
-        },
-        {
-          "hash_name": "pmhpwb60zpmxzgkp36lvvkdnlq295gzx-glibc-iconv-2.44",
-          "nar_hash": "sha256:05qr8v61rmanqfp7hp2k74p15d8zx21261l59c61bxk7grf1rvaf",
-          "nar_size": 528,
-          "references": [
-            "7cymsp67cnp84xwa7nigdd1hrnqmh0cy-glibc-2.44-25-dev"
-          ]
-        },
-        {
           "hash_name": "pqrwkky98mviczvnix40zz4wy5fn7vgq-libcbor-0.14.0",
           "nar_hash": "sha256:01y67wq51a8ia2fhfr6vblb7i6xmg2din32inc84fmwzld100bi9",
           "nar_size": 149680,
@@ -4479,15 +3785,6 @@
           ]
         },
         {
-          "hash_name": "qx9xf5h5x0mpw4rr61wgw33xw55bv0kr-auto-patchelf-0-unstable-2024-08-14",
-          "nar_hash": "sha256:11wwi5c39jx175jy7rykxf948figsndbylnxdpxnirzb564x0xzi",
-          "nar_size": 26448,
-          "references": [
-            "7miqa97jp58gh795298wvqf6a0qkrrrq-python3-3.14.7-env",
-            "j7hs7iam6fi7d9mk9iq8cc9sk0875hgg-binutils-wrapper-2.46"
-          ]
-        },
-        {
           "hash_name": "qxf2b03c1iwiacn90zwxmr429x8h2lwi-json-c-0.18",
           "nar_hash": "sha256:1c0sa9spssg36a4s9i7s44gla68vbmkbh0nrflfm8w0miza5qc70",
           "nar_size": 323424,
@@ -4525,15 +3822,6 @@
             "0ck2q3xzrl0f00ri3gfaqnxgq51pq72f-brotli-1.2.0",
             "gg00qwxck8ddxr98x2yizdsw8m540p42-brotli-1.2.0-lib",
             "rlfnslpl503gsd57gma8k0w4ym468dx6-brotli-1.2.0-dev"
-          ]
-        },
-        {
-          "hash_name": "rsi6s41x7rgnnqnizqnpcjjyb3qdkkf5-alsa-lib-1.2.16.1-dev",
-          "nar_hash": "sha256:1lgg3p7l2fbiqcp8sk2g8mypz3xr8x3i66b3pqlib8pxy465nymk",
-          "nar_size": 519152,
-          "references": [
-            "0cnja1l91qiy8kriyplycn53dmqv09w2-alsa-lib-1.2.16.1",
-            "rsi6s41x7rgnnqnizqnpcjjyb3qdkkf5-alsa-lib-1.2.16.1-dev"
           ]
         },
         {
@@ -4575,12 +3863,6 @@
           ]
         },
         {
-          "hash_name": "s6n0643k0y5gm50wx517pb6jg5cc7vci-liberation-fonts-2.1.5",
-          "nar_hash": "sha256:11jpfkiv7dhqi59a7qn9pf65qi49njblr7kmpx5672fkkbv1n642",
-          "nar_size": 4356696,
-          "references": []
-        },
-        {
           "hash_name": "scbwh60gnm0k1hi6cmj61arzzi3qi3lh-zstd-1.5.7-dev",
           "nar_hash": "sha256:0y6g4p3jpv03l4i9jb6n3kl1j5fdx522difc1j7y27m05p5r6b6r",
           "nar_size": 225136,
@@ -4607,30 +3889,6 @@
             "7d907izyink96xhqazkbw4wicvgkm76c-zlib-1.3.2",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "ski77imz5di3y29kwl6pqkanls2r77f0-cracklib-2.10.3"
-          ]
-        },
-        {
-          "hash_name": "ss8lsi8bckx9qlljayp7c5q5svr58n7y-alsa-ucm-conf-1.2.16.1",
-          "nar_hash": "sha256:1kfks0rclwwvby3jrh4v0q23n2mfdb6m86p4ixnmanxcxajxln3q",
-          "nar_size": 936792,
-          "references": [
-            "8zb5xchsi8srv7fkrjp3d5nsiziq2i41-kmod-31",
-            "dq1apsyiah48nmc4n45dpwc33k887hdn-coreutils-9.11"
-          ]
-        },
-        {
-          "hash_name": "svp8jj40jigqzf5a8546ircz5rbxj7hw-dbus-1.16.2",
-          "nar_hash": "sha256:14yd8x7phmxdqh94yy0lhvp1khks5vszdg7kn3z8dd2i22aa2p39",
-          "nar_size": 944552,
-          "references": [
-            "26iph7ac516fzzrm51mjcnp22bkfgza0-audit-4.2.1-lib",
-            "59kan36gpiwyfs9m4zp613khh2mri9mv-systemd-minimal-261.3",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "mhr4h08jnvkssg2zrljd1m7945pqx6cn-libapparmor-5.0.2",
-            "n7yllvdnm8p1g85b1g0rfc9dicgs0rhp-expat-2.8.5",
-            "pkrbzjg78m0yxgmhfyld8jbds9jid1wh-dbus-1.16.2-lib",
-            "q2pjg7wdh0dikxz506dcp72axrgf4rgg-libcap-ng-0.9.6",
-            "svp8jj40jigqzf5a8546ircz5rbxj7hw-dbus-1.16.2"
           ]
         },
         {
@@ -4697,16 +3955,6 @@
           ]
         },
         {
-          "hash_name": "w7da7m9m220hic8z4scl0a290s0gxkwh-unzip-6.0",
-          "nar_hash": "sha256:0zyady8415czcjnjfwggna8dh13g3bdg0yjmkxy96ivm6m3ng5g3",
-          "nar_size": 641072,
-          "references": [
-            "3anfddw01ai5ykdf393s3pbia6agx3df-bzip2-1.0.8",
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15"
-          ]
-        },
-        {
           "hash_name": "wgxz9zr5a70v52nkqinbarf56f1c5jsi-bash-interactive-5.3p15",
           "nar_hash": "sha256:1z583f4z8b9graavv3vlwh9cs45a2qb1wbf8zrd1iv1c18c63f38",
           "nar_size": 9557904,
@@ -4716,9 +3964,6 @@
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "wgxz9zr5a70v52nkqinbarf56f1c5jsi-bash-interactive-5.3p15"
           ]
-        },
-        {
-          "hash_name": "wm6l1dwxdd1jk8jf7i55jifqc2f7j5jc-playwright-browsers-1.62.1"
         },
         {
           "hash_name": "wmz81b5i48kxn0w0gj4mxbyb883zxcql-elfutils-0.195",
@@ -4743,23 +3988,6 @@
           "references": [
             "ag002afcmk9gdsv38vpm1kbhh1mxm6zi-libuv-1.52.1",
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "x2dga5g037cjcay5a64878xv69qbf5d7-dejavu-fonts-2.37",
-          "nar_hash": "sha256:0g43rrdwjwq7nc7bj7kg7s31vh5s6xkxrhvs6mz5q1w1zmlf0r63",
-          "nar_size": 9485368,
-          "references": [
-            "6vxm5bsj4xwkk1s4pa3y8gdyivy942gn-dejavu-fonts-minimal-2.37"
-          ]
-        },
-        {
-          "hash_name": "x389p24m4zb1jjbrrrfl16vysk6hi2p3-libxcb-1.17.0-dev",
-          "nar_hash": "sha256:04pzhwnvj6b25iqgdr1xycmqgjw470cap1dmc6hsczgmhakik15w",
-          "nar_size": 2154664,
-          "references": [
-            "1sk0j24qkhwn98g47fhkhmxdw30lvkwn-libxcb-1.17.0",
-            "x389p24m4zb1jjbrrrfl16vysk6hi2p3-libxcb-1.17.0-dev"
           ]
         },
         {
@@ -4797,31 +4025,6 @@
           ]
         },
         {
-          "hash_name": "ygj13zc26qjnl6hw6nw0kwagzdrx1ynz-libselinux-3.10",
-          "nar_hash": "sha256:1bdg5y50zczp0bxjn0vggn6mblb5wa2hnlkqqrv6jgyyb1lglg0j",
-          "nar_size": 867304,
-          "references": [
-            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-            "rcdkdkync4pgcdk38sxd6q7mkahp2861-pcre2-10.48"
-          ]
-        },
-        {
-          "hash_name": "yhy6anadkqdw5ksr32lczlq5ndyfm6vx-hwdata-0.411",
-          "nar_hash": "sha256:16wil7mnn0ck6zj7xwgkvnikryq3c4hagd83i3z73a63lyjjj8vh",
-          "nar_size": 10558816,
-          "references": [
-            "yhy6anadkqdw5ksr32lczlq5ndyfm6vx-hwdata-0.411"
-          ]
-        },
-        {
-          "hash_name": "ylsa2p5zfbxk5dvpw4jcmfpb2zk5hl3b-xorgproto-2025.1",
-          "nar_hash": "sha256:14g75i7p0iv6zbdvylfcr7hxlh4naxplsldkyszcq11y1fqszpp2",
-          "nar_size": 1715192,
-          "references": [
-            "ylsa2p5zfbxk5dvpw4jcmfpb2zk5hl3b-xorgproto-2025.1"
-          ]
-        },
-        {
           "hash_name": "yrjqf3fvd545hkwiwjvmhjr36f769g4v-libtpms-0.10.2-unstable-2026-05-06",
           "nar_hash": "sha256:1fqcpx74j472b462xhqjqbbrd6xdggn1p68l8wyf95g8whzajm48",
           "nar_size": 1225696,
@@ -4856,15 +4059,6 @@
           "references": [
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "z2df603k1qcpgzahckb40pxglhxbji5i-libevent-2.1.13"
-          ]
-        },
-        {
-          "hash_name": "z5jjq635b8n3yaf7i4dw1rkfv4bxfzl5-libxfixes-6.0.2-dev",
-          "nar_hash": "sha256:0gki8kiqrkzfpknc9w3j0v6gj66rk9vgcxb8mfy9k2ixdxrn2cn0",
-          "nar_size": 9992,
-          "references": [
-            "jnhyay8hqg0iaxsgmlm7q9dlcrz632zz-libxfixes-6.0.2",
-            "z5jjq635b8n3yaf7i4dw1rkfv4bxfzl5-libxfixes-6.0.2-dev"
           ]
         },
         {
@@ -4912,15 +4106,6 @@
           ]
         },
         {
-          "hash_name": "zvslra1w3iwm9hvrmnyrz85dvsj5bkgl-systemd-minimal-libs-261.3-dev",
-          "nar_hash": "sha256:0ykg24p4l4xcgg4mpb8w52gkpy41ixqgxr2pll03npyyd8qmfy0h",
-          "nar_size": 269648,
-          "references": [
-            "17dy9y57znv7gzzq8k03rdnh6dlw0rh2-systemd-minimal-libs-261.3",
-            "zvslra1w3iwm9hvrmnyrz85dvsj5bkgl-systemd-minimal-libs-261.3-dev"
-          ]
-        },
-        {
           "hash_name": "zxxlg1hpnbpzl5lrmaxc0qdnw72pz5i5-libtasn1-4.21.0",
           "nar_hash": "sha256:1ra4iyylk5l45jg5mngiw180qa2bpg44klhcm3573x7mic4649sh",
           "nar_size": 145112,
@@ -4933,40 +4118,6 @@
       "coherence": {
         "buildIdentities": {
           "n8n-mockserver": [
-            57,
-            168,
-            18,
-            166,
-            245,
-            153,
-            151,
-            6,
-            131,
-            119,
-            138,
-            81,
-            112,
-            62,
-            211,
-            164,
-            113,
-            188,
-            188,
-            71,
-            97,
-            194,
-            46,
-            17,
-            68,
-            250,
-            102,
-            57,
-            217,
-            127,
-            254,
-            169
-          ],
-          "playwright-browsers": [
             57,
             168,
             18,
@@ -5039,35 +4190,6 @@
           "packages": [
             {
               "constraint": {
-                "attr": "alsa-lib",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "alsa-lib",
-                "name": "alsa-lib",
-                "origin": {
-                  "Channel": {
-                    "build": 347084467,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/rsi6s41x7rgnnqnizqnpcjjyb3qdkkf5-alsa-lib-1.2.16.1-dev",
-                  "out": "/nix/store/0cnja1l91qiy8kriyplycn53dmqv09w2-alsa-lib-1.2.16.1"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/0cnja1l91qiy8kriyplycn53dmqv09w2-alsa-lib-1.2.16.1"
-                ],
-                "version": "1.2.16.1"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "apacheKafka",
                 "context": "profiles.dev",
                 "output": null,
@@ -5092,64 +4214,6 @@
                   "/nix/store/k1p7kvczxig4asi62rp1as1xjdc1ca3g-apache-kafka-2.13-4.3.1"
                 ],
                 "version": "2.13-4.3.1"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "atk",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "atk",
-                "name": "at-spi2-core",
-                "origin": {
-                  "Channel": {
-                    "build": 347086374,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "debug": "/nix/store/b461xzpw8w9d2vlhr2vhp6zd3nppaigq-at-spi2-core-2.60.6-debug",
-                  "dev": "/nix/store/4k6kz6xz22sjb04mwxnjdhyhf3xhz3yz-at-spi2-core-2.60.6-dev",
-                  "out": "/nix/store/frxsz7y1ziz5ymzf6gmcvg2mq1idgnbj-at-spi2-core-2.60.6"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/frxsz7y1ziz5ymzf6gmcvg2mq1idgnbj-at-spi2-core-2.60.6"
-                ],
-                "version": "2.60.6"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "auto-patchelf",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "auto-patchelf",
-                "name": "auto-patchelf",
-                "origin": {
-                  "Channel": {
-                    "build": 347086583,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/qx9xf5h5x0mpw4rr61wgw33xw55bv0kr-auto-patchelf-0-unstable-2024-08-14"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/qx9xf5h5x0mpw4rr61wgw33xw55bv0kr-auto-patchelf-0-unstable-2024-08-14"
-                ],
-                "version": "0-unstable-2024-08-14"
               }
             },
             {
@@ -5250,96 +4314,6 @@
             },
             {
               "constraint": {
-                "attr": "dbus",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "dbus",
-                "name": "dbus",
-                "origin": {
-                  "Channel": {
-                    "build": 347098480,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "debug": "/nix/store/747mkv9fh8jn29yy344sdn84sybm356r-dbus-1.16.2-debug",
-                  "dev": "/nix/store/bhh0hzr35a9ci6pdwbl0v9cjpa4ak2ws-dbus-1.16.2-dev",
-                  "doc": "/nix/store/fwlgzljch4v3lrpk77riirk0y9v6sy2f-dbus-1.16.2-doc",
-                  "lib": "/nix/store/pkrbzjg78m0yxgmhfyld8jbds9jid1wh-dbus-1.16.2-lib",
-                  "man": "/nix/store/dwxcx15jh1k96s4j72y5zc99r1b41wvk-dbus-1.16.2-man",
-                  "out": "/nix/store/svp8jj40jigqzf5a8546ircz5rbxj7hw-dbus-1.16.2"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/svp8jj40jigqzf5a8546ircz5rbxj7hw-dbus-1.16.2"
-                ],
-                "version": "1.16.2"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "dejavu_fonts",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "dejavu_fonts",
-                "name": "dejavu-fonts",
-                "origin": {
-                  "Channel": {
-                    "build": 347098745,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/x2dga5g037cjcay5a64878xv69qbf5d7-dejavu-fonts-2.37"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/x2dga5g037cjcay5a64878xv69qbf5d7-dejavu-fonts-2.37"
-                ],
-                "version": "2.37"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "expat",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "expat",
-                "name": "expat",
-                "origin": {
-                  "Channel": {
-                    "build": 347102724,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/035iqfar56y5ky2xk2gifjr8xzwk9kbd-expat-2.8.5-dev",
-                  "out": "/nix/store/n7yllvdnm8p1g85b1g0rfc9dicgs0rhp-expat-2.8.5"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/n7yllvdnm8p1g85b1g0rfc9dicgs0rhp-expat-2.8.5"
-                ],
-                "version": "2.8.5"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "flock",
                 "context": "profiles.dev",
                 "output": null,
@@ -5364,104 +4338,6 @@
                   "/nix/store/vf2h24m5aa7phb4v1kbc2qd9r41jdfqv-flock-0.4.0"
                 ],
                 "version": "0.4.0"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "gcc-unwrapped",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "gcc-unwrapped",
-                "name": "gcc",
-                "origin": {
-                  "Channel": {
-                    "build": 347105984,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "checksum": "/nix/store/jkaf16j8s5mbjp4qd0h5x6fgwvcgl1d6-gcc-16.2.0-checksum",
-                  "info": "/nix/store/5xpvv0w06wqn9m2h9yj52va0mxf5xzxi-gcc-16.2.0-info",
-                  "lib": "/nix/store/na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib",
-                  "libgcc": "/nix/store/bylbi6s4mq0gxrw4fwawbhw3ffzhpllf-gcc-16.2.0-libgcc",
-                  "man": "/nix/store/m1x1hm9mhnx93n3zfkrd33lsvk4zdx1q-gcc-16.2.0-man",
-                  "out": "/nix/store/70xc727xbli0162ggrmpsysmdw90qcsa-gcc-16.2.0"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/70xc727xbli0162ggrmpsysmdw90qcsa-gcc-16.2.0"
-                ],
-                "version": "16.2.0"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "glib",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "glib",
-                "name": "glib",
-                "origin": {
-                  "Channel": {
-                    "build": 347107903,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "bin": "/nix/store/d8jihl9qsp401pllh7jphlf9frfad4fx-glib-2.88.3-bin",
-                  "debug": "/nix/store/slkg9zpsa2xlkgpri7d4y2kk6mm29ca4-glib-2.88.3-debug",
-                  "dev": "/nix/store/k7dhicbxwpb574vmg3an70ay62pphnr8-glib-2.88.3-dev",
-                  "devdoc": "/nix/store/iqhsyi519bg251db7nk1bqqdwy0ys55w-glib-2.88.3-devdoc",
-                  "out": "/nix/store/k35v740z5dfa098gw641r0db6kah9fvs-glib-2.88.3"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/d8jihl9qsp401pllh7jphlf9frfad4fx-glib-2.88.3-bin"
-                ],
-                "version": "2.88.3"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "glibc",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "glibc",
-                "name": "glibc",
-                "origin": {
-                  "Channel": {
-                    "build": 347107914,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "bin": "/nix/store/7ds55fbsssa9ybbmp9i5z87ssalf27y6-glibc-2.44-25-bin",
-                  "debug": "/nix/store/04bfdci2nji11qmpqlba4xwgj1zfxdvb-glibc-2.44-25-debug",
-                  "dev": "/nix/store/7cymsp67cnp84xwa7nigdd1hrnqmh0cy-glibc-2.44-25-dev",
-                  "getent": "/nix/store/qx9x4l3wwlci78j9qijlihy2r711lkna-glibc-2.44-25-getent",
-                  "out": "/nix/store/hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
-                  "static": "/nix/store/cjq8m4himsrjjvrclbmksc5h5cv7syjz-glibc-2.44-25-static"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/7ds55fbsssa9ybbmp9i5z87ssalf27y6-glibc-2.44-25-bin"
-                ],
-                "version": "2.44"
               }
             },
             {
@@ -5491,300 +4367,6 @@
                   "/nix/store/hcfvjnm2l2i40ir44mc60cwafvibnx80-openjdk-headless-21.0.12.1+1"
                 ],
                 "version": "21.0.12.1+1"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "liberation_ttf",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "liberation_ttf",
-                "name": "liberation-fonts",
-                "origin": {
-                  "Channel": {
-                    "build": 347147011,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/s6n0643k0y5gm50wx517pb6jg5cc7vci-liberation-fonts-2.1.5"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/s6n0643k0y5gm50wx517pb6jg5cc7vci-liberation-fonts-2.1.5"
-                ],
-                "version": "2.1.5"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libgbm",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libgbm",
-                "name": "mesa-libgbm",
-                "origin": {
-                  "Channel": {
-                    "build": 347147176,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/iki0yf368aq3mxsljhbm5z4p82nc7nc1-mesa-libgbm-26.1.3"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/iki0yf368aq3mxsljhbm5z4p82nc7nc1-mesa-libgbm-26.1.3"
-                ],
-                "version": "26.1.3"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libx11",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libx11",
-                "name": "libx11",
-                "origin": {
-                  "Channel": {
-                    "build": 347149491,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/mdhh6r4qrlclv77dnnkkdc52myixhn2d-libx11-1.8.13-dev",
-                  "man": "/nix/store/4rm918glbanslww0qq78wlszsrrhm1d0-libx11-1.8.13-man",
-                  "out": "/nix/store/kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13"
-                ],
-                "version": "1.8.13"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxcb",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxcb",
-                "name": "libxcb",
-                "origin": {
-                  "Channel": {
-                    "build": 347149512,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/x389p24m4zb1jjbrrrfl16vysk6hi2p3-libxcb-1.17.0-dev",
-                  "doc": "/nix/store/wq9rcmjdxx7kp00lgklq7rbwq4yprwih-libxcb-1.17.0-doc",
-                  "man": "/nix/store/i27lci5iz94ldrbymkd8ypl5n9qj1lwb-libxcb-1.17.0-man",
-                  "out": "/nix/store/1sk0j24qkhwn98g47fhkhmxdw30lvkwn-libxcb-1.17.0"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/1sk0j24qkhwn98g47fhkhmxdw30lvkwn-libxcb-1.17.0"
-                ],
-                "version": "1.17.0"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxcomposite",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxcomposite",
-                "name": "libxcomposite",
-                "origin": {
-                  "Channel": {
-                    "build": 347149542,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/7i8bg9nbj8164q1qf8nh2yiihn9gdn66-libxcomposite-0.4.7-dev",
-                  "out": "/nix/store/aqhk0j1g0q94lsyhddppjhihr7rylznw-libxcomposite-0.4.7"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/aqhk0j1g0q94lsyhddppjhihr7rylznw-libxcomposite-0.4.7"
-                ],
-                "version": "0.4.7"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxdamage",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxdamage",
-                "name": "libxdamage",
-                "origin": {
-                  "Channel": {
-                    "build": 347149555,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/7720pia6yslqs061v31smcpxwx3c730p-libxdamage-1.1.7-dev",
-                  "out": "/nix/store/m64pfzf9yxpyranl4ypkgamzn5zh87s6-libxdamage-1.1.7"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/m64pfzf9yxpyranl4ypkgamzn5zh87s6-libxdamage-1.1.7"
-                ],
-                "version": "1.1.7"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxext",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxext",
-                "name": "libxext",
-                "origin": {
-                  "Channel": {
-                    "build": 347149571,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/9i8ayjprpvflvnahkmf338s3dfvqslxz-libxext-1.3.7-dev",
-                  "doc": "/nix/store/xvdlz7aarxz0knwfib61x492rrnmz0y6-libxext-1.3.7-doc",
-                  "man": "/nix/store/1803mgsx8yv05cvsqf4hnxnx9xd81h7r-libxext-1.3.7-man",
-                  "out": "/nix/store/7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7"
-                ],
-                "version": "1.3.7"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxfixes",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxfixes",
-                "name": "libxfixes",
-                "origin": {
-                  "Channel": {
-                    "build": 347149573,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/z5jjq635b8n3yaf7i4dw1rkfv4bxfzl5-libxfixes-6.0.2-dev",
-                  "out": "/nix/store/jnhyay8hqg0iaxsgmlm7q9dlcrz632zz-libxfixes-6.0.2"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/jnhyay8hqg0iaxsgmlm7q9dlcrz632zz-libxfixes-6.0.2"
-                ],
-                "version": "6.0.2"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxkbcommon",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxkbcommon",
-                "name": "libxkbcommon",
-                "origin": {
-                  "Channel": {
-                    "build": 347149600,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/46gg5rkwhvxz4dpidgbrvq33p5rdzzf4-libxkbcommon-1.13.2-dev",
-                  "doc": "/nix/store/vvcrx7vkvg79dfjkj435qz98hbahs6ak-libxkbcommon-1.13.2-doc",
-                  "out": "/nix/store/jbzhl5gm9n5xkljz34p37mhx1wrbx6mm-libxkbcommon-1.13.2"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/jbzhl5gm9n5xkljz34p37mhx1wrbx6mm-libxkbcommon-1.13.2"
-                ],
-                "version": "1.13.2"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxrandr",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxrandr",
-                "name": "libxrandr",
-                "origin": {
-                  "Channel": {
-                    "build": 347149664,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/hjyv2h55k9mmq4wrw20q71l71z26qhyb-libxrandr-1.5.5-dev",
-                  "out": "/nix/store/grqis5zpfxsw528p7dkadivr5mw1ln10-libxrandr-1.5.5"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/grqis5zpfxsw528p7dkadivr5mw1ln10-libxrandr-1.5.5"
-                ],
-                "version": "1.5.5"
               }
             },
             {
@@ -5843,122 +4425,6 @@
                   "/nix/store/8lgcgi9riqm71v9ibjw5qjcwwr5nfm83-nodejs-24.21.0"
                 ],
                 "version": "24.21.0"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "noto-fonts-color-emoji",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "noto-fonts-color-emoji",
-                "name": "noto-fonts-color-emoji",
-                "origin": {
-                  "Channel": {
-                    "build": 347166221,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/l41bn8rq8lg0k94amsi0pikr063995c8-noto-fonts-color-emoji-2.051"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/l41bn8rq8lg0k94amsi0pikr063995c8-noto-fonts-color-emoji-2.051"
-                ],
-                "version": "2.051"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "nspr",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "nspr",
-                "name": "nspr",
-                "origin": {
-                  "Channel": {
-                    "build": 347166393,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/haki3j065zbrwivisvn3h6fjcj4j10ib-nspr-4.40-dev",
-                  "out": "/nix/store/k8djsad91026pr50mj1cafzhnxnn7lb2-nspr-4.40"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/k8djsad91026pr50mj1cafzhnxnn7lb2-nspr-4.40"
-                ],
-                "version": "4.40"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "nss",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "nss",
-                "name": "nss",
-                "origin": {
-                  "Channel": {
-                    "build": 347166400,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/aax0xv0i4i8dg7z3hscfqb7bpxaxjbw7-nss-3.112.5-dev",
-                  "man": "/nix/store/jxbl9j0h19q93d9ifr70yymyp8m0nxk8-nss-3.112.5-man",
-                  "out": "/nix/store/j1wk1wrk86dwlif23byzn8dvkczgzh39-nss-3.112.5",
-                  "tools": "/nix/store/dy9dl2s78qif7h2k7vnnydi67a6pb2r4-nss-3.112.5-tools"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/j1wk1wrk86dwlif23byzn8dvkczgzh39-nss-3.112.5"
-                ],
-                "version": "3.112.5"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "patchelf",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "patchelf",
-                "name": "patchelf",
-                "origin": {
-                  "Channel": {
-                    "build": 347178097,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/j895a8pzpmfybkc7ciahyvbb7hwrjg5d-patchelf-0.15.2"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/j895a8pzpmfybkc7ciahyvbb7hwrjg5d-patchelf-0.15.2"
-                ],
-                "version": "0.15.2"
               }
             },
             {
@@ -6113,64 +4579,6 @@
             },
             {
               "constraint": {
-                "attr": "udev",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "udev",
-                "name": "systemd-minimal-libs",
-                "origin": {
-                  "Channel": {
-                    "build": 347290003,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "debug": "/nix/store/scn7vl7ghbi0w7db4yflng6wp3k8hb2z-systemd-minimal-libs-261.3-debug",
-                  "dev": "/nix/store/zvslra1w3iwm9hvrmnyrz85dvsj5bkgl-systemd-minimal-libs-261.3-dev",
-                  "out": "/nix/store/17dy9y57znv7gzzq8k03rdnh6dlw0rh2-systemd-minimal-libs-261.3"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/17dy9y57znv7gzzq8k03rdnh6dlw0rh2-systemd-minimal-libs-261.3"
-                ],
-                "version": "261.3"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "unzip",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "unzip",
-                "name": "unzip",
-                "origin": {
-                  "Channel": {
-                    "build": 347290641,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/w7da7m9m220hic8z4scl0a290s0gxkwh-unzip-6.0"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/w7da7m9m220hic8z4scl0a290s0gxkwh-unzip-6.0"
-                ],
-                "version": "6.0"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "uv",
                 "context": "profiles.dev",
                 "output": null,
@@ -6206,7 +4614,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "511b1b3d741a8e2c7d050e8678f6fbbfe4c08e34cf46d44c9801c30eeb9502b3"
+        "projectSha256": "926f5fb8a9a5a64e2acd25f9ccb76850e63edff19e8b330c659da4d37a4ab4ad"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -6236,12 +4644,11 @@
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
-        "ENVE_SERVICE_PROXY_PORT": "1080",
-        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
+        "ENVE_SERVICE_PROXY_PORT": "1088",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1088",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
-        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/wm6l1dwxdd1jk8jf7i55jifqc2f7j5jc-playwright-browsers-1.62.1/fonts.conf",
         "KAFKA_BROKERS": "127.0.0.1:9095",
         "KAFKA_HOST": "127.0.0.1",
         "KAFKA_PORT": "9095",
@@ -6260,15 +4667,13 @@
         "PGDATABASE": "n8n",
         "PGTZ": "UTC",
         "PGUSER": "postgres",
-        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/wm6l1dwxdd1jk8jf7i55jifqc2f7j5jc-playwright-browsers-1.62.1",
-        "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS": "1",
         "PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS": "false",
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "PROXY_HOST": "127.0.0.1",
-        "PROXY_PORT": "1080",
-        "PROXY_URL": "http://127.0.0.1:1080",
+        "PROXY_PORT": "1088",
+        "PROXY_URL": "http://127.0.0.1:1088",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -6454,93 +4859,6 @@
           },
           "version": "24.21.0"
         },
-        "playwright-browsers": {
-          "buildIdentity": [
-            57,
-            168,
-            18,
-            166,
-            245,
-            153,
-            151,
-            6,
-            131,
-            119,
-            138,
-            81,
-            112,
-            62,
-            211,
-            164,
-            113,
-            188,
-            188,
-            71,
-            97,
-            194,
-            46,
-            17,
-            68,
-            250,
-            102,
-            57,
-            217,
-            127,
-            254,
-            169
-          ],
-          "buildInputs": [
-            "035iqfar56y5ky2xk2gifjr8xzwk9kbd-expat-2.8.5-dev",
-            "0cnja1l91qiy8kriyplycn53dmqv09w2-alsa-lib-1.2.16.1",
-            "17dy9y57znv7gzzq8k03rdnh6dlw0rh2-systemd-minimal-libs-261.3",
-            "1sk0j24qkhwn98g47fhkhmxdw30lvkwn-libxcb-1.17.0",
-            "2ssiw3jmlpf03cdrlf4df2qwpxska7xn-bash-interactive-5.3p15-dev",
-            "46gg5rkwhvxz4dpidgbrvq33p5rdzzf4-libxkbcommon-1.13.2-dev",
-            "4k6kz6xz22sjb04mwxnjdhyhf3xhz3yz-at-spi2-core-2.60.6-dev",
-            "70xc727xbli0162ggrmpsysmdw90qcsa-gcc-16.2.0",
-            "7720pia6yslqs061v31smcpxwx3c730p-libxdamage-1.1.7-dev",
-            "7cymsp67cnp84xwa7nigdd1hrnqmh0cy-glibc-2.44-25-dev",
-            "7ds55fbsssa9ybbmp9i5z87ssalf27y6-glibc-2.44-25-bin",
-            "7i8bg9nbj8164q1qf8nh2yiihn9gdn66-libxcomposite-0.4.7-dev",
-            "7mbr0lhycwsl36hz5wnyjjd4f92lc4r7-libxext-1.3.7",
-            "9i8ayjprpvflvnahkmf338s3dfvqslxz-libxext-1.3.7-dev",
-            "aax0xv0i4i8dg7z3hscfqb7bpxaxjbw7-nss-3.112.5-dev",
-            "aqhk0j1g0q94lsyhddppjhihr7rylznw-libxcomposite-0.4.7",
-            "bhh0hzr35a9ci6pdwbl0v9cjpa4ak2ws-dbus-1.16.2-dev",
-            "d8jihl9qsp401pllh7jphlf9frfad4fx-glib-2.88.3-bin",
-            "dq1apsyiah48nmc4n45dpwc33k887hdn-coreutils-9.11",
-            "frxsz7y1ziz5ymzf6gmcvg2mq1idgnbj-at-spi2-core-2.60.6",
-            "grqis5zpfxsw528p7dkadivr5mw1ln10-libxrandr-1.5.5",
-            "haki3j065zbrwivisvn3h6fjcj4j10ib-nspr-4.40-dev",
-            "hjyv2h55k9mmq4wrw20q71l71z26qhyb-libxrandr-1.5.5-dev",
-            "iki0yf368aq3mxsljhbm5z4p82nc7nc1-mesa-libgbm-26.1.3",
-            "j1wk1wrk86dwlif23byzn8dvkczgzh39-nss-3.112.5",
-            "j895a8pzpmfybkc7ciahyvbb7hwrjg5d-patchelf-0.15.2",
-            "jbzhl5gm9n5xkljz34p37mhx1wrbx6mm-libxkbcommon-1.13.2",
-            "jnhyay8hqg0iaxsgmlm7q9dlcrz632zz-libxfixes-6.0.2",
-            "k7dhicbxwpb574vmg3an70ay62pphnr8-glib-2.88.3-dev",
-            "k8djsad91026pr50mj1cafzhnxnn7lb2-nspr-4.40",
-            "kamv6nii5127y32pyprqnfk8kc824x02-libx11-1.8.13",
-            "l41bn8rq8lg0k94amsi0pikr063995c8-noto-fonts-color-emoji-2.051",
-            "m64pfzf9yxpyranl4ypkgamzn5zh87s6-libxdamage-1.1.7",
-            "mdhh6r4qrlclv77dnnkkdc52myixhn2d-libx11-1.8.13-dev",
-            "n7yllvdnm8p1g85b1g0rfc9dicgs0rhp-expat-2.8.5",
-            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib",
-            "pkrbzjg78m0yxgmhfyld8jbds9jid1wh-dbus-1.16.2-lib",
-            "qx9xf5h5x0mpw4rr61wgw33xw55bv0kr-auto-patchelf-0-unstable-2024-08-14",
-            "rsi6s41x7rgnnqnizqnpcjjyb3qdkkf5-alsa-lib-1.2.16.1-dev",
-            "s6n0643k0y5gm50wx517pb6jg5cc7vci-liberation-fonts-2.1.5",
-            "svp8jj40jigqzf5a8546ircz5rbxj7hw-dbus-1.16.2",
-            "w7da7m9m220hic8z4scl0a290s0gxkwh-unzip-6.0",
-            "wgxz9zr5a70v52nkqinbarf56f1c5jsi-bash-interactive-5.3p15",
-            "x2dga5g037cjcay5a64878xv69qbf5d7-dejavu-fonts-2.37",
-            "x389p24m4zb1jjbrrrfl16vysk6hi2p3-libxcb-1.17.0-dev",
-            "z5jjq635b8n3yaf7i4dw1rkfv4bxfzl5-libxfixes-6.0.2-dev",
-            "zvslra1w3iwm9hvrmnyrz85dvsj5bkgl-systemd-minimal-libs-261.3-dev"
-          ],
-          "closure": "wm6l1dwxdd1jk8jf7i55jifqc2f7j5jc-playwright-browsers-1.62.1",
-          "version": "1.62.1"
-        },
         "pnpm": {
           "buildIdentity": [
             57,
@@ -6678,8 +4996,8 @@
     },
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "73b34ce6a49b418eb83cc5f2a40219f2b671608b9a5bb12260f9a96967155563",
-        "inventory_sha256": "a7c736ccfc76329fec0b5085261d9e40a87d9fa21a6bfac6f6c31971938615d2",
+        "environment_sha256": "917902ff6e1ced55832681d54e7bb87011b182e787687972be382d5c08897a33",
+        "inventory_sha256": "92bb7535ac850086a8f14f3a7d81d444eac06bd872003224d3265650aaa11ed5",
         "profile": null,
         "version": 2
       },
@@ -6705,16 +5023,6 @@
           ]
         },
         {
-          "hash_name": "0yvm79dfl53xg4vi2mg01cljfpnxkcnc-libdrm-2.4.134",
-          "nar_hash": "sha256:1wpihw5w3wzyfi5jrssal4k6ds5q7dkzj141w2sss9dgkjyyk7ab",
-          "nar_size": 641976,
-          "references": [
-            "0yvm79dfl53xg4vi2mg01cljfpnxkcnc-libdrm-2.4.134",
-            "2a4dzjm774pgqs3d9v4637b26167zj94-libpciaccess-0.19",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
           "hash_name": "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
           "nar_hash": "sha256:0pd0gn379hbm12l1wgk3j2kx5n1nlz2zxqvdbswcqd3va551q40a",
           "nar_size": 1885600,
@@ -6732,17 +5040,6 @@
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "l5hiab3932k2n4d6nirh09mk6xgxp61w-systemd-261.3",
             "zbc3ys9xswbj274v652nf0c9xifdi9dw-jemalloc-5.3.1"
-          ]
-        },
-        {
-          "hash_name": "1cwhgw8ln287pbdr6c8x4vxbbx668wgb-at-spi2-core-2.60.6-dev",
-          "nar_hash": "sha256:1abdvqq2bv5hk2nchdkn6miycda98rbr8b105jkwypqkr8yjxvgv",
-          "nar_size": 2218800,
-          "references": [
-            "1cwhgw8ln287pbdr6c8x4vxbbx668wgb-at-spi2-core-2.60.6-dev",
-            "4g39rajyrxqn3na1kd4pykdigsr82af5-at-spi2-core-2.60.6",
-            "cv0s6xg40h52gcwapidpc5q9dy44w2c2-dbus-1.16.2-dev",
-            "jipb8y1xzhxjga5iccw8jmas0bc0px47-glib-2.88.3-dev"
           ]
         },
         {
@@ -6786,34 +5083,6 @@
           ]
         },
         {
-          "hash_name": "2a4dzjm774pgqs3d9v4637b26167zj94-libpciaccess-0.19",
-          "nar_hash": "sha256:0bqbddjw3y7varxpsvzcjkl3br7f48xlvai4l0qi8g1kq0dc5s2v",
-          "nar_size": 176080,
-          "references": [
-            "2a4dzjm774pgqs3d9v4637b26167zj94-libpciaccess-0.19",
-            "9w0bsaii24j9vshw79sjx1qvbffgs9wy-hwdata-0.411",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "2fhx5hvmnmg9cxm00fd0nv3xyl4kkp8v-glibc-iconv-2.44",
-          "nar_hash": "sha256:026p0mxw90x6y0jqf5q294hk84cgvaaqkn111irm1dsqivniz5g1",
-          "nar_size": 528,
-          "references": [
-            "m38wglsqnh1mrmj2cmqa3pjb6w4yjxdi-glibc-2.44-25-dev"
-          ]
-        },
-        {
-          "hash_name": "2g8d8m8r7i7bi00rm56fbk99scd7303z-expat-2.8.5-dev",
-          "nar_hash": "sha256:1cr5yqpipdd84xq37pd90j8pyxw9n303q59gyxr0i8fdnmbs42ln",
-          "nar_size": 122984,
-          "references": [
-            "2g8d8m8r7i7bi00rm56fbk99scd7303z-expat-2.8.5-dev",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "zrkqwk0989k5wa1gn3cjb76jfga3d8i3-expat-2.8.5"
-          ]
-        },
-        {
           "hash_name": "2gfxiwls9hbgwdwcy43mprchwsq36mg6-coreutils-9.11",
           "nar_hash": "sha256:1azvw6ks42vs54d30qhhsb811n13v645cr1d8n0byprma584varm",
           "nar_size": 1754128,
@@ -6824,22 +5093,6 @@
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "p6cir20v12fjj5390b8xr9kdynm8bd9h-attr-2.6.0"
           ]
-        },
-        {
-          "hash_name": "2mcjx364ls9id3ngdjxd707j2az2aid2-libx11-1.8.13-dev",
-          "nar_hash": "sha256:0yfd37a9v6673v1q40dakiiiwi46znazk3fxmdvadgb47xirr6vn",
-          "nar_size": 256488,
-          "references": [
-            "2mcjx364ls9id3ngdjxd707j2az2aid2-libx11-1.8.13-dev",
-            "zhqvgsbq8ridrhr67qbxnq8rrbx6hvfj-xorgproto-2025.1",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "2ppmsk65csi9d1d05c43jhl2r2z5lrjf-dejavu-fonts-minimal-2.37",
-          "nar_hash": "sha256:1fkxijysp5k0q49bai9b4wrmg85w4iix76cgq1kf7ph22qdjic5y",
-          "nar_size": 760472,
-          "references": []
         },
         {
           "hash_name": "2rvzkxh0abbz6040wgdd4scp0rshvng7-merve-1.2.2",
@@ -6857,16 +5110,6 @@
           "references": [
             "2rwjmppsbddj9qbivqhp879a3mcj8smi-pcsclite-2.4.1-lib",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "2vhzbwl700sah6wd97k56pndyi5qhq2h-glib-2.88.3-bin",
-          "nar_hash": "sha256:1aynlf41b3k4b0b6vnw6ahklzklgii05bks36xchj3ppmr016gif",
-          "nar_size": 604664,
-          "references": [
-            "3dkchpfn8r3ipsccl1001xhcl5smfjdx-glib-2.88.3",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "pi2b23y3gv6zgcziwbgnihf8gam1cmlp-libffi-3.8.0"
           ]
         },
         {
@@ -6927,17 +5170,6 @@
           ]
         },
         {
-          "hash_name": "3ax8x86fcbsnsz54l416y9gcjirslxg1-nss-3.112.5-dev",
-          "nar_hash": "sha256:17d6h8s210h1s7l7r2yarclmxsfi88rgrdnmsqr55ydf43c492cd",
-          "nar_size": 1430672,
-          "references": [
-            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
-            "3ax8x86fcbsnsz54l416y9gcjirslxg1-nss-3.112.5-dev",
-            "dzapcr7zrasyn3d0p007023wv2pdyrqf-nss-3.112.5",
-            "sp8nbh3r8vgaj5lxv0j0awp02kcwxfj2-nspr-4.40-dev"
-          ]
-        },
-        {
           "hash_name": "3d7jqda0wk5iiw42wsv51ihxvg6z3w8y-uv-0.12.22",
           "nar_hash": "sha256:120ipp8mrxdg8paym3k1525m45lvdwy0vd82wy5na6v8986dwfhi",
           "nar_size": 66126280,
@@ -6945,19 +5177,6 @@
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
             "sf2rzaylqrxig1lz0xcrvmhdmm9zn6y0-jemalloc-5.3.1"
-          ]
-        },
-        {
-          "hash_name": "3dkchpfn8r3ipsccl1001xhcl5smfjdx-glib-2.88.3",
-          "nar_hash": "sha256:0gzmc4da0nw17ps3l8khnjzqclfbw6qgm7l3qiz6h5dnk8xw45ha",
-          "nar_size": 16255496,
-          "references": [
-            "328fx8r0jb6l2ai4cli7fhp8g26fbfnh-util-linux-minimal-2.42.3-lib",
-            "3dkchpfn8r3ipsccl1001xhcl5smfjdx-glib-2.88.3",
-            "7v8b5idfzwfl06hx6n0cvd5ikd5p0sbg-pcre2-10.48",
-            "ffl0cic7f8zjkwrjvd8ikzbkbiij690a-libselinux-3.10",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "pi2b23y3gv6zgcziwbgnihf8gam1cmlp-libffi-3.8.0"
           ]
         },
         {
@@ -7004,16 +5223,6 @@
           ]
         },
         {
-          "hash_name": "47nlx1dpb8zd73vjp2zms7r8k9xkzndp-libxkbcommon-1.13.2-dev",
-          "nar_hash": "sha256:0byk1815yacjp7nlkr7nzrjgjx3v4s6q08yckv6sx048k1q4f4ap",
-          "nar_size": 417152,
-          "references": [
-            "47nlx1dpb8zd73vjp2zms7r8k9xkzndp-libxkbcommon-1.13.2-dev",
-            "dhh914f45jbb1jb7pig8qj9ahq5a779d-xkeyboard-config-2.48",
-            "nvrv5w6rhc39h8snrsw03nqs679cf7rh-libxkbcommon-1.13.2"
-          ]
-        },
-        {
           "hash_name": "48fnvwrhq49mfkp4wwds4p0jqk73fzl2-apache-kafka-2.13-4.3.1",
           "nar_hash": "sha256:1l03nkr4sgm7cyd7i9ya33fspg6rmx9sy5jfid1p285imglqyd1q",
           "nar_size": 137213080,
@@ -7026,24 +5235,6 @@
             "48fnvwrhq49mfkp4wwds4p0jqk73fzl2-apache-kafka-2.13-4.3.1",
             "mkxs1rj1185rig673h8wjp2n1ynmlsln-ps-procps-4.0.7",
             "zanji5hpfg98zl65a1j8lxy1na04rhmx-openjdk-headless-17.0.20.1+1"
-          ]
-        },
-        {
-          "hash_name": "4g39rajyrxqn3na1kd4pykdigsr82af5-at-spi2-core-2.60.6",
-          "nar_hash": "sha256:1ma6hc6nlyg1mqn7lnxz00wfd9r99f8hqppc98ckrkxq61ljh0z0",
-          "nar_size": 2411936,
-          "references": [
-            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
-            "3dkchpfn8r3ipsccl1001xhcl5smfjdx-glib-2.88.3",
-            "4g39rajyrxqn3na1kd4pykdigsr82af5-at-spi2-core-2.60.6",
-            "d34lp4b2b0glnmwf7ij3ha8mrmb30l64-dbus-1.16.2-lib",
-            "gvhdvn542cwd3wr2978nh4ydzp89msq7-systemd-minimal-libs-261.3",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "qljkaaa4v37lyc43c91pvz5fsgf8j2wg-libxtst-1.2.5",
-            "r0qrx78hday3gr8dznxnniaf98c8lzjl-gsettings-desktop-schemas-50.1",
-            "sp7qi6d789jbkbn0mpzna06gbxlm5gzi-libxi-1.8.3",
-            "yqshkxpq1p0rsnm4g0lm3zwhzb74cqp8-dconf-0.49.0-lib",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
           ]
         },
         {
@@ -7127,17 +5318,6 @@
           "references": [
             "5i9x1yxqa9nk7jl7yflaavnlxvb09wrq-libuv-1.52.1",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "5km0hqviyr3994y2z6r7bpn7vln1yfgp-libxcomposite-0.4.7-dev",
-          "nar_hash": "sha256:0sckikz72z9cxal5a1vkm1qzw5rah6b0la7z9jlbzs73sd4fvkmn",
-          "nar_size": 6240,
-          "references": [
-            "5km0hqviyr3994y2z6r7bpn7vln1yfgp-libxcomposite-0.4.7-dev",
-            "a3rbzlj5wzxwjpncc0q9p6l64sc52m3y-libxcomposite-0.4.7",
-            "jxqrv7q8ydpsc2m9zli83bjsabq0rxs0-libxfixes-6.0.2-dev",
-            "zhqvgsbq8ridrhr67qbxnq8rrbx6hvfj-xorgproto-2025.1"
           ]
         },
         {
@@ -7302,30 +5482,6 @@
           "references": []
         },
         {
-          "hash_name": "8pcrdazxyw8b1n3i0v9d2r3g38hrgw63-nspr-4.40",
-          "nar_hash": "sha256:17ycv9m4zs71fhc9gc6b8ci82m5ir48iw9jnq7iiwi1vq0qzbzlw",
-          "nar_size": 374576,
-          "references": [
-            "8pcrdazxyw8b1n3i0v9d2r3g38hrgw63-nspr-4.40",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "8snmq54bp5d5vp5dihgn7xr53hayx629-dbus-1.16.2",
-          "nar_hash": "sha256:09cfgy8mds3hd74zwr0lzvic788k2c4p1i9rdjcf53f2chlb38ys",
-          "nar_size": 579912,
-          "references": [
-            "8snmq54bp5d5vp5dihgn7xr53hayx629-dbus-1.16.2",
-            "d34lp4b2b0glnmwf7ij3ha8mrmb30l64-dbus-1.16.2-lib",
-            "f294xy3n5bn3r9qv6a2ab7fkkmv7g5cp-audit-4.2.1-lib",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "qg23qszvwv9wg125x96k1vlgby75bn2s-systemd-minimal-261.3",
-            "w0xkd23405sbslbfnbhzcwwclvrsnwcf-libcap-ng-0.9.6",
-            "y0hvrkm9csmqlsqsw9cv8z0rzxdb6ghf-libapparmor-5.0.2",
-            "zrkqwk0989k5wa1gn3cjb76jfga3d8i3-expat-2.8.5"
-          ]
-        },
-        {
           "hash_name": "8vq8ivlhfqkbhs7r9mmirsdp8gh8hmrm-ngtcp2-1.23.0",
           "nar_hash": "sha256:1h65gn968vhnbs5abkl5dwdvamvcgv2m4wcqc7yay59brl19agn0",
           "nar_size": 548448,
@@ -7400,14 +5556,6 @@
           "references": []
         },
         {
-          "hash_name": "9w0bsaii24j9vshw79sjx1qvbffgs9wy-hwdata-0.411",
-          "nar_hash": "sha256:1sp6j4s22riqgf9lrkl8i7n68m5b0xw926acdv85dy1in2ra6kna",
-          "nar_size": 10558816,
-          "references": [
-            "9w0bsaii24j9vshw79sjx1qvbffgs9wy-hwdata-0.411"
-          ]
-        },
-        {
           "hash_name": "9x0m6s73sg89fv5awb95vsac2mbns8n0-sqlite-3.53.3",
           "nar_hash": "sha256:11wydf8lk1q624xkvk0xykch3mfhq8jmny2idc2p3a9zlbw5pdvb",
           "nar_size": 6188296,
@@ -7423,16 +5571,6 @@
           "references": [
             "9ymz748lxp33ix2vixryczq7c5zrp8vp-libgpg-error-1.61",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "a3rbzlj5wzxwjpncc0q9p6l64sc52m3y-libxcomposite-0.4.7",
-          "nar_hash": "sha256:0bvjlb3nggac28037ga46rl0969mrkhkakz159gy7xjlwy38gyzy",
-          "nar_size": 25680,
-          "references": [
-            "a3rbzlj5wzxwjpncc0q9p6l64sc52m3y-libxcomposite-0.4.7",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
           ]
         },
         {
@@ -7461,16 +5599,6 @@
             "85lj8x78s9z5v8z8b5ik5phdcwri22ac-gmp-6.3.0",
             "afhh51h1qz7f7jqhs4qs3ggxjipvn0i3-isl-0.20",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "ainqizsc7xrldv7q4ygsbawiy31jzwzj-python3.14-pyelftools-0.32",
-          "nar_hash": "sha256:1zs5lv2k597iyg9m64zjsyyncvc2pcw86m031vl6bc57m7ld9qq8",
-          "nar_size": 2249944,
-          "references": [
-            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
-            "ainqizsc7xrldv7q4ygsbawiy31jzwzj-python3.14-pyelftools-0.32",
-            "lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7"
           ]
         },
         {
@@ -7505,16 +5633,6 @@
           ]
         },
         {
-          "hash_name": "ca5a9x0y311vmw1a1sj6d00z0jwaviwv-libxau-1.0.12-dev",
-          "nar_hash": "sha256:0vi9ya320dnf5vwlhk47whn5qx4hpn9n1g9nsagh8dgws64gsglq",
-          "nar_size": 7000,
-          "references": [
-            "ca5a9x0y311vmw1a1sj6d00z0jwaviwv-libxau-1.0.12-dev",
-            "xjynyjk0vin5nvqw24050yfyb3czgrdm-libxau-1.0.12",
-            "zhqvgsbq8ridrhr67qbxnq8rrbx6hvfj-xorgproto-2025.1"
-          ]
-        },
-        {
           "hash_name": "chwiiz63ngbsgr2qi82c4g40vn756ky2-gmp-with-cxx-6.3.0",
           "nar_hash": "sha256:16cknz2iwy72nh8xbzcml7gnksycsgw88psza85pzzwgr70fmkdm",
           "nar_size": 787528,
@@ -7539,44 +5657,12 @@
           ]
         },
         {
-          "hash_name": "cv0s6xg40h52gcwapidpc5q9dy44w2c2-dbus-1.16.2-dev",
-          "nar_hash": "sha256:0zbyvny4n74f5a74z5xy2qpdxnaffimiy64shg7vm2a0b9xvv032",
-          "nar_size": 134784,
-          "references": [
-            "8snmq54bp5d5vp5dihgn7xr53hayx629-dbus-1.16.2",
-            "cv0s6xg40h52gcwapidpc5q9dy44w2c2-dbus-1.16.2-dev",
-            "d34lp4b2b0glnmwf7ij3ha8mrmb30l64-dbus-1.16.2-lib"
-          ]
-        },
-        {
-          "hash_name": "cvr8yyrrqnjxgd7bs6lwgra4qma7kwl9-libxcb-1.17.0",
-          "nar_hash": "sha256:1xmilxk7m4x1ndds7b0884nn9w2kfsdxmcz2s4vnk16k2ymf06rz",
-          "nar_size": 1449264,
-          "references": [
-            "cvr8yyrrqnjxgd7bs6lwgra4qma7kwl9-libxcb-1.17.0",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "qwybnlp70s17h7zvmb8kz45fz91011my-libxdmcp-1.1.5",
-            "xjynyjk0vin5nvqw24050yfyb3czgrdm-libxau-1.0.12"
-          ]
-        },
-        {
           "hash_name": "cxd8d2vg70c3pa31v2473hphaa1v0j44-openssl-3.5.8",
           "nar_hash": "sha256:1mipfkysygp3ndksniim66yp7628fll8wsa0r7xdx6nbfx6wz0w1",
           "nar_size": 9439480,
           "references": [
             "cxd8d2vg70c3pa31v2473hphaa1v0j44-openssl-3.5.8",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "d34lp4b2b0glnmwf7ij3ha8mrmb30l64-dbus-1.16.2-lib",
-          "nar_hash": "sha256:0r54yqsh0yqqw13hnw470r8l7vywiw31rn9c5bmr4k1pvy1iabkx",
-          "nar_size": 485152,
-          "references": [
-            "d34lp4b2b0glnmwf7ij3ha8mrmb30l64-dbus-1.16.2-lib",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "qg23qszvwv9wg125x96k1vlgby75bn2s-systemd-minimal-261.3",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
           ]
         },
         {
@@ -7608,23 +5694,6 @@
             "dgvn2c174c1fy0lcfyx0hzq76qn6jmnn-ncurses-6.6-dev",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "hzqwc6pv8sb9qrwivc4h42cr811gs1mk-ncurses-6.6"
-          ]
-        },
-        {
-          "hash_name": "dhh914f45jbb1jb7pig8qj9ahq5a779d-xkeyboard-config-2.48",
-          "nar_hash": "sha256:00awzn6ry2ljj7x7rz9dsmi7zx52xi5s0kvqk60syrq7rinqmxj7",
-          "nar_size": 10828808,
-          "references": [
-            "dhh914f45jbb1jb7pig8qj9ahq5a779d-xkeyboard-config-2.48"
-          ]
-        },
-        {
-          "hash_name": "di2qjpsj3zy5vxdqxnvmc2a7syszlz4g-auto-patchelf-0-unstable-2024-08-14",
-          "nar_hash": "sha256:1k7n2kdwn71gb8ms0vnrm116arm9pniy4rp9wdbjmlflf5v5660z",
-          "nar_size": 26448,
-          "references": [
-            "fy8mxgdjvjvmagv2igmj428a9j17hpcf-binutils-wrapper-2.46",
-            "w8av21sbpvrvib4vyml8j28y8w8ij097-python3-3.14.7-env"
           ]
         },
         {
@@ -7681,19 +5750,6 @@
           "references": []
         },
         {
-          "hash_name": "dzapcr7zrasyn3d0p007023wv2pdyrqf-nss-3.112.5",
-          "nar_hash": "sha256:0x2slka8sazphcdwlz82asbz0nnr9z90bx4l64cfbqv3c9vvhbgr",
-          "nar_size": 4356488,
-          "references": [
-            "8pcrdazxyw8b1n3i0v9d2r3g38hrgw63-nspr-4.40",
-            "9x0m6s73sg89fv5awb95vsac2mbns8n0-sqlite-3.53.3",
-            "dzapcr7zrasyn3d0p007023wv2pdyrqf-nss-3.112.5",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
-            "qmhksr7a5niv5kc2yslal3lq55inny75-p11-kit-0.26.2"
-          ]
-        },
-        {
           "hash_name": "f294xy3n5bn3r9qv6a2ab7fkkmv7g5cp-audit-4.2.1-lib",
           "nar_hash": "sha256:0s6v3j3nblkikmsazah5hf6azlqsqqx5z6y4imh832681lda9kxj",
           "nar_size": 438576,
@@ -7701,25 +5757,6 @@
             "f294xy3n5bn3r9qv6a2ab7fkkmv7g5cp-audit-4.2.1-lib",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "w0xkd23405sbslbfnbhzcwwclvrsnwcf-libcap-ng-0.9.6"
-          ]
-        },
-        {
-          "hash_name": "f6z2258liq5vbiah6jrkvy4iymdq2c5a-libxrender-0.9.12",
-          "nar_hash": "sha256:1yhlqi0fy8bjjw0w3zs513yslh1zzm8pmrkp45jsg3yvxw64jzah",
-          "nar_size": 54456,
-          "references": [
-            "f6z2258liq5vbiah6jrkvy4iymdq2c5a-libxrender-0.9.12",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "ffl0cic7f8zjkwrjvd8ikzbkbiij690a-libselinux-3.10",
-          "nar_hash": "sha256:1a52x4bgg7a67c6qivr6cr3ydasl2c9yn2q2qvg54m8zx7rdwmnk",
-          "nar_size": 730512,
-          "references": [
-            "7v8b5idfzwfl06hx6n0cvd5ikd5p0sbg-pcre2-10.48",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
           ]
         },
         {
@@ -7752,37 +5789,6 @@
           ]
         },
         {
-          "hash_name": "firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7",
-          "nar_hash": "sha256:0v05zf3hysdg6pqi3gc4p7hmi83wmyfzgp3m55mx902na3zmf394",
-          "nar_size": 100056,
-          "references": [
-            "firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "fl7xj4bahw025r9nw6d9vgb4043665mj-libxext-1.3.7-dev",
-          "nar_hash": "sha256:1bkwv4qciravjn9bk7y9zplkm3vi1kz0n028710cf37pv7hijgi3",
-          "nar_size": 60336,
-          "references": [
-            "ca5a9x0y311vmw1a1sj6d00z0jwaviwv-libxau-1.0.12-dev",
-            "firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7",
-            "fl7xj4bahw025r9nw6d9vgb4043665mj-libxext-1.3.7-dev",
-            "zhqvgsbq8ridrhr67qbxnq8rrbx6hvfj-xorgproto-2025.1"
-          ]
-        },
-        {
-          "hash_name": "flaxmyhf7bmgqalnkjf3spj81933x8ip-libxdamage-1.1.7-dev",
-          "nar_hash": "sha256:17n50vh57n6ijavklpgp517vppw40xamfzlxcq86nglin8143454",
-          "nar_size": 4632,
-          "references": [
-            "flaxmyhf7bmgqalnkjf3spj81933x8ip-libxdamage-1.1.7-dev",
-            "kg5wp6wavf5p7v6shcccyqxy2nlzsn5s-libxdamage-1.1.7",
-            "zhqvgsbq8ridrhr67qbxnq8rrbx6hvfj-xorgproto-2025.1"
-          ]
-        },
-        {
           "hash_name": "fy8mxgdjvjvmagv2igmj428a9j17hpcf-binutils-wrapper-2.46",
           "nar_hash": "sha256:1mim29wysa0rzl90sag1wsv5n5ls019kx2rg1wk4y77zkc4b8kc4",
           "nar_size": 56672,
@@ -7810,17 +5816,6 @@
           "references": [
             "gckp2y92mdfny4cydahvgghxxm968l1n-qrencode-4.1.1",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "gfkkr23q11kvyz6xxyxz3qbsp1msxdcv-gettext-1.0",
-          "nar_hash": "sha256:0gbjjk1m76720h48q8aihn6g7h0y5w42inhsj3b7jmimzkiv02pb",
-          "nar_size": 24845480,
-          "references": [
-            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
-            "gfkkr23q11kvyz6xxyxz3qbsp1msxdcv-gettext-1.0",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib"
           ]
         },
         {
@@ -7885,16 +5880,6 @@
           ]
         },
         {
-          "hash_name": "h2jrsr48ss7i2lq9bscyqjmj2y8pmk4a-unzip-6.0",
-          "nar_hash": "sha256:1vn1pgadi45fjk4clzd06grrhgc1ppqawh4l4mlc1bn1p674cvyh",
-          "nar_size": 551136,
-          "references": [
-            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "mpqgjnlmzy3c5hslbgyc3s7zfz3m32lg-bzip2-1.0.8"
-          ]
-        },
-        {
           "hash_name": "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
           "nar_hash": "sha256:0fr2nsbz2dnfhanm1flhgm8wr0adqk05zip2q6li5z87jk6s6b63",
           "nar_size": 35578272,
@@ -7948,16 +5933,6 @@
           "nar_size": 16976,
           "references": [
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "i78gq1wwiirwckasx47s17jkr4b5l7qn-libdrm-2.4.134-dev",
-          "nar_hash": "sha256:1h1z897j1aq2w0b4zsbb88f5na7g197y9sa4wrdb52svdz43nmkv",
-          "nar_size": 838008,
-          "references": [
-            "0yvm79dfl53xg4vi2mg01cljfpnxkcnc-libdrm-2.4.134",
-            "i78gq1wwiirwckasx47s17jkr4b5l7qn-libdrm-2.4.134-dev",
-            "qg6h94nnixji9qnm5znp0aa2isfdyl2b-libdrm-2.4.134-bin"
           ]
         },
         {
@@ -8053,24 +6028,6 @@
           "hash_name": "ji8rxpmpb7wkyalnv4pfqqzf0x7z11ni-n8n-mockserver-5.15.0"
         },
         {
-          "hash_name": "jipb8y1xzhxjga5iccw8jmas0bc0px47-glib-2.88.3-dev",
-          "nar_hash": "sha256:0nyq7225p1c4csx9savly1ga1yxwranp0scqv71aqsz4mbm8kldz",
-          "nar_size": 15781632,
-          "references": [
-            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
-            "2fhx5hvmnmg9cxm00fd0nv3xyl4kkp8v-glibc-iconv-2.44",
-            "2vhzbwl700sah6wd97k56pndyi5qhq2h-glib-2.88.3-bin",
-            "3dkchpfn8r3ipsccl1001xhcl5smfjdx-glib-2.88.3",
-            "879xd5x23lfd4l93jz71yaz06wa15yc1-zlib-1.3.2-dev",
-            "gfkkr23q11kvyz6xxyxz3qbsp1msxdcv-gettext-1.0",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "jipb8y1xzhxjga5iccw8jmas0bc0px47-glib-2.88.3-dev",
-            "lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7",
-            "s7306mp3pdbw8xx2gicsqvyganjhsywp-elfutils-0.195",
-            "sv7pxhijbx78q5ppq0h2111bb8yai0p4-libffi-3.8.0-dev"
-          ]
-        },
-        {
           "hash_name": "jp6w9riaqyh7871qjgmdxvc73q6j8ymn-nettle-3.10.2",
           "nar_hash": "sha256:04f2m5p38gq71h8h0496pm1drddqz4ql281ldd3sjxdfijlc5aqr",
           "nar_size": 749040,
@@ -8089,32 +6046,12 @@
           ]
         },
         {
-          "hash_name": "jrh7qrz5570y72zlhcmb29i3p351351d-libxrender-0.9.12-dev",
-          "nar_hash": "sha256:0pnr2py7dz9nwcayql6qrm5zcg8drrkq3q136nz899xhlgydw5lw",
-          "nar_size": 36160,
-          "references": [
-            "2mcjx364ls9id3ngdjxd707j2az2aid2-libx11-1.8.13-dev",
-            "f6z2258liq5vbiah6jrkvy4iymdq2c5a-libxrender-0.9.12",
-            "jrh7qrz5570y72zlhcmb29i3p351351d-libxrender-0.9.12-dev",
-            "zhqvgsbq8ridrhr67qbxnq8rrbx6hvfj-xorgproto-2025.1"
-          ]
-        },
-        {
           "hash_name": "jsv8ag4vdxibw7533mh8c485xrzmc4lv-c-ares-1.34.8",
           "nar_hash": "sha256:16cpwgcgvj4y1c102c1b3i8cc8jk0rxw06267lh761kkdq01rrl6",
           "nar_size": 400800,
           "references": [
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "jsv8ag4vdxibw7533mh8c485xrzmc4lv-c-ares-1.34.8"
-          ]
-        },
-        {
-          "hash_name": "jxqrv7q8ydpsc2m9zli83bjsabq0rxs0-libxfixes-6.0.2-dev",
-          "nar_hash": "sha256:1v0hdz26hlbm929qcqhkiyqhcgyq4bwiyx755c7c2707al1p1cqw",
-          "nar_size": 9992,
-          "references": [
-            "jxqrv7q8ydpsc2m9zli83bjsabq0rxs0-libxfixes-6.0.2-dev",
-            "l5y7fz08zvrqiinb90j1r922ymncb0sj-libxfixes-6.0.2"
           ]
         },
         {
@@ -8137,35 +6074,12 @@
           ]
         },
         {
-          "hash_name": "kg5wp6wavf5p7v6shcccyqxy2nlzsn5s-libxdamage-1.1.7",
-          "nar_hash": "sha256:0h79xaazij37mwqb6ajp6q3bcl505ig82hfg3vbb1170b7hbbyfr",
-          "nar_size": 18368,
-          "references": [
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "kg5wp6wavf5p7v6shcccyqxy2nlzsn5s-libxdamage-1.1.7",
-            "l5y7fz08zvrqiinb90j1r922ymncb0sj-libxfixes-6.0.2",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-          ]
-        },
-        {
           "hash_name": "kkf8p18x7bzclm671aq839qnp0rc3r5s-util-linux-minimal-2.42.3-login",
           "nar_hash": "sha256:09a0izaj0sf8z2lzjn0bybivj8cyhc07kvm8hkskzasahdrf5fxx",
           "nar_size": 98360,
           "references": [
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "wx1y0adli2qggk81pm4marx3km1scqxg-libxcrypt-4.5.2"
-          ]
-        },
-        {
-          "hash_name": "knm96d081dl0mhbbdbmi2gwqj2sn0jbh-mesa-libgbm-26.1.3",
-          "nar_hash": "sha256:0n5flxym7fwcy3mnilcw8fvbw07a4rca3sjpsc5g9bz18794hiah",
-          "nar_size": 59648,
-          "references": [
-            "0yvm79dfl53xg4vi2mg01cljfpnxkcnc-libdrm-2.4.134",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "i78gq1wwiirwckasx47s17jkr4b5l7qn-libdrm-2.4.134-dev",
-            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
-            "knm96d081dl0mhbbdbmi2gwqj2sn0jbh-mesa-libgbm-26.1.3"
           ]
         },
         {
@@ -8227,42 +6141,6 @@
           ]
         },
         {
-          "hash_name": "l5y7fz08zvrqiinb90j1r922ymncb0sj-libxfixes-6.0.2",
-          "nar_hash": "sha256:09237swv7s88mfqhfwifakq9qyrxqv1d4s0nlcxlv64ib292fk84",
-          "nar_size": 34736,
-          "references": [
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "l5y7fz08zvrqiinb90j1r922ymncb0sj-libxfixes-6.0.2",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7",
-          "nar_hash": "sha256:07dh1hamhgn2gqsfzkyilnh876xpfcmfzpghvmab0g857v8q9gqv",
-          "nar_size": 143188008,
-          "references": [
-            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
-            "328fx8r0jb6l2ai4cli7fhp8g26fbfnh-util-linux-minimal-2.42.3-lib",
-            "67v4318ajiy9ia2wz14hqj7idy5181is-gdbm-1.26-lib",
-            "9j086va2zn7ifgdc3h3jlqbi2c23j1x5-mailcap-2.1.54",
-            "9x0m6s73sg89fv5awb95vsac2mbns8n0-sqlite-3.53.3",
-            "cq65g1vyyiklplv6n2fgrjwxa6b4xfs9-mpdecimal-4.0.1",
-            "cxd8d2vg70c3pa31v2473hphaa1v0j44-openssl-3.5.8",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "hzqwc6pv8sb9qrwivc4h42cr811gs1mk-ncurses-6.6",
-            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
-            "lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7",
-            "mpqgjnlmzy3c5hslbgyc3s7zfz3m32lg-bzip2-1.0.8",
-            "n8fqcpnr5ni28l3i9svqa70wz46798v9-tzdata-2026d",
-            "ph4ib8mxy5yrw40k7a1l03bfd58hq6wj-zstd-1.5.7",
-            "pi2b23y3gv6zgcziwbgnihf8gam1cmlp-libffi-3.8.0",
-            "vkwq2iap75p0srizppc3jl2j5b1lxpln-xz-5.8.4",
-            "wgw25d181h0qks7qsfp1bh7c5nd3f0s7-zlib-1.3.2",
-            "xnam05aa3vc7aqbbdixpwcdb8dpv71xn-readline-8.3p3",
-            "zrkqwk0989k5wa1gn3cjb76jfga3d8i3-expat-2.8.5"
-          ]
-        },
-        {
           "hash_name": "lhk23vackrdgmxya733h3wp01xz622gn-libpsl-0.21.5",
           "nar_hash": "sha256:1fyihj6k6bdnrnvcza3w90639bx8vsmza105vswam3hci31ybdx2",
           "nar_size": 117616,
@@ -8272,16 +6150,6 @@
             "lhk23vackrdgmxya733h3wp01xz622gn-libpsl-0.21.5",
             "q0lbdx5yv93a3md74kjhm0v2kljjii89-libidn2-2.3.8",
             "vc5lcyxg999ix0wvm7wdhk8dkj625kdc-publicsuffix-list-0-unstable-2026-09-02"
-          ]
-        },
-        {
-          "hash_name": "li1008zymvj7sz8jkdk9brkslfq9jy8w-wayland-1.26.0",
-          "nar_hash": "sha256:00kylvgmgsydm8xw53qnm0bryk89m4npazhc8w3jif6y20rn0i79",
-          "nar_size": 274824,
-          "references": [
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "li1008zymvj7sz8jkdk9brkslfq9jy8w-wayland-1.26.0",
-            "pi2b23y3gv6zgcziwbgnihf8gam1cmlp-libffi-3.8.0"
           ]
         },
         {
@@ -8421,26 +6289,6 @@
           "references": []
         },
         {
-          "hash_name": "na15wi41vvq97gam0yvixvm8gl0jq51k-noto-fonts-color-emoji-2.051",
-          "nar_hash": "sha256:101ibfvnq7fm71bvd6ns2md0rbv182q9qd6mbrf9gqvixvnzmc5p",
-          "nar_size": 10674096,
-          "references": []
-        },
-        {
-          "hash_name": "nvrv5w6rhc39h8snrsw03nqs679cf7rh-libxkbcommon-1.13.2",
-          "nar_hash": "sha256:1z94zfq31hdc2wj58ld0y8bl9k7svvxvx638qqz79ybmcimwm5ml",
-          "nar_size": 1122528,
-          "references": [
-            "cvr8yyrrqnjxgd7bs6lwgra4qma7kwl9-libxcb-1.17.0",
-            "dhh914f45jbb1jb7pig8qj9ahq5a779d-xkeyboard-config-2.48",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "li1008zymvj7sz8jkdk9brkslfq9jy8w-wayland-1.26.0",
-            "nvrv5w6rhc39h8snrsw03nqs679cf7rh-libxkbcommon-1.13.2",
-            "vfj3fn7rp56w7f3xy6vz5s41nziv4jgm-libxml2-2.15.4",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-          ]
-        },
-        {
           "hash_name": "p53hgy9s8702djxkwy41gscld5b05x3s-uvwasi-0.0.23-dev",
           "nar_hash": "sha256:052dvgnyalzj74f5gh48h1ahlifna5dy4lqcxb27mggk1lr4llqh",
           "nar_size": 43424,
@@ -8519,12 +6367,6 @@
           ]
         },
         {
-          "hash_name": "q183bjraabp3b5xaf5plkb87rq645fvy-liberation-fonts-2.1.5",
-          "nar_hash": "sha256:11jpfkiv7dhqi59a7qn9pf65qi49njblr7kmpx5672fkkbv1n642",
-          "nar_size": 4356696,
-          "references": []
-        },
-        {
           "hash_name": "q230vs5rqpyk1lya3j125ahw35xp0vra-libmicrohttpd-1.0.10",
           "nar_hash": "sha256:01k8w8hxn9yw9mgx72clq17wy3a02ijaxdgs0gpiy95w5r4adgqk",
           "nar_size": 287264,
@@ -8569,44 +6411,6 @@
           ]
         },
         {
-          "hash_name": "qg23qszvwv9wg125x96k1vlgby75bn2s-systemd-minimal-261.3",
-          "nar_hash": "sha256:00yqyfr48jp6wwjpksfcvq7jir1pl7xn3zam9x2pcpyxq9234302",
-          "nar_size": 23337952,
-          "references": [
-            "0a9k0r3wf695ibidnygdx6kkx8zhdhhg-kmod-31-lib",
-            "2gfxiwls9hbgwdwcy43mprchwsq36mg6-coreutils-9.11",
-            "328fx8r0jb6l2ai4cli7fhp8g26fbfnh-util-linux-minimal-2.42.3-lib",
-            "8wi2xfhr9riz57yh5ndmcmd1x0f0k11g-util-linux-minimal-2.42.3-mount",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "kkf8p18x7bzclm671aq839qnp0rc3r5s-util-linux-minimal-2.42.3-login",
-            "n62wk9gdqqbx6pwirlxpz25cxyap5428-util-linux-minimal-2.42.3-swap",
-            "qg23qszvwv9wg125x96k1vlgby75bn2s-systemd-minimal-261.3",
-            "vd8b7jqgpcjy092rvbjnarwzbhlfylr6-kmod-31",
-            "wx1y0adli2qggk81pm4marx3km1scqxg-libxcrypt-4.5.2"
-          ]
-        },
-        {
-          "hash_name": "qg6h94nnixji9qnm5znp0aa2isfdyl2b-libdrm-2.4.134-bin",
-          "nar_hash": "sha256:05qv5ys7zq3ahsy30xwgn3fn46ja462jbbvh02hxmncl1zglgcaa",
-          "nar_size": 546848,
-          "references": [
-            "0yvm79dfl53xg4vi2mg01cljfpnxkcnc-libdrm-2.4.134",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
-          "hash_name": "qljkaaa4v37lyc43c91pvz5fsgf8j2wg-libxtst-1.2.5",
-          "nar_hash": "sha256:1pf1drvcsyag31j21n1wvx7lslf12kibzpw9q3h3pa068zg9ij4v",
-          "nar_size": 124448,
-          "references": [
-            "firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "qljkaaa4v37lyc43c91pvz5fsgf8j2wg-libxtst-1.2.5",
-            "sp7qi6d789jbkbn0mpzna06gbxlm5gzi-libxi-1.8.3",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-          ]
-        },
-        {
           "hash_name": "qmhksr7a5niv5kc2yslal3lq55inny75-p11-kit-0.26.2",
           "nar_hash": "sha256:1jswdhmrxb4xy1n5jsp4a05616l8if13n2zk0a53axwd4wpz8cyp",
           "nar_size": 6043352,
@@ -8640,41 +6444,12 @@
           ]
         },
         {
-          "hash_name": "qwybnlp70s17h7zvmb8kz45fz91011my-libxdmcp-1.1.5",
-          "nar_hash": "sha256:1valr4i4pmz84s443y2b47d795lp80pb5a07gs3i9pg8nda3xwl7",
-          "nar_size": 31912,
-          "references": [
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "qwybnlp70s17h7zvmb8kz45fz91011my-libxdmcp-1.1.5"
-          ]
-        },
-        {
-          "hash_name": "r0qrx78hday3gr8dznxnniaf98c8lzjl-gsettings-desktop-schemas-50.1",
-          "nar_hash": "sha256:1hdb54f6g2kpchmr849m96fw3r0lfc2x5flfsymj27bj7v8pqdwh",
-          "nar_size": 6483088,
-          "references": [
-            "r0qrx78hday3gr8dznxnniaf98c8lzjl-gsettings-desktop-schemas-50.1"
-          ]
-        },
-        {
-          "hash_name": "r1wcxf9g01ghzxs21lp49sa192l6j5v8-systemd-minimal-libs-261.3-dev",
-          "nar_hash": "sha256:0rjzjkrlxwqp8y6ym09v9iwbncr4jfh2z2gg1mrl2q5psg1avvhl",
-          "nar_size": 269648,
-          "references": [
-            "gvhdvn542cwd3wr2978nh4ydzp89msq7-systemd-minimal-libs-261.3",
-            "r1wcxf9g01ghzxs21lp49sa192l6j5v8-systemd-minimal-libs-261.3-dev"
-          ]
-        },
-        {
           "hash_name": "r9n1wja9zhj3w4r71pggxal3c6xqak2a-nghttp3-1.17.0",
           "nar_hash": "sha256:0fk1mljz3yxzqpvsyrb151bxl3b6l71dviky0arbcz28hhwii8w7",
           "nar_size": 238008,
           "references": [
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
           ]
-        },
-        {
-          "hash_name": "rc5r3wpjzr7j5s4mxj8ilnwgaj1fnxr8-playwright-browsers-1.62.1"
         },
         {
           "hash_name": "rxgngn06ihrwh52bfi4vmm0i2ds69wsj-bash-interactive-5.3p15-dev",
@@ -8713,16 +6488,6 @@
           ]
         },
         {
-          "hash_name": "s76zlinrq94xk2y0b4vfjypr9qlcqppf-libxrandr-1.5.5-dev",
-          "nar_hash": "sha256:1nbzjq933ivagnvkhzhv84jzhp78v0kxl194kirah9x2z7vsfk0i",
-          "nar_size": 19376,
-          "references": [
-            "jrh7qrz5570y72zlhcmb29i3p351351d-libxrender-0.9.12-dev",
-            "s76zlinrq94xk2y0b4vfjypr9qlcqppf-libxrandr-1.5.5-dev",
-            "w8szff2i3dyf21v08j9yvpznfr7518wi-libxrandr-1.5.5"
-          ]
-        },
-        {
           "hash_name": "sf2rzaylqrxig1lz0xcrvmhdmm9zn6y0-jemalloc-5.3.1",
           "nar_hash": "sha256:1iw9r6k90mfikka3mx3rs1rz6nr9ib4cic7zdbnrmpnk5qgns5a8",
           "nar_size": 1385552,
@@ -8746,27 +6511,6 @@
           ]
         },
         {
-          "hash_name": "sp7qi6d789jbkbn0mpzna06gbxlm5gzi-libxi-1.8.3",
-          "nar_hash": "sha256:0wnv6yfzdyc0bvw2nxbmhvhckxnap1fm7bl2ynkwn7gps6x5qlcx",
-          "nar_size": 90088,
-          "references": [
-            "firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "sp7qi6d789jbkbn0mpzna06gbxlm5gzi-libxi-1.8.3",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-          ]
-        },
-        {
-          "hash_name": "sp8nbh3r8vgaj5lxv0j0awp02kcwxfj2-nspr-4.40-dev",
-          "nar_hash": "sha256:1k9srl20ni01j8v0kbr7kz97yrpm5cx94cpw7z2fwbbadch88sxf",
-          "nar_size": 591672,
-          "references": [
-            "10dxp0qxqxxsyiljrh2kp0xqhz6arhcx-bash-5.3p15",
-            "8pcrdazxyw8b1n3i0v9d2r3g38hrgw63-nspr-4.40",
-            "sp8nbh3r8vgaj5lxv0j0awp02kcwxfj2-nspr-4.40-dev"
-          ]
-        },
-        {
           "hash_name": "srvyqaf88njyqsrs1ajz3hznvdqq8hlw-glibc-2.44-25-bin",
           "nar_hash": "sha256:0rf3f7wi3jii1krwnlbhsjh04qq61q7vj1sd723azg6c46c643zn",
           "nar_size": 3073648,
@@ -8774,15 +6518,6 @@
             "g60m3aky9f59wgy1gi0y06xwmbw19d6m-xgcc-16.2.0-libgcc",
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "srvyqaf88njyqsrs1ajz3hznvdqq8hlw-glibc-2.44-25-bin"
-          ]
-        },
-        {
-          "hash_name": "sv7pxhijbx78q5ppq0h2111bb8yai0p4-libffi-3.8.0-dev",
-          "nar_hash": "sha256:181ykf4a86sg73s3iapnwsdyxvka77q3bbhrplqry4lvzgfv7xa4",
-          "nar_size": 24056,
-          "references": [
-            "pi2b23y3gv6zgcziwbgnihf8gam1cmlp-libffi-3.8.0",
-            "sv7pxhijbx78q5ppq0h2111bb8yai0p4-libffi-3.8.0-dev"
           ]
         },
         {
@@ -8858,45 +6593,12 @@
           ]
         },
         {
-          "hash_name": "w58917dqbdfl7g7fdwgmlw9wbqyc5ldq-alsa-ucm-conf-1.2.16.1",
-          "nar_hash": "sha256:0wmyvwzvbqpnz2bqzzmv3xq993qfhfrgm77k1fnijzp3cr08lf7y",
-          "nar_size": 936792,
-          "references": [
-            "2gfxiwls9hbgwdwcy43mprchwsq36mg6-coreutils-9.11",
-            "vd8b7jqgpcjy092rvbjnarwzbhlfylr6-kmod-31"
-          ]
-        },
-        {
           "hash_name": "w5sz8y5yhcpa1ckcm54lqdds7cjvqr6m-libev-4.33",
           "nar_hash": "sha256:027cxxd98x7rf1bq34bf3xmmc9ds3cnkx7rvxrm0ljjblhnsl1m3",
           "nar_size": 231336,
           "references": [
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "w5sz8y5yhcpa1ckcm54lqdds7cjvqr6m-libev-4.33"
-          ]
-        },
-        {
-          "hash_name": "w8av21sbpvrvib4vyml8j28y8w8ij097-python3-3.14.7-env",
-          "nar_hash": "sha256:0zhyfa9rh1ib19i02f63jamlywl33p5na542vsv7p86ja2r50fh7",
-          "nar_size": 239712,
-          "references": [
-            "ainqizsc7xrldv7q4ygsbawiy31jzwzj-python3.14-pyelftools-0.32",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
-            "lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7",
-            "w8av21sbpvrvib4vyml8j28y8w8ij097-python3-3.14.7-env"
-          ]
-        },
-        {
-          "hash_name": "w8szff2i3dyf21v08j9yvpznfr7518wi-libxrandr-1.5.5",
-          "nar_hash": "sha256:16qki04kjgzsmpblk2wnch5aqqphc24l90h9dgw24fi0nrliic03",
-          "nar_size": 64112,
-          "references": [
-            "f6z2258liq5vbiah6jrkvy4iymdq2c5a-libxrender-0.9.12",
-            "firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "w8szff2i3dyf21v08j9yvpznfr7518wi-libxrandr-1.5.5",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
           ]
         },
         {
@@ -8941,15 +6643,6 @@
           ]
         },
         {
-          "hash_name": "wv0waflchr84an8wrm5v0jhbhz3kp6gs-libxcb-1.17.0-dev",
-          "nar_hash": "sha256:0aihw9wq6rrv87ph223wqbq7n382wjpvhla6qcc0dwyy33lll7yj",
-          "nar_size": 2154664,
-          "references": [
-            "cvr8yyrrqnjxgd7bs6lwgra4qma7kwl9-libxcb-1.17.0",
-            "wv0waflchr84an8wrm5v0jhbhz3kp6gs-libxcb-1.17.0-dev"
-          ]
-        },
-        {
           "hash_name": "wx1y0adli2qggk81pm4marx3km1scqxg-libxcrypt-4.5.2",
           "nar_hash": "sha256:0q46pm0if7jlc9r2v7bk2jj32gzy93mzs9fv20m99flxw0x0q4r4",
           "nar_size": 152544,
@@ -8988,14 +6681,6 @@
           ]
         },
         {
-          "hash_name": "xadrivsjgk1bslbd64hq9zakin7vp6nr-dejavu-fonts-2.37",
-          "nar_hash": "sha256:1l0n8yg2q5dl68562hni4v6wbr1nh3dh7qmyjl3javx89c4msyr5",
-          "nar_size": 9485360,
-          "references": [
-            "2ppmsk65csi9d1d05c43jhl2r2z5lrjf-dejavu-fonts-minimal-2.37"
-          ]
-        },
-        {
           "hash_name": "xjn862icpw4y48i3mnyl2bgxx30fsjbp-libarchive-3.8.9-lib",
           "nar_hash": "sha256:05d676ylyc813zn2mw2cga8iq5r035ph3cmyax8aqvrs4zc1xhd2",
           "nar_size": 1009688,
@@ -9012,32 +6697,12 @@
           ]
         },
         {
-          "hash_name": "xjynyjk0vin5nvqw24050yfyb3czgrdm-libxau-1.0.12",
-          "nar_hash": "sha256:02p8fk60vpwql39dhw6d7xz0in35cx8c2vk33siylnk7vwz3awfp",
-          "nar_size": 27792,
-          "references": [
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "xjynyjk0vin5nvqw24050yfyb3czgrdm-libxau-1.0.12"
-          ]
-        },
-        {
           "hash_name": "xkkrna0fgx96iv6zfs1zivz48qmhyj8y-nodejs-slim-24.21.0-npm",
           "nar_hash": "sha256:07xp5s62w5835fq16gzz32ncmq9klwawfj8hcpbpssnfmdgkq191",
           "nar_size": 12759200,
           "references": [
             "1mv3qz005gkbalxfghk4y3s8ayv4d2dl-bash-interactive-5.3p15",
             "m0256z6rrjwmvxkbymm7a28n0nw2zll9-nodejs-slim-24.21.0"
-          ]
-        },
-        {
-          "hash_name": "xlqm12gx3s3f7dc1a5pnfk4p2niw2lri-alsa-lib-1.2.16.1",
-          "nar_hash": "sha256:1dqmza2jfln901am83bj3figpfy04asyphx34v5djg4q2br9h1fi",
-          "nar_size": 1913920,
-          "references": [
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "w58917dqbdfl7g7fdwgmlw9wbqyc5ldq-alsa-ucm-conf-1.2.16.1",
-            "xlqm12gx3s3f7dc1a5pnfk4p2niw2lri-alsa-lib-1.2.16.1",
-            "z9rkc8ymlg1ddpsp5zk34chqwcghd51l-alsa-topology-conf-1.2.5.1"
           ]
         },
         {
@@ -9067,15 +6732,6 @@
             "9x0m6s73sg89fv5awb95vsac2mbns8n0-sqlite-3.53.3",
             "iy2zkfn4l0w24xabv6ryi0vh7bpjvqm6-sqlite-3.53.3-bin",
             "xrcjl59yi7zswbv0vzm8cmvw4vplsbgj-sqlite-3.53.3-dev"
-          ]
-        },
-        {
-          "hash_name": "xsr31a55xsfdvzdd846lwljmi3dxgjg7-alsa-lib-1.2.16.1-dev",
-          "nar_hash": "sha256:1djn23h2msvni7yljjprvrdbi11n7jkfb4mikh76glswh64ml2kq",
-          "nar_size": 519152,
-          "references": [
-            "xlqm12gx3s3f7dc1a5pnfk4p2niw2lri-alsa-lib-1.2.16.1",
-            "xsr31a55xsfdvzdd846lwljmi3dxgjg7-alsa-lib-1.2.16.1-dev"
           ]
         },
         {
@@ -9143,15 +6799,6 @@
           ]
         },
         {
-          "hash_name": "yqshkxpq1p0rsnm4g0lm3zwhzb74cqp8-dconf-0.49.0-lib",
-          "nar_hash": "sha256:1w1z66cd5cwyc51l2flxfn8bs797lmm3hvwsn78shr2ls5kx7rc3",
-          "nar_size": 340384,
-          "references": [
-            "3dkchpfn8r3ipsccl1001xhcl5smfjdx-glib-2.88.3",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
-          ]
-        },
-        {
           "hash_name": "yvz0mgkzdb31myfjaf39l8ibl05lvgk0-simdjson-4.6.8-dev",
           "nar_hash": "sha256:0khz7fyl1plrr2bpbysn9sf5930zrrf8hm3sdx407l3dh5ydrzbv",
           "nar_size": 7742408,
@@ -9182,12 +6829,6 @@
           ]
         },
         {
-          "hash_name": "z9rkc8ymlg1ddpsp5zk34chqwcghd51l-alsa-topology-conf-1.2.5.1",
-          "nar_hash": "sha256:0pjnlwgic5c8lgi67kc8fh6i5y101v5nkxfp66izymy8dwin8vry",
-          "nar_size": 344168,
-          "references": []
-        },
-        {
           "hash_name": "zanji5hpfg98zl65a1j8lxy1na04rhmx-openjdk-headless-17.0.20.1+1",
           "nar_hash": "sha256:05yjw7as5x1r3w5vx6xhz8h12v15frldl0jqhyfk4hmj16sqcamr",
           "nar_size": 494135176,
@@ -9214,14 +6855,6 @@
           ]
         },
         {
-          "hash_name": "zhqvgsbq8ridrhr67qbxnq8rrbx6hvfj-xorgproto-2025.1",
-          "nar_hash": "sha256:0bkys8sjfygddjl13bh7ypa69gmbv0rpyk0a3bv23x8xqp6rrjk9",
-          "nar_size": 1715192,
-          "references": [
-            "zhqvgsbq8ridrhr67qbxnq8rrbx6hvfj-xorgproto-2025.1"
-          ]
-        },
-        {
           "hash_name": "zmcwdg75vlrrr65n28lb279xrm319712-icu4c-78.3",
           "nar_hash": "sha256:00cnp5aj35f0yvimds2y9yx8wsb23l6gw5qpazpilvnl438vk00y",
           "nar_size": 41620296,
@@ -9229,16 +6862,6 @@
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
             "zmcwdg75vlrrr65n28lb279xrm319712-icu4c-78.3"
-          ]
-        },
-        {
-          "hash_name": "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13",
-          "nar_hash": "sha256:11amws7z8dw13cwi9x5m09cxxm8ysv0acs6fslb38vf8nxz77qa4",
-          "nar_size": 2729168,
-          "references": [
-            "cvr8yyrrqnjxgd7bs6lwgra4qma7kwl9-libxcb-1.17.0",
-            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
           ]
         },
         {
@@ -9254,40 +6877,6 @@
       "coherence": {
         "buildIdentities": {
           "n8n-mockserver": [
-            57,
-            168,
-            18,
-            166,
-            245,
-            153,
-            151,
-            6,
-            131,
-            119,
-            138,
-            81,
-            112,
-            62,
-            211,
-            164,
-            113,
-            188,
-            188,
-            71,
-            97,
-            194,
-            46,
-            17,
-            68,
-            250,
-            102,
-            57,
-            217,
-            127,
-            254,
-            169
-          ],
-          "playwright-browsers": [
             57,
             168,
             18,
@@ -9360,35 +6949,6 @@
           "packages": [
             {
               "constraint": {
-                "attr": "alsa-lib",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "alsa-lib",
-                "name": "alsa-lib",
-                "origin": {
-                  "Channel": {
-                    "build": 347084466,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/xsr31a55xsfdvzdd846lwljmi3dxgjg7-alsa-lib-1.2.16.1-dev",
-                  "out": "/nix/store/xlqm12gx3s3f7dc1a5pnfk4p2niw2lri-alsa-lib-1.2.16.1"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/xlqm12gx3s3f7dc1a5pnfk4p2niw2lri-alsa-lib-1.2.16.1"
-                ],
-                "version": "1.2.16.1"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "apacheKafka",
                 "context": "profiles.dev",
                 "output": null,
@@ -9413,64 +6973,6 @@
                   "/nix/store/48fnvwrhq49mfkp4wwds4p0jqk73fzl2-apache-kafka-2.13-4.3.1"
                 ],
                 "version": "2.13-4.3.1"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "atk",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "atk",
-                "name": "at-spi2-core",
-                "origin": {
-                  "Channel": {
-                    "build": 347086375,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "debug": "/nix/store/srdmkap0j0nws2yws2rnv983akda1py6-at-spi2-core-2.60.6-debug",
-                  "dev": "/nix/store/1cwhgw8ln287pbdr6c8x4vxbbx668wgb-at-spi2-core-2.60.6-dev",
-                  "out": "/nix/store/4g39rajyrxqn3na1kd4pykdigsr82af5-at-spi2-core-2.60.6"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/4g39rajyrxqn3na1kd4pykdigsr82af5-at-spi2-core-2.60.6"
-                ],
-                "version": "2.60.6"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "auto-patchelf",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "auto-patchelf",
-                "name": "auto-patchelf",
-                "origin": {
-                  "Channel": {
-                    "build": 347086584,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/di2qjpsj3zy5vxdqxnvmc2a7syszlz4g-auto-patchelf-0-unstable-2024-08-14"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/di2qjpsj3zy5vxdqxnvmc2a7syszlz4g-auto-patchelf-0-unstable-2024-08-14"
-                ],
-                "version": "0-unstable-2024-08-14"
               }
             },
             {
@@ -9571,96 +7073,6 @@
             },
             {
               "constraint": {
-                "attr": "dbus",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "dbus",
-                "name": "dbus",
-                "origin": {
-                  "Channel": {
-                    "build": 347098481,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "debug": "/nix/store/6ifg9vcm1cp0yamjw9jbkf0w51wjwq7i-dbus-1.16.2-debug",
-                  "dev": "/nix/store/cv0s6xg40h52gcwapidpc5q9dy44w2c2-dbus-1.16.2-dev",
-                  "doc": "/nix/store/f9n5pmqa64y785671a1qbnznsgp9rn91-dbus-1.16.2-doc",
-                  "lib": "/nix/store/d34lp4b2b0glnmwf7ij3ha8mrmb30l64-dbus-1.16.2-lib",
-                  "man": "/nix/store/3pq2b0c6zy2v95dcnrax2y1ls6kj6y43-dbus-1.16.2-man",
-                  "out": "/nix/store/8snmq54bp5d5vp5dihgn7xr53hayx629-dbus-1.16.2"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/8snmq54bp5d5vp5dihgn7xr53hayx629-dbus-1.16.2"
-                ],
-                "version": "1.16.2"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "dejavu_fonts",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "dejavu_fonts",
-                "name": "dejavu-fonts",
-                "origin": {
-                  "Channel": {
-                    "build": 347098746,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/xadrivsjgk1bslbd64hq9zakin7vp6nr-dejavu-fonts-2.37"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/xadrivsjgk1bslbd64hq9zakin7vp6nr-dejavu-fonts-2.37"
-                ],
-                "version": "2.37"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "expat",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "expat",
-                "name": "expat",
-                "origin": {
-                  "Channel": {
-                    "build": 347102725,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/2g8d8m8r7i7bi00rm56fbk99scd7303z-expat-2.8.5-dev",
-                  "out": "/nix/store/zrkqwk0989k5wa1gn3cjb76jfga3d8i3-expat-2.8.5"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/zrkqwk0989k5wa1gn3cjb76jfga3d8i3-expat-2.8.5"
-                ],
-                "version": "2.8.5"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "flock",
                 "context": "profiles.dev",
                 "output": null,
@@ -9685,104 +7097,6 @@
                   "/nix/store/gjqnd9dw8svgcfhb6lvqrjy5hd6gxfqm-flock-0.4.0"
                 ],
                 "version": "0.4.0"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "gcc-unwrapped",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "gcc-unwrapped",
-                "name": "gcc",
-                "origin": {
-                  "Channel": {
-                    "build": 347105979,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "checksum": "/nix/store/m093wk48ix49crlpnriyr8lvxpkhnhs7-gcc-16.2.0-checksum",
-                  "info": "/nix/store/k7s2rdc3gzli5j0g5y6knsfrxm5mwj7a-gcc-16.2.0-info",
-                  "lib": "/nix/store/j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
-                  "libgcc": "/nix/store/q2mkz6ca1alqfqf750dygvakmq8kjrwz-gcc-16.2.0-libgcc",
-                  "man": "/nix/store/s22n97smsn3ilg8azajj8vv21j4fbis1-gcc-16.2.0-man",
-                  "out": "/nix/store/5q6bdxkp7lc70gn9mnf4yiybrx8ry5xq-gcc-16.2.0"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/5q6bdxkp7lc70gn9mnf4yiybrx8ry5xq-gcc-16.2.0"
-                ],
-                "version": "16.2.0"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "glib",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "glib",
-                "name": "glib",
-                "origin": {
-                  "Channel": {
-                    "build": 347107904,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "bin": "/nix/store/2vhzbwl700sah6wd97k56pndyi5qhq2h-glib-2.88.3-bin",
-                  "debug": "/nix/store/67x5wz5yvlld2njwwi877spdj9x856dz-glib-2.88.3-debug",
-                  "dev": "/nix/store/jipb8y1xzhxjga5iccw8jmas0bc0px47-glib-2.88.3-dev",
-                  "devdoc": "/nix/store/62cq5081ljj3dmp4g6lvzljd4mk92xs1-glib-2.88.3-devdoc",
-                  "out": "/nix/store/3dkchpfn8r3ipsccl1001xhcl5smfjdx-glib-2.88.3"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/2vhzbwl700sah6wd97k56pndyi5qhq2h-glib-2.88.3-bin"
-                ],
-                "version": "2.88.3"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "glibc",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "glibc",
-                "name": "glibc",
-                "origin": {
-                  "Channel": {
-                    "build": 347107913,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "bin": "/nix/store/srvyqaf88njyqsrs1ajz3hznvdqq8hlw-glibc-2.44-25-bin",
-                  "debug": "/nix/store/n9ngv70q5a964va3cxfrpcp6nh6n6xxa-glibc-2.44-25-debug",
-                  "dev": "/nix/store/m38wglsqnh1mrmj2cmqa3pjb6w4yjxdi-glibc-2.44-25-dev",
-                  "getent": "/nix/store/vmrimyiw0gkkdfx959h7n5p4zsggan9q-glibc-2.44-25-getent",
-                  "out": "/nix/store/h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
-                  "static": "/nix/store/d8wz7lxwlkxncvmhp9f4f7xsfnslfsmm-glibc-2.44-25-static"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/srvyqaf88njyqsrs1ajz3hznvdqq8hlw-glibc-2.44-25-bin"
-                ],
-                "version": "2.44"
               }
             },
             {
@@ -9812,300 +7126,6 @@
                   "/nix/store/wppd2j6g64i2mw646g1bzns2ca0xwjz4-openjdk-headless-21.0.12.1+1"
                 ],
                 "version": "21.0.12.1+1"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "liberation_ttf",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "liberation_ttf",
-                "name": "liberation-fonts",
-                "origin": {
-                  "Channel": {
-                    "build": 347147010,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/q183bjraabp3b5xaf5plkb87rq645fvy-liberation-fonts-2.1.5"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/q183bjraabp3b5xaf5plkb87rq645fvy-liberation-fonts-2.1.5"
-                ],
-                "version": "2.1.5"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libgbm",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libgbm",
-                "name": "mesa-libgbm",
-                "origin": {
-                  "Channel": {
-                    "build": 347147179,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/knm96d081dl0mhbbdbmi2gwqj2sn0jbh-mesa-libgbm-26.1.3"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/knm96d081dl0mhbbdbmi2gwqj2sn0jbh-mesa-libgbm-26.1.3"
-                ],
-                "version": "26.1.3"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libx11",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libx11",
-                "name": "libx11",
-                "origin": {
-                  "Channel": {
-                    "build": 347149493,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/2mcjx364ls9id3ngdjxd707j2az2aid2-libx11-1.8.13-dev",
-                  "man": "/nix/store/kgfys7hlpknlz614qr66n1la8nlmplcw-libx11-1.8.13-man",
-                  "out": "/nix/store/znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13"
-                ],
-                "version": "1.8.13"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxcb",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxcb",
-                "name": "libxcb",
-                "origin": {
-                  "Channel": {
-                    "build": 347149515,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/wv0waflchr84an8wrm5v0jhbhz3kp6gs-libxcb-1.17.0-dev",
-                  "doc": "/nix/store/0v7ca9bmj7pammavvbv9xyhmbrq582ng-libxcb-1.17.0-doc",
-                  "man": "/nix/store/q784bn80777ki78fqk4b2wxy6mxnkyz1-libxcb-1.17.0-man",
-                  "out": "/nix/store/cvr8yyrrqnjxgd7bs6lwgra4qma7kwl9-libxcb-1.17.0"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/cvr8yyrrqnjxgd7bs6lwgra4qma7kwl9-libxcb-1.17.0"
-                ],
-                "version": "1.17.0"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxcomposite",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxcomposite",
-                "name": "libxcomposite",
-                "origin": {
-                  "Channel": {
-                    "build": 347149540,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/5km0hqviyr3994y2z6r7bpn7vln1yfgp-libxcomposite-0.4.7-dev",
-                  "out": "/nix/store/a3rbzlj5wzxwjpncc0q9p6l64sc52m3y-libxcomposite-0.4.7"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/a3rbzlj5wzxwjpncc0q9p6l64sc52m3y-libxcomposite-0.4.7"
-                ],
-                "version": "0.4.7"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxdamage",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxdamage",
-                "name": "libxdamage",
-                "origin": {
-                  "Channel": {
-                    "build": 347149558,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/flaxmyhf7bmgqalnkjf3spj81933x8ip-libxdamage-1.1.7-dev",
-                  "out": "/nix/store/kg5wp6wavf5p7v6shcccyqxy2nlzsn5s-libxdamage-1.1.7"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/kg5wp6wavf5p7v6shcccyqxy2nlzsn5s-libxdamage-1.1.7"
-                ],
-                "version": "1.1.7"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxext",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxext",
-                "name": "libxext",
-                "origin": {
-                  "Channel": {
-                    "build": 347149570,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/fl7xj4bahw025r9nw6d9vgb4043665mj-libxext-1.3.7-dev",
-                  "doc": "/nix/store/7g0k9g8x1lbck34r1s5kyn3sj209y168-libxext-1.3.7-doc",
-                  "man": "/nix/store/9vrzdj6zvhvd42j5lwdlm3s0nh419sn2-libxext-1.3.7-man",
-                  "out": "/nix/store/firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7"
-                ],
-                "version": "1.3.7"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxfixes",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxfixes",
-                "name": "libxfixes",
-                "origin": {
-                  "Channel": {
-                    "build": 347149574,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/jxqrv7q8ydpsc2m9zli83bjsabq0rxs0-libxfixes-6.0.2-dev",
-                  "out": "/nix/store/l5y7fz08zvrqiinb90j1r922ymncb0sj-libxfixes-6.0.2"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/l5y7fz08zvrqiinb90j1r922ymncb0sj-libxfixes-6.0.2"
-                ],
-                "version": "6.0.2"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxkbcommon",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxkbcommon",
-                "name": "libxkbcommon",
-                "origin": {
-                  "Channel": {
-                    "build": 347149601,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/47nlx1dpb8zd73vjp2zms7r8k9xkzndp-libxkbcommon-1.13.2-dev",
-                  "doc": "/nix/store/zin5p5n7dnvx9ixqh3bdw7d0qfav6l80-libxkbcommon-1.13.2-doc",
-                  "out": "/nix/store/nvrv5w6rhc39h8snrsw03nqs679cf7rh-libxkbcommon-1.13.2"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/nvrv5w6rhc39h8snrsw03nqs679cf7rh-libxkbcommon-1.13.2"
-                ],
-                "version": "1.13.2"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "libxrandr",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "libxrandr",
-                "name": "libxrandr",
-                "origin": {
-                  "Channel": {
-                    "build": 347149666,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/s76zlinrq94xk2y0b4vfjypr9qlcqppf-libxrandr-1.5.5-dev",
-                  "out": "/nix/store/w8szff2i3dyf21v08j9yvpznfr7518wi-libxrandr-1.5.5"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/w8szff2i3dyf21v08j9yvpznfr7518wi-libxrandr-1.5.5"
-                ],
-                "version": "1.5.5"
               }
             },
             {
@@ -10164,122 +7184,6 @@
                   "/nix/store/gxq2cd70i077rah1d4hkzc1lpq8q4pv8-nodejs-24.21.0"
                 ],
                 "version": "24.21.0"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "noto-fonts-color-emoji",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "noto-fonts-color-emoji",
-                "name": "noto-fonts-color-emoji",
-                "origin": {
-                  "Channel": {
-                    "build": 347166224,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/na15wi41vvq97gam0yvixvm8gl0jq51k-noto-fonts-color-emoji-2.051"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/na15wi41vvq97gam0yvixvm8gl0jq51k-noto-fonts-color-emoji-2.051"
-                ],
-                "version": "2.051"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "nspr",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "nspr",
-                "name": "nspr",
-                "origin": {
-                  "Channel": {
-                    "build": 347166394,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/sp8nbh3r8vgaj5lxv0j0awp02kcwxfj2-nspr-4.40-dev",
-                  "out": "/nix/store/8pcrdazxyw8b1n3i0v9d2r3g38hrgw63-nspr-4.40"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/8pcrdazxyw8b1n3i0v9d2r3g38hrgw63-nspr-4.40"
-                ],
-                "version": "4.40"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "nss",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "nss",
-                "name": "nss",
-                "origin": {
-                  "Channel": {
-                    "build": 347166401,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "dev": "/nix/store/3ax8x86fcbsnsz54l416y9gcjirslxg1-nss-3.112.5-dev",
-                  "man": "/nix/store/d8nrvigs774z8gip3wwh9cpi7almfaq1-nss-3.112.5-man",
-                  "out": "/nix/store/dzapcr7zrasyn3d0p007023wv2pdyrqf-nss-3.112.5",
-                  "tools": "/nix/store/y1cdmd0gz3jnnbrcb8xigp3i72jl6nc8-nss-3.112.5-tools"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/dzapcr7zrasyn3d0p007023wv2pdyrqf-nss-3.112.5"
-                ],
-                "version": "3.112.5"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "patchelf",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "patchelf",
-                "name": "patchelf",
-                "origin": {
-                  "Channel": {
-                    "build": 347178098,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/qcwnw71iksl68k7fipizi6wn0s1xms9v-patchelf-0.15.2"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/qcwnw71iksl68k7fipizi6wn0s1xms9v-patchelf-0.15.2"
-                ],
-                "version": "0.15.2"
               }
             },
             {
@@ -10434,64 +7338,6 @@
             },
             {
               "constraint": {
-                "attr": "udev",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "udev",
-                "name": "systemd-minimal-libs",
-                "origin": {
-                  "Channel": {
-                    "build": 347290004,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "debug": "/nix/store/q8gsqi7d8mn1d1sfrpgjyqd7hc3crahb-systemd-minimal-libs-261.3-debug",
-                  "dev": "/nix/store/r1wcxf9g01ghzxs21lp49sa192l6j5v8-systemd-minimal-libs-261.3-dev",
-                  "out": "/nix/store/gvhdvn542cwd3wr2978nh4ydzp89msq7-systemd-minimal-libs-261.3"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/gvhdvn542cwd3wr2978nh4ydzp89msq7-systemd-minimal-libs-261.3"
-                ],
-                "version": "261.3"
-              }
-            },
-            {
-              "constraint": {
-                "attr": "unzip",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "unzip",
-                "name": "unzip",
-                "origin": {
-                  "Channel": {
-                    "build": 347290642,
-                    "evaluation": 1829846,
-                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/h2jrsr48ss7i2lq9bscyqjmj2y8pmk4a-unzip-6.0"
-                },
-                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
-                "store_paths": [
-                  "/nix/store/h2jrsr48ss7i2lq9bscyqjmj2y8pmk4a-unzip-6.0"
-                ],
-                "version": "6.0"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "uv",
                 "context": "profiles.dev",
                 "output": null,
@@ -10527,7 +7373,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "511b1b3d741a8e2c7d050e8678f6fbbfe4c08e34cf46d44c9801c30eeb9502b3"
+        "projectSha256": "926f5fb8a9a5a64e2acd25f9ccb76850e63edff19e8b330c659da4d37a4ab4ad"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -10557,12 +7403,11 @@
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
-        "ENVE_SERVICE_PROXY_PORT": "1080",
-        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
+        "ENVE_SERVICE_PROXY_PORT": "1088",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1088",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
-        "FONTCONFIG_FILE": "$ENVE_STORE_DIR/rc5r3wpjzr7j5s4mxj8ilnwgaj1fnxr8-playwright-browsers-1.62.1/fonts.conf",
         "KAFKA_BROKERS": "127.0.0.1:9095",
         "KAFKA_HOST": "127.0.0.1",
         "KAFKA_PORT": "9095",
@@ -10581,15 +7426,13 @@
         "PGDATABASE": "n8n",
         "PGTZ": "UTC",
         "PGUSER": "postgres",
-        "PLAYWRIGHT_BROWSERS_PATH": "$ENVE_STORE_DIR/rc5r3wpjzr7j5s4mxj8ilnwgaj1fnxr8-playwright-browsers-1.62.1",
-        "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS": "1",
         "PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS": "false",
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "PROXY_HOST": "127.0.0.1",
-        "PROXY_PORT": "1080",
-        "PROXY_URL": "http://127.0.0.1:1080",
+        "PROXY_PORT": "1088",
+        "PROXY_URL": "http://127.0.0.1:1088",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -10775,93 +7618,6 @@
           },
           "version": "24.21.0"
         },
-        "playwright-browsers": {
-          "buildIdentity": [
-            57,
-            168,
-            18,
-            166,
-            245,
-            153,
-            151,
-            6,
-            131,
-            119,
-            138,
-            81,
-            112,
-            62,
-            211,
-            164,
-            113,
-            188,
-            188,
-            71,
-            97,
-            194,
-            46,
-            17,
-            68,
-            250,
-            102,
-            57,
-            217,
-            127,
-            254,
-            169
-          ],
-          "buildInputs": [
-            "1cwhgw8ln287pbdr6c8x4vxbbx668wgb-at-spi2-core-2.60.6-dev",
-            "1mv3qz005gkbalxfghk4y3s8ayv4d2dl-bash-interactive-5.3p15",
-            "2g8d8m8r7i7bi00rm56fbk99scd7303z-expat-2.8.5-dev",
-            "2gfxiwls9hbgwdwcy43mprchwsq36mg6-coreutils-9.11",
-            "2mcjx364ls9id3ngdjxd707j2az2aid2-libx11-1.8.13-dev",
-            "2vhzbwl700sah6wd97k56pndyi5qhq2h-glib-2.88.3-bin",
-            "3ax8x86fcbsnsz54l416y9gcjirslxg1-nss-3.112.5-dev",
-            "47nlx1dpb8zd73vjp2zms7r8k9xkzndp-libxkbcommon-1.13.2-dev",
-            "4g39rajyrxqn3na1kd4pykdigsr82af5-at-spi2-core-2.60.6",
-            "5km0hqviyr3994y2z6r7bpn7vln1yfgp-libxcomposite-0.4.7-dev",
-            "5q6bdxkp7lc70gn9mnf4yiybrx8ry5xq-gcc-16.2.0",
-            "8pcrdazxyw8b1n3i0v9d2r3g38hrgw63-nspr-4.40",
-            "8snmq54bp5d5vp5dihgn7xr53hayx629-dbus-1.16.2",
-            "a3rbzlj5wzxwjpncc0q9p6l64sc52m3y-libxcomposite-0.4.7",
-            "cv0s6xg40h52gcwapidpc5q9dy44w2c2-dbus-1.16.2-dev",
-            "cvr8yyrrqnjxgd7bs6lwgra4qma7kwl9-libxcb-1.17.0",
-            "d34lp4b2b0glnmwf7ij3ha8mrmb30l64-dbus-1.16.2-lib",
-            "di2qjpsj3zy5vxdqxnvmc2a7syszlz4g-auto-patchelf-0-unstable-2024-08-14",
-            "dzapcr7zrasyn3d0p007023wv2pdyrqf-nss-3.112.5",
-            "firki6qp8l2y6jgpwvix2wd95bi572mi-libxext-1.3.7",
-            "fl7xj4bahw025r9nw6d9vgb4043665mj-libxext-1.3.7-dev",
-            "flaxmyhf7bmgqalnkjf3spj81933x8ip-libxdamage-1.1.7-dev",
-            "gvhdvn542cwd3wr2978nh4ydzp89msq7-systemd-minimal-libs-261.3",
-            "h2jrsr48ss7i2lq9bscyqjmj2y8pmk4a-unzip-6.0",
-            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
-            "jipb8y1xzhxjga5iccw8jmas0bc0px47-glib-2.88.3-dev",
-            "jxqrv7q8ydpsc2m9zli83bjsabq0rxs0-libxfixes-6.0.2-dev",
-            "kg5wp6wavf5p7v6shcccyqxy2nlzsn5s-libxdamage-1.1.7",
-            "knm96d081dl0mhbbdbmi2gwqj2sn0jbh-mesa-libgbm-26.1.3",
-            "l5y7fz08zvrqiinb90j1r922ymncb0sj-libxfixes-6.0.2",
-            "m38wglsqnh1mrmj2cmqa3pjb6w4yjxdi-glibc-2.44-25-dev",
-            "na15wi41vvq97gam0yvixvm8gl0jq51k-noto-fonts-color-emoji-2.051",
-            "nvrv5w6rhc39h8snrsw03nqs679cf7rh-libxkbcommon-1.13.2",
-            "q183bjraabp3b5xaf5plkb87rq645fvy-liberation-fonts-2.1.5",
-            "qcwnw71iksl68k7fipizi6wn0s1xms9v-patchelf-0.15.2",
-            "r1wcxf9g01ghzxs21lp49sa192l6j5v8-systemd-minimal-libs-261.3-dev",
-            "rxgngn06ihrwh52bfi4vmm0i2ds69wsj-bash-interactive-5.3p15-dev",
-            "s76zlinrq94xk2y0b4vfjypr9qlcqppf-libxrandr-1.5.5-dev",
-            "sp8nbh3r8vgaj5lxv0j0awp02kcwxfj2-nspr-4.40-dev",
-            "srvyqaf88njyqsrs1ajz3hznvdqq8hlw-glibc-2.44-25-bin",
-            "w8szff2i3dyf21v08j9yvpznfr7518wi-libxrandr-1.5.5",
-            "wv0waflchr84an8wrm5v0jhbhz3kp6gs-libxcb-1.17.0-dev",
-            "xadrivsjgk1bslbd64hq9zakin7vp6nr-dejavu-fonts-2.37",
-            "xlqm12gx3s3f7dc1a5pnfk4p2niw2lri-alsa-lib-1.2.16.1",
-            "xsr31a55xsfdvzdd846lwljmi3dxgjg7-alsa-lib-1.2.16.1-dev",
-            "znrm90algr0fvnnnp130am1qfg59nl1f-libx11-1.8.13",
-            "zrkqwk0989k5wa1gn3cjb76jfga3d8i3-expat-2.8.5"
-          ],
-          "closure": "rc5r3wpjzr7j5s4mxj8ilnwgaj1fnxr8-playwright-browsers-1.62.1",
-          "version": "1.62.1"
-        },
         "pnpm": {
           "buildIdentity": [
             57,
@@ -11003,6 +7759,6 @@
     "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
     "revision": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
   },
-  "target": "usecases/n8n/overlay/enve.cue",
+  "target": "enve.cue",
   "version": 3
 }

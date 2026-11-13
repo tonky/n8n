@@ -32,27 +32,30 @@ let _postgres = {
 }
 
 profiles: dev: schema.#Profile & #Runtime & {
-	name: "n8n-platform-dev"
-	tools: [
-		#Pnpm,
-		pkgs.nodejs & {version: "24"},
-		pkgs.postgresql,
-		pkgs.redis,
-		{pname: "tbls"},
-		{pname: "curl"},
-		{pname: "ripgrep"},
-		{pname: "bash"},
-		{pname: "coreutils"},
-		pkgs.python & {version: "3.13"},
-		pkgs.uv,
-		{pname: "flock"},
-		// nodes-base's Kafka integration test drives the broker's CLI (kafka-topics.sh, ...).
-		pkgs.kafka,
-		pkgs.#PlaywrightBrowsers & {version: "1.62.1", features: ["chromium-headless-shell", "ffmpeg"]},
-	]
+	name:  "n8n-platform-dev"
+	tools: #RuntimeTools
 }
 
+// Runtime tools shared by application tests; browser execution adds its own archive.
+#RuntimeTools: [
+	#Pnpm,
+	pkgs.nodejs & {version: "24"},
+	pkgs.postgresql,
+	pkgs.redis,
+	{pname: "tbls"},
+	{pname: "curl"},
+	{pname: "ripgrep"},
+	{pname: "bash"},
+	{pname: "coreutils"},
+	pkgs.python & {version: "3.13"},
+	pkgs.uv,
+	{pname: "flock"},
+	// nodes-base's Kafka integration test drives the broker's CLI (kafka-topics.sh, ...).
+	pkgs.kafka,
+]
+
 // Shared service ports and application variables; tools are role-specific.
+let _inRepoRoot = "root=$PWD; while [ ! -f \"$root/cue.mod/module.cue\" ] && [ \"$root\" != / ]; do root=$(dirname \"$root\"); done; cd \"$root\" && "
 #Runtime: {
 	services: {
 		proxy: {
@@ -75,10 +78,10 @@ profiles: dev: schema.#Profile & #Runtime & {
 					"""
 			}
 			packages: [{pname: "jdk21_headless"}]
-			port: 1080
+			port: 1088
 			resources: {cpu: "0.5", ramMb: 768}
 			command: "n8n-mockserver -serverPort $PORT -logLevel WARN"
-			lifecycle: postStart: "node helpers/native-proxy.mjs publish-ca http://127.0.0.1:$PORT \"$DATA_DIR/CertificateAuthorityCertificate.pem\""
+			lifecycle: postStart: _inRepoRoot + "node helpers/native-proxy.mjs publish-ca http://127.0.0.1:$PORT \"$DATA_DIR/CertificateAuthorityCertificate.pem\""
 			readinessProbe: {
 				command: "curl -fsS --connect-timeout 1 --max-time 3 -X PUT http://127.0.0.1:$PORT/mockserver/status >/dev/null"
 				timeout: "60s"
@@ -95,7 +98,7 @@ profiles: dev: schema.#Profile & #Runtime & {
 		redis: {name: "redis", port: 6386}
 		cli: {
 			name:    "cli"
-			command: "sh -c 'mkdir -p node_modules/@n8n && for p in packages/@n8n/*; do [ -d \"$p\" ] && [ ! -e \"node_modules/@n8n/$(basename \"$p\")\" ] && ln -sfn \"$PWD/$p\" \"node_modules/@n8n/$(basename \"$p\")\"; done; helpers/build-workspace-deps.sh n8n... && exec node packages/cli/bin/n8n start'"
+			command: "sh -c 'root=$PWD; while [ ! -f \"$root/cue.mod/module.cue\" ] && [ \"$root\" != / ]; do root=$(dirname \"$root\"); done; cd \"$root\"; mkdir -p node_modules/@n8n && for p in packages/@n8n/*; do [ -d \"$p\" ] && [ ! -e \"node_modules/@n8n/$(basename \"$p\")\" ] && ln -sfn \"$PWD/$p\" \"node_modules/@n8n/$(basename \"$p\")\"; done; helpers/build-workspace-deps.sh n8n... && exec node packages/cli/bin/n8n start'"
 			port:    5678
 			ports: {broker: 5679}
 			dependsOn: [{service: "postgres"}, {service: "redis"}]

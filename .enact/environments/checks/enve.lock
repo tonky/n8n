@@ -2,8 +2,8 @@
   "platforms": {
     "aarch64-darwin": {
       "binding": {
-        "environment_sha256": "536f22639d239f6b7091ddc5932765bba7415a100c92f6f706b2ac35b0989415",
-        "inventory_sha256": "5ec612e3a15c2d32aa0684dce399fd7a05dcd4660ae6d13091416c02d2d624f1",
+        "environment_sha256": "9de404d50c5ed17afd03362df80920fc2c749e82af57b3f987a29a6e0961f29f",
+        "inventory_sha256": "638a010234747473e60aa123451a07b8d82690f1cfee57c1d5da0c296c58fa8e",
         "profile": null,
         "version": 2
       },
@@ -1808,7 +1808,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "12652e2048fd9a1aeb8f73c9fd871af0ecf7b6943fc810c58e66d8dc9ee78f04"
+        "projectSha256": "cdae8736906ecbef0427e4f03452e63faf2bacc79240e2a37567357f9c434094"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -1838,8 +1838,8 @@
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
-        "ENVE_SERVICE_PROXY_PORT": "1080",
-        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
+        "ENVE_SERVICE_PROXY_PORT": "1088",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1088",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
@@ -1866,8 +1866,8 @@
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "PROXY_HOST": "127.0.0.1",
-        "PROXY_PORT": "1080",
-        "PROXY_URL": "http://127.0.0.1:1080",
+        "PROXY_PORT": "1088",
+        "PROXY_URL": "http://127.0.0.1:1088",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -2184,8 +2184,8 @@
     },
     "aarch64-linux": {
       "binding": {
-        "environment_sha256": "536f22639d239f6b7091ddc5932765bba7415a100c92f6f706b2ac35b0989415",
-        "inventory_sha256": "b31f1918186173660cba0a3dc2dcb5691dd91ab7ee7edec3f6fb1b9f0472e9ea",
+        "environment_sha256": "9de404d50c5ed17afd03362df80920fc2c749e82af57b3f987a29a6e0961f29f",
+        "inventory_sha256": "35af97691f46759ca6c3e860d648f0ce487e00bdb2e892c2b51d3f5dccfe8fc9",
         "profile": null,
         "version": 2
       },
@@ -4514,7 +4514,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "12652e2048fd9a1aeb8f73c9fd871af0ecf7b6943fc810c58e66d8dc9ee78f04"
+        "projectSha256": "cdae8736906ecbef0427e4f03452e63faf2bacc79240e2a37567357f9c434094"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -4544,8 +4544,8 @@
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
-        "ENVE_SERVICE_PROXY_PORT": "1080",
-        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
+        "ENVE_SERVICE_PROXY_PORT": "1088",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1088",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
@@ -4572,8 +4572,8 @@
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "PROXY_HOST": "127.0.0.1",
-        "PROXY_PORT": "1080",
-        "PROXY_URL": "http://127.0.0.1:1080",
+        "PROXY_PORT": "1088",
+        "PROXY_URL": "http://127.0.0.1:1088",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -4890,8 +4890,8 @@
     },
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "536f22639d239f6b7091ddc5932765bba7415a100c92f6f706b2ac35b0989415",
-        "inventory_sha256": "4854011456c0f75f21d5d5f4dc6114f24123069d4e7a4623d8705b6a44d2a5eb",
+        "environment_sha256": "9de404d50c5ed17afd03362df80920fc2c749e82af57b3f987a29a6e0961f29f",
+        "inventory_sha256": "ac1093e53b7802144d3ae674eb27ec5ef3a4767d7bef51780c05e299db366a00",
         "profile": null,
         "version": 2
       },
@@ -7220,7 +7220,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "12652e2048fd9a1aeb8f73c9fd871af0ecf7b6943fc810c58e66d8dc9ee78f04"
+        "projectSha256": "cdae8736906ecbef0427e4f03452e63faf2bacc79240e2a37567357f9c434094"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -7250,8 +7250,8 @@
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
-        "ENVE_SERVICE_PROXY_PORT": "1080",
-        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
+        "ENVE_SERVICE_PROXY_PORT": "1088",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1088",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
@@ -7278,8 +7278,8 @@
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
         "PROXY_HOST": "127.0.0.1",
-        "PROXY_PORT": "1080",
-        "PROXY_URL": "http://127.0.0.1:1080",
+        "PROXY_PORT": "1088",
+        "PROXY_URL": "http://127.0.0.1:1088",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -7600,6 +7600,6 @@
     "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
     "revision": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
   },
-  "target": "usecases/n8n/overlay/.enact/environments/checks/enve.cue",
+  "target": "enve.cue",
   "version": 3
 }

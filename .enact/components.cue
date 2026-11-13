@@ -101,6 +101,7 @@ pipeline: schema.#Pipeline & {
 			let Bundles = [if n != "@n8n/mcp-apps" for b in p.bundles {b}]
 			outputs: [p.dir + "/dist/**", p.dir + "/.turbo/**"]
 			if n == "cli" {exclude_outputs: _cliExtraOutputs}
+			if n == "@n8n/db" {exclude_outputs: [for db in ["sqlite", "postgresdb"] {p.dir + "/dist/migrations/" + db + "/index.*"}]}
 			if _nodePkg[n] != _|_ {exclude_outputs: [for g in _nodeMetaOutputs {p.dir + g}]}
 			inputs: [p.dir + "/**", for b in Bundles {b + "/**"}]
 			exclude: [
@@ -185,6 +186,7 @@ pipeline: schema.#Pipeline & {
 			outputs: ["packages/@n8n/db/.tmp-schema-docs", "packages/@n8n/db/.tmp-schema-docs/**"]
 			inputs: ["packages/@n8n/db/src/**", "packages/@n8n/db/scripts/schema-docs.mjs", "helpers/schema-check.sh", "helpers/schema-docs-postgres.mjs"]
 			exclude: ["**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
+			mapped:  ["packages/@n8n/db/src/**"]
 		},
 		{
 			outputs: ["packages/@n8n/workflow-sdk/test-fixtures/real-workflows/[0-9]*.json"]
@@ -604,6 +606,7 @@ pipeline: schema.#Pipeline & {
 
 		playwright: {
 			let P = _packages.playwright
+			environment_file: ".enact/environments/browser/enve.cue"
 			title:       "n8n End-to-End Playwright Suite"
 			kind:        "verification"
 			domain:      "verification"

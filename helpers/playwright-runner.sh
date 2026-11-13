@@ -16,6 +16,7 @@ unset DB_POSTGRESDB_HOST DB_POSTGRESDB_PORT DB_POSTGRESDB_DATABASE DB_POSTGRESDB
 # Find repo root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENACT_BROWSER_LOCK="$REPO_ROOT/.enact/environments/browser/enve.lock"
 VITEST_BIN="$REPO_ROOT/packages/cli/node_modules/.bin/vitest"
 
 if [ "${1:-}" = "--ensure-browsers" ]; then
@@ -27,7 +28,7 @@ if [ "${1:-}" = "--ensure-browsers" ]; then
       if [ -x "$browser_bin" ]; then
         if ! "$browser_bin" --version >/dev/null 2>&1; then
           echo "📦 [playwright-runner] Pulling Nix store RUNPATH closure for $browser_bin..." >&2
-          enve cache pull "$REPO_ROOT/enve.lock" \
+          enve cache pull "$ENACT_BROWSER_LOCK" \
             --cache "${ENACT_R2_BUCKET:-https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev}" \
             -j 16 >&2 || true
         fi
@@ -73,7 +74,7 @@ if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
         if [ -x "$browser_bin" ]; then
           if ! "$browser_bin" --version >/dev/null 2>&1; then
             echo "📦 [playwright-runner] Pulling Nix store RUNPATH closure for $browser_bin..." >&2
-            enve cache pull "$REPO_ROOT/enve.lock" \
+            enve cache pull "$ENACT_BROWSER_LOCK" \
               --cache "${ENACT_R2_BUCKET:-https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev}" \
               -j 16 >&2 || true
           fi

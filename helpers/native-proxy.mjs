@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Managed MockServer's public CA handoff; private keys never leave its service data.
 import { X509Certificate } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
