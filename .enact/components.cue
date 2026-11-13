@@ -525,7 +525,8 @@ pipeline: schema.#Pipeline & {
 					tasks: [{command: "helpers/build-workspace-deps.sh --only --upstream-key-file=.enact/state/outputs/-n8n-db--build.key " + strings.Join([for _, p in _packages if list.Contains(_cliBuilds, p.dir) {p.pkg}], " ")}]
 				}
 				test: {
-					needs: ["build"]
+					environment_file: ".enact/environments/browser/enve.cue"
+					needs:            ["build"]
 					fixture: {
 						scope:   "shard"
 						setup:   "helpers/vitest-runner.sh --setup-fixture {relative_targets}"
@@ -611,6 +612,7 @@ pipeline: schema.#Pipeline & {
 			kind:        "verification"
 			domain:      "verification"
 			watch_paths: [P.dir + "/**", "helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs", "helpers/native-proxy.mjs", "helpers/pw-capability.mjs"]
+			uses:        [{protocol: schema.#Protocol.Http, target: "proxy", title: "Local HTTP proxy for Playwright tests"}]
 			shards:      4
 			recorder:    "own"
 			target_scope: _target_scope & {
@@ -666,10 +668,17 @@ pipeline: schema.#Pipeline & {
 					}
 					tasks: [{command: "helpers/build-workspace-deps.sh --only --upstream-key-file=.enact/state/outputs/cli--build.key " + strings.Join([for _, p in _packages if list.Contains(_e2eBuilds, p.dir) && !list.Contains(_cliBuilds, p.dir) && !list.Contains(_dbBuilds, p.dir) {p.pkg}], " ")}]
 				}
-				lint:      needs: ["@n8n/db:build"]
-				typecheck: needs: ["@n8n/db:build"]
+				lint: {
+					needs:    ["@n8n/db:build"]
+					services: false
+				}
+				typecheck: {
+					needs:    ["@n8n/db:build"]
+					services: false
+				}
 				dev_server_smoke: {
 					name:             "Dev-Server Boot Smoke"
+					services:         false
 					needs:            ["build", "@n8n/db:build"]
 					recorder:         "trace"
 					record_resources: {cpus: 4.0, memory_mb: 10240}
