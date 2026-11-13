@@ -607,7 +607,7 @@ pipeline: schema.#Pipeline & {
 			title:       "n8n End-to-End Playwright Suite"
 			kind:        "verification"
 			domain:      "verification"
-			watch_paths: [P.dir + "/**", "helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs"]
+			watch_paths: [P.dir + "/**", "helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs", "helpers/native-proxy.mjs", "helpers/pw-capability.mjs"]
 			shards:      4
 			recorder:    "own"
 			target_scope: _target_scope & {
@@ -617,7 +617,7 @@ pipeline: schema.#Pipeline & {
 					P.dir + "/tests/dev-server-smoke/**/*.spec.ts",
 				]
 				exclude: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]
-				#runner: ["helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs"]
+				#runner: ["helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/native-proxy.mjs", "helpers/pw-capability.mjs"]
 				// Not run either: the `engine-v2:e2e` project (upstream's "E2E on engine v2", the
 				// `@engine:*` specs of tests/e2e, which this suite runs on engine v1). It exists only
 				// in container mode: n8n-containers starts Postgres, a main in remote engine mode and
@@ -725,6 +725,7 @@ pipeline: schema.#Pipeline & {
 					tasks: [{
 						name:      "Run Tests"
 						command:   "helpers/playwright-runner.sh {relative_targets}"
+						services: ["proxy"]
 						timeout:   _wholeSuiteTimeout
 						env:       DB_TYPE: "sqlite"
 						unset_env: _unsetPgEnv

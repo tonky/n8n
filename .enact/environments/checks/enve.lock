@@ -2,8 +2,8 @@
   "platforms": {
     "aarch64-darwin": {
       "binding": {
-        "environment_sha256": "9c34fe5fcc3e0b34f5d9b4e2899e843f28cc2dde73e0183d330ae5bcbb2cfb07",
-        "inventory_sha256": "47474dbe281f766da651170cf34c3bed0926c0768aee492e48586bae9e503532",
+        "environment_sha256": "536f22639d239f6b7091ddc5932765bba7415a100c92f6f706b2ac35b0989415",
+        "inventory_sha256": "5ec612e3a15c2d32aa0684dce399fd7a05dcd4660ae6d13091416c02d2d624f1",
         "profile": null,
         "version": 2
       },
@@ -966,6 +966,15 @@
           ]
         },
         {
+          "hash_name": "rq09c9irjxfji5x3vn28nqm7qqjsf39a-zulu-ca-jdk-21.0.11",
+          "nar_hash": "sha256:1d5dcajdcrhgnwn5ssgk0w4cjfw3zz1xjmmfrzcg6h3vnj1kj1kx",
+          "nar_size": 357881632,
+          "references": [
+            "khq0g5x3r1mzb2yya8ddbph9w8532c4l-set-java-classpath-hook",
+            "rq09c9irjxfji5x3vn28nqm7qqjsf39a-zulu-ca-jdk-21.0.11"
+          ]
+        },
+        {
           "hash_name": "s2vi23sgwpjv4qvnyfknv7l041m8vm94-bash-interactive-5.3p15",
           "nar_hash": "sha256:10rg9kfllkbl6x0p4ym3s4lsc3qjb01lbdwm9an75fgbc3rp1gha",
           "nar_size": 8504656,
@@ -1322,6 +1331,9 @@
           ]
         },
         {
+          "hash_name": "zrsamy1aqw6asy8w1ppb65rdswz371p1-n8n-mockserver-5.15.0"
+        },
+        {
           "hash_name": "zy7ly63k0zibqd5p4cdl7c15z0f243c6-libedit-20260508-3.1",
           "nar_hash": "sha256:0jv6qv37smg4dgwsjjzj4nm7rppdszl3dawmqd1sjwcmwv6xb8sn",
           "nar_size": 213024,
@@ -1333,6 +1345,40 @@
       ],
       "coherence": {
         "buildIdentities": {
+          "n8n-mockserver": [
+            57,
+            168,
+            18,
+            166,
+            245,
+            153,
+            151,
+            6,
+            131,
+            119,
+            138,
+            81,
+            112,
+            62,
+            211,
+            164,
+            113,
+            188,
+            188,
+            71,
+            97,
+            194,
+            46,
+            17,
+            68,
+            250,
+            102,
+            57,
+            217,
+            127,
+            254,
+            169
+          ],
           "pnpm": [
             57,
             168,
@@ -1517,6 +1563,34 @@
                   "/nix/store/snanzh6ymzbq01adf90s8a3gik3ag7vn-flock-0.4.0"
                 ],
                 "version": "0.4.0"
+              }
+            },
+            {
+              "constraint": {
+                "attr": "jdk21_headless",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "aarch64-darwin",
+                "version": null
+              },
+              "package": {
+                "attr_path": "jdk21_headless",
+                "name": "zulu-ca-jdk",
+                "origin": {
+                  "Channel": {
+                    "build": 347141818,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "out": "/nix/store/rq09c9irjxfji5x3vn28nqm7qqjsf39a-zulu-ca-jdk-21.0.11"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/rq09c9irjxfji5x3vn28nqm7qqjsf39a-zulu-ca-jdk-21.0.11"
+                ],
+                "version": "21.0.11"
               }
             },
             {
@@ -1734,7 +1808,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "6c8e26bb44dad739f73f7dba8bc7eb798d9cdb5a15647e57d942d5a0c6003ec6"
+        "projectSha256": "12652e2048fd9a1aeb8f73c9fd871af0ecf7b6943fc810c58e66d8dc9ee78f04"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -1748,6 +1822,7 @@
         "DB_POSTGRESDB_PORT": "${ENVE_SERVICE_POSTGRES_PORT}",
         "DB_POSTGRESDB_USER": "postgres",
         "DB_TYPE": "postgresdb",
+        "ENACT_NATIVE_PROXY_URL": "http://127.0.0.1:${ENVE_SERVICE_PROXY_PORT}",
         "ENVE_SERVICE_CLI_HOST": "127.0.0.1",
         "ENVE_SERVICE_CLI_PORT": "5678",
         "ENVE_SERVICE_CLI_PORT_BROKER": "5679",
@@ -1762,6 +1837,9 @@
         "ENVE_SERVICE_POSTGRES_HOST": "127.0.0.1",
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
+        "ENVE_SERVICE_PROXY_PORT": "1080",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
@@ -1787,6 +1865,9 @@
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "PROXY_HOST": "127.0.0.1",
+        "PROXY_PORT": "1080",
+        "PROXY_URL": "http://127.0.0.1:1080",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -1878,6 +1959,24 @@
           },
           "version": "0.4.0"
         },
+        "jdk21_headless": {
+          "closure": "rq09c9irjxfji5x3vn28nqm7qqjsf39a-zulu-ca-jdk-21.0.11",
+          "outputs": [
+            "rq09c9irjxfji5x3vn28nqm7qqjsf39a-zulu-ca-jdk-21.0.11"
+          ],
+          "services": [
+            "proxy"
+          ],
+          "source": {
+            "attr": "jdk21_headless",
+            "build": 347141818,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "21.0.11"
+        },
         "mysql": {
           "closure": "vlyxr0vb4g778x3amvcksfr87q89cl41-mysql-8.4.11",
           "outputs": [
@@ -1895,6 +1994,52 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "8.4.11"
+        },
+        "n8n-mockserver": {
+          "buildIdentity": [
+            57,
+            168,
+            18,
+            166,
+            245,
+            153,
+            151,
+            6,
+            131,
+            119,
+            138,
+            81,
+            112,
+            62,
+            211,
+            164,
+            113,
+            188,
+            188,
+            71,
+            97,
+            194,
+            46,
+            17,
+            68,
+            250,
+            102,
+            57,
+            217,
+            127,
+            254,
+            169
+          ],
+          "buildInputs": [
+            "82fb09q2gbhbhpc8ykkqwkcdj6h9c7f1-coreutils-9.11",
+            "s2vi23sgwpjv4qvnyfknv7l041m8vm94-bash-interactive-5.3p15",
+            "sjzhqc66j881n9lyg3m15aqiykad4h5k-bash-interactive-5.3p15-dev"
+          ],
+          "closure": "zrsamy1aqw6asy8w1ppb65rdswz371p1-n8n-mockserver-5.15.0",
+          "services": [
+            "proxy"
+          ],
+          "version": "5.15.0"
         },
         "nodejs": {
           "closure": "7cr3l1m9yyng2hscs8lj4x4bj0hm7908-nodejs-24.21.0",
@@ -2039,8 +2184,8 @@
     },
     "aarch64-linux": {
       "binding": {
-        "environment_sha256": "9c34fe5fcc3e0b34f5d9b4e2899e843f28cc2dde73e0183d330ae5bcbb2cfb07",
-        "inventory_sha256": "63fd7113ee450dfda62e22f0c4493d668ec758ac83e562ac3dde80d2965710f4",
+        "environment_sha256": "536f22639d239f6b7091ddc5932765bba7415a100c92f6f706b2ac35b0989415",
+        "inventory_sha256": "b31f1918186173660cba0a3dc2dcb5691dd91ab7ee7edec3f6fb1b9f0472e9ea",
         "profile": null,
         "version": 2
       },
@@ -2329,6 +2474,9 @@
             "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
             "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib"
           ]
+        },
+        {
+          "hash_name": "66xf6vpamc4flazx9d5zyrqm35qizjbn-n8n-mockserver-5.15.0"
         },
         {
           "hash_name": "6a8fkwp2923scm04csxc6q1d7bz7sgyv-merve-1.2.2-dev",
@@ -3002,6 +3150,21 @@
             "ag5rqywsrxpcr3dnpjrm40k0za1g5n6g-expand-response-params",
             "h82n3d0wdrgskdc3yvmz5l3c50h2snvp-pkg-config-wrapper-0.29.2",
             "mwhkh9l5j5z6mkk83k22rjhx6lxgqh85-bash-5.3p15"
+          ]
+        },
+        {
+          "hash_name": "hcfvjnm2l2i40ir44mc60cwafvibnx80-openjdk-headless-21.0.12.1+1",
+          "nar_hash": "sha256:1pw5xgsiww1pgncd23f5lxwc6w0f29r2w16gg8m221s87zxnbsbf",
+          "nar_size": 587493624,
+          "references": [
+            "0awyj5l7a8f470hy8qnm9fh0irgaqmlx-set-java-classpath-hook",
+            "7d907izyink96xhqazkbw4wicvgkm76c-zlib-1.3.2",
+            "bylbi6s4mq0gxrw4fwawbhw3ffzhpllf-gcc-16.2.0-libgcc",
+            "hcfvjnm2l2i40ir44mc60cwafvibnx80-openjdk-headless-21.0.12.1+1",
+            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25",
+            "m6d33nhx1nf6g4ss10f8bnpv5m9cgzrr-libjpeg-turbo-3.1.4.1",
+            "na9inwswsrgxxqpqrz3ms78qn7pyxg44-gcc-16.2.0-lib",
+            "qishw631kmfa7k780i1gzcg1vkkd72qk-lcms2-2.19.1"
           ]
         },
         {
@@ -3882,6 +4045,40 @@
       ],
       "coherence": {
         "buildIdentities": {
+          "n8n-mockserver": [
+            57,
+            168,
+            18,
+            166,
+            245,
+            153,
+            151,
+            6,
+            131,
+            119,
+            138,
+            81,
+            112,
+            62,
+            211,
+            164,
+            113,
+            188,
+            188,
+            71,
+            97,
+            194,
+            46,
+            17,
+            68,
+            250,
+            102,
+            57,
+            217,
+            127,
+            254,
+            169
+          ],
           "pnpm": [
             57,
             168,
@@ -4069,6 +4266,35 @@
                   "/nix/store/vf2h24m5aa7phb4v1kbc2qd9r41jdfqv-flock-0.4.0"
                 ],
                 "version": "0.4.0"
+              }
+            },
+            {
+              "constraint": {
+                "attr": "jdk21_headless",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "aarch64-linux",
+                "version": null
+              },
+              "package": {
+                "attr_path": "jdk21_headless",
+                "name": "openjdk-headless",
+                "origin": {
+                  "Channel": {
+                    "build": 347141829,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "debug": "/nix/store/70xh9vdpld4ba1sdd8cmbwcrz91di2gy-openjdk-headless-21.0.12.1+1-debug",
+                  "out": "/nix/store/hcfvjnm2l2i40ir44mc60cwafvibnx80-openjdk-headless-21.0.12.1+1"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/hcfvjnm2l2i40ir44mc60cwafvibnx80-openjdk-headless-21.0.12.1+1"
+                ],
+                "version": "21.0.12.1+1"
               }
             },
             {
@@ -4288,7 +4514,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "6c8e26bb44dad739f73f7dba8bc7eb798d9cdb5a15647e57d942d5a0c6003ec6"
+        "projectSha256": "12652e2048fd9a1aeb8f73c9fd871af0ecf7b6943fc810c58e66d8dc9ee78f04"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -4302,6 +4528,7 @@
         "DB_POSTGRESDB_PORT": "${ENVE_SERVICE_POSTGRES_PORT}",
         "DB_POSTGRESDB_USER": "postgres",
         "DB_TYPE": "postgresdb",
+        "ENACT_NATIVE_PROXY_URL": "http://127.0.0.1:${ENVE_SERVICE_PROXY_PORT}",
         "ENVE_SERVICE_CLI_HOST": "127.0.0.1",
         "ENVE_SERVICE_CLI_PORT": "5678",
         "ENVE_SERVICE_CLI_PORT_BROKER": "5679",
@@ -4316,6 +4543,9 @@
         "ENVE_SERVICE_POSTGRES_HOST": "127.0.0.1",
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
+        "ENVE_SERVICE_PROXY_PORT": "1080",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
@@ -4341,6 +4571,9 @@
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "PROXY_HOST": "127.0.0.1",
+        "PROXY_PORT": "1080",
+        "PROXY_URL": "http://127.0.0.1:1080",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -4432,6 +4665,24 @@
           },
           "version": "0.4.0"
         },
+        "jdk21_headless": {
+          "closure": "hcfvjnm2l2i40ir44mc60cwafvibnx80-openjdk-headless-21.0.12.1+1",
+          "outputs": [
+            "hcfvjnm2l2i40ir44mc60cwafvibnx80-openjdk-headless-21.0.12.1+1"
+          ],
+          "services": [
+            "proxy"
+          ],
+          "source": {
+            "attr": "jdk21_headless",
+            "build": 347141829,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "21.0.12.1+1"
+        },
         "mysql": {
           "closure": "s5wmx762zwwh6x7lbzm58g1rj9qb3x7m-mysql-8.4.11",
           "outputs": [
@@ -4449,6 +4700,52 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "8.4.11"
+        },
+        "n8n-mockserver": {
+          "buildIdentity": [
+            57,
+            168,
+            18,
+            166,
+            245,
+            153,
+            151,
+            6,
+            131,
+            119,
+            138,
+            81,
+            112,
+            62,
+            211,
+            164,
+            113,
+            188,
+            188,
+            71,
+            97,
+            194,
+            46,
+            17,
+            68,
+            250,
+            102,
+            57,
+            217,
+            127,
+            254,
+            169
+          ],
+          "buildInputs": [
+            "2ssiw3jmlpf03cdrlf4df2qwpxska7xn-bash-interactive-5.3p15-dev",
+            "dq1apsyiah48nmc4n45dpwc33k887hdn-coreutils-9.11",
+            "wgxz9zr5a70v52nkqinbarf56f1c5jsi-bash-interactive-5.3p15"
+          ],
+          "closure": "66xf6vpamc4flazx9d5zyrqm35qizjbn-n8n-mockserver-5.15.0",
+          "services": [
+            "proxy"
+          ],
+          "version": "5.15.0"
         },
         "nodejs": {
           "closure": "8lgcgi9riqm71v9ibjw5qjcwwr5nfm83-nodejs-24.21.0",
@@ -4593,8 +4890,8 @@
     },
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "9c34fe5fcc3e0b34f5d9b4e2899e843f28cc2dde73e0183d330ae5bcbb2cfb07",
-        "inventory_sha256": "021b4cadf98a674f4659af9009fdbb9c018b6f7d33336698e2a569767d5ad30f",
+        "environment_sha256": "536f22639d239f6b7091ddc5932765bba7415a100c92f6f706b2ac35b0989415",
+        "inventory_sha256": "4854011456c0f75f21d5d5f4dc6114f24123069d4e7a4623d8705b6a44d2a5eb",
         "profile": null,
         "version": 2
       },
@@ -5614,6 +5911,9 @@
           "references": []
         },
         {
+          "hash_name": "ji8rxpmpb7wkyalnv4pfqqzf0x7z11ni-n8n-mockserver-5.15.0"
+        },
+        {
           "hash_name": "jp6w9riaqyh7871qjgmdxvc73q6j8ymn-nettle-3.10.2",
           "nar_hash": "sha256:04f2m5p38gq71h8h0496pm1drddqz4ql281ldd3sjxdfijlc5aqr",
           "nar_size": 749040,
@@ -6205,6 +6505,21 @@
           ]
         },
         {
+          "hash_name": "wppd2j6g64i2mw646g1bzns2ca0xwjz4-openjdk-headless-21.0.12.1+1",
+          "nar_hash": "sha256:1zlsqcxcfpgfnr9bhlx927b9nkah3v9s3sgmrcngaf9ny3h6572s",
+          "nar_size": 595688200,
+          "references": [
+            "0bxbw62y5cy740408migjh1ssa3dyqif-lcms2-2.19.1",
+            "dkmjavf5yaj6hdcf2ggc6hsj1lp7lwsx-libjpeg-turbo-3.1.4.1",
+            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
+            "j7qx4s4mr17j1wqgvqdzj33lmrnzb387-gcc-16.2.0-lib",
+            "psb1cy5dk6dj64klgy8xdyxcx1wwvslg-set-java-classpath-hook",
+            "q2mkz6ca1alqfqf750dygvakmq8kjrwz-gcc-16.2.0-libgcc",
+            "wgw25d181h0qks7qsfp1bh7c5nd3f0s7-zlib-1.3.2",
+            "wppd2j6g64i2mw646g1bzns2ca0xwjz4-openjdk-headless-21.0.12.1+1"
+          ]
+        },
+        {
           "hash_name": "wpw9kk7qfndblw2017byjydbqq32sj01-pkg-config-0.29.2",
           "nar_hash": "sha256:1j3zas69nm170pcs0sc3kn3bby25kjwd18d8bjw759p1gsb6chnw",
           "nar_size": 706328,
@@ -6436,6 +6751,40 @@
       ],
       "coherence": {
         "buildIdentities": {
+          "n8n-mockserver": [
+            57,
+            168,
+            18,
+            166,
+            245,
+            153,
+            151,
+            6,
+            131,
+            119,
+            138,
+            81,
+            112,
+            62,
+            211,
+            164,
+            113,
+            188,
+            188,
+            71,
+            97,
+            194,
+            46,
+            17,
+            68,
+            250,
+            102,
+            57,
+            217,
+            127,
+            254,
+            169
+          ],
           "pnpm": [
             57,
             168,
@@ -6623,6 +6972,35 @@
                   "/nix/store/gjqnd9dw8svgcfhb6lvqrjy5hd6gxfqm-flock-0.4.0"
                 ],
                 "version": "0.4.0"
+              }
+            },
+            {
+              "constraint": {
+                "attr": "jdk21_headless",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "x86_64-linux",
+                "version": null
+              },
+              "package": {
+                "attr_path": "jdk21_headless",
+                "name": "openjdk-headless",
+                "origin": {
+                  "Channel": {
+                    "build": 347141820,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "debug": "/nix/store/bayqi1hxk728vbyapmwrnvf101z6m920-openjdk-headless-21.0.12.1+1-debug",
+                  "out": "/nix/store/wppd2j6g64i2mw646g1bzns2ca0xwjz4-openjdk-headless-21.0.12.1+1"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/wppd2j6g64i2mw646g1bzns2ca0xwjz4-openjdk-headless-21.0.12.1+1"
+                ],
+                "version": "21.0.12.1+1"
               }
             },
             {
@@ -6842,7 +7220,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "6c8e26bb44dad739f73f7dba8bc7eb798d9cdb5a15647e57d942d5a0c6003ec6"
+        "projectSha256": "12652e2048fd9a1aeb8f73c9fd871af0ecf7b6943fc810c58e66d8dc9ee78f04"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -6856,6 +7234,7 @@
         "DB_POSTGRESDB_PORT": "${ENVE_SERVICE_POSTGRES_PORT}",
         "DB_POSTGRESDB_USER": "postgres",
         "DB_TYPE": "postgresdb",
+        "ENACT_NATIVE_PROXY_URL": "http://127.0.0.1:${ENVE_SERVICE_PROXY_PORT}",
         "ENVE_SERVICE_CLI_HOST": "127.0.0.1",
         "ENVE_SERVICE_CLI_PORT": "5678",
         "ENVE_SERVICE_CLI_PORT_BROKER": "5679",
@@ -6870,6 +7249,9 @@
         "ENVE_SERVICE_POSTGRES_HOST": "127.0.0.1",
         "ENVE_SERVICE_POSTGRES_PORT": "5438",
         "ENVE_SERVICE_POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "ENVE_SERVICE_PROXY_HOST": "127.0.0.1",
+        "ENVE_SERVICE_PROXY_PORT": "1080",
+        "ENVE_SERVICE_PROXY_URL": "http://127.0.0.1:1080",
         "ENVE_SERVICE_REDIS_HOST": "127.0.0.1",
         "ENVE_SERVICE_REDIS_PORT": "6386",
         "ENVE_SERVICE_REDIS_URL": "redis://127.0.0.1:6386/0",
@@ -6895,6 +7277,9 @@
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5438",
         "POSTGRES_URL": "postgresql://postgres@127.0.0.1:5438/postgres",
+        "PROXY_HOST": "127.0.0.1",
+        "PROXY_PORT": "1080",
+        "PROXY_URL": "http://127.0.0.1:1080",
         "PYTHONNOUSERSITE": "1",
         "QUEUE_BULL_REDIS_HOST": "127.0.0.1",
         "QUEUE_BULL_REDIS_PORT": "${ENVE_SERVICE_REDIS_PORT}",
@@ -6986,6 +7371,24 @@
           },
           "version": "0.4.0"
         },
+        "jdk21_headless": {
+          "closure": "wppd2j6g64i2mw646g1bzns2ca0xwjz4-openjdk-headless-21.0.12.1+1",
+          "outputs": [
+            "wppd2j6g64i2mw646g1bzns2ca0xwjz4-openjdk-headless-21.0.12.1+1"
+          ],
+          "services": [
+            "proxy"
+          ],
+          "source": {
+            "attr": "jdk21_headless",
+            "build": 347141820,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "21.0.12.1+1"
+        },
         "mysql": {
           "closure": "fhx1akr809cy1c9lg0z9m7zn5ksilf39-mysql-8.4.11",
           "outputs": [
@@ -7003,6 +7406,52 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "8.4.11"
+        },
+        "n8n-mockserver": {
+          "buildIdentity": [
+            57,
+            168,
+            18,
+            166,
+            245,
+            153,
+            151,
+            6,
+            131,
+            119,
+            138,
+            81,
+            112,
+            62,
+            211,
+            164,
+            113,
+            188,
+            188,
+            71,
+            97,
+            194,
+            46,
+            17,
+            68,
+            250,
+            102,
+            57,
+            217,
+            127,
+            254,
+            169
+          ],
+          "buildInputs": [
+            "1mv3qz005gkbalxfghk4y3s8ayv4d2dl-bash-interactive-5.3p15",
+            "2gfxiwls9hbgwdwcy43mprchwsq36mg6-coreutils-9.11",
+            "rxgngn06ihrwh52bfi4vmm0i2ds69wsj-bash-interactive-5.3p15-dev"
+          ],
+          "closure": "ji8rxpmpb7wkyalnv4pfqqzf0x7z11ni-n8n-mockserver-5.15.0",
+          "services": [
+            "proxy"
+          ],
+          "version": "5.15.0"
         },
         "nodejs": {
           "closure": "gxq2cd70i077rah1d4hkzc1lpq8q4pv8-nodejs-24.21.0",
@@ -7151,6 +7600,6 @@
     "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
     "revision": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
   },
-  "target": "enve.cue",
+  "target": "usecases/n8n/overlay/.enact/environments/checks/enve.cue",
   "version": 3
 }

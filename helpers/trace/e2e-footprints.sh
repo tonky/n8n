@@ -56,14 +56,19 @@ done
 
 # Each spec's n8n starts with the env the spec declares, and its workers (../pw-spec-env.mjs).
 spec_group() { # <spec>: `<env>\t<workers>`
-  node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "$1" | cut -f1,2
+  local groups
+  groups=$(node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "$1") || return "$?"
+  [ -n "$groups" ] || { echo "e2e-footprints: no group for requested spec" >&2; return 1; }
+  printf '%s\n' "$groups" | cut -f1,2
 }
 
 status=0
 if [ ${#UNRECORDED[@]} -gt 0 ]; then
+  groups=$(node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${UNRECORDED[@]}") || exit "$?"
+  [ -n "$groups" ] || { echo "e2e-footprints: no groups for requested specs" >&2; exit 1; }
   while IFS=$'\t' read -r -a group; do
     N8N_TEST_ENV="${group[0]}" isolated "${group[1]}" "${group[@]:2}" || status=$?
-  done < <(node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${UNRECORDED[@]}")
+  done <<< "$groups"
 fi
 [ ${#RECORDED[@]} -gt 0 ] || exit "$status"
 
@@ -71,9 +76,11 @@ fi
 CHUNKS="$REPO_ROOT/node_modules/.enact-editor-chunks.json"
 if ! ENACT_FOOTPRINT_ROOT="$REPO_ROOT" node "$RECORDERS_JS/vite-chunks.mjs" --root packages/frontend/editor-ui --public-path '/{{BASE_PATH}}/' "$CHUNKS"; then
   echo "❌ [e2e-footprints] the editor's build couldn't be mapped to its sources: the specs run unrecorded" >&2
+  groups=$(node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${RECORDED[@]}") || exit "$?"
+  [ -n "$groups" ] || { echo "e2e-footprints: no groups for requested specs" >&2; exit 1; }
   while IFS=$'\t' read -r -a group; do
     N8N_TEST_ENV="${group[0]}" isolated "${group[1]}" "${group[@]:2}" || status=$?
-  done < <(node "$TRACE_DIR/../pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${RECORDED[@]}")
+  done <<< "$groups"
   exit "$status"
 fi
 
@@ -90,7 +97,8 @@ for spec in "${RECORDED[@]}"; do
   # html report, metrics): list, and playwright-attribution.mjs writing the tests it skipped
   # (skips/<n>.jsonl), so the footprint lands marked as skipped here.
   mkdir -p "$WORK/skips"
-  IFS=$'\t' read -r spec_env spec_workers < <(spec_group "$spec")
+  group=$(spec_group "$spec") || exit "$?"
+  IFS=$'\t' read -r spec_env spec_workers <<< "$group"
   N8N_TEST_ENV="$spec_env" ENACT_NODE_READS="$WORK/node/$n" ENACT_FOOTPRINT_ROOT="$REPO_ROOT" \
     NODE_OPTIONS="--import $RECORDERS_JS/node-reads.mjs${NODE_OPTIONS:+ $NODE_OPTIONS}" \
     ENACT_SKIPS_FILE="$WORK/skips/$n.jsonl" \

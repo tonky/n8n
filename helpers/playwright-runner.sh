@@ -101,21 +101,17 @@ if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
 fi
 
 PLAYWRIGHT_DIR="$REPO_ROOT/packages/quality/testing/playwright"
-# Playwright sizes its workers from os.cpus(): the host's CPUs (14 in a 6-CPU CI container),
-# not the shard's. The CPUs enact admitted the shard with size them, at least one
-# (e2e-footprints.sh reads the same).
-if [ -n "${ENACT_WORKER_CPUS:-}" ]; then
-  N8N_PW_WORKERS=${ENACT_WORKER_CPUS%.*}
-  [ "${N8N_PW_WORKERS:-0}" -ge 1 ] 2>/dev/null || N8N_PW_WORKERS=1
-  export N8N_PW_WORKERS
-fi
-WORKERS=(${N8N_PW_WORKERS:+--workers "$N8N_PW_WORKERS"})
+# run-local-isolated owns one backend shared by this invocation's tests. A worker
+# replacement must reset it before retry hooks; concurrent workers cannot share it.
+# This limits test concurrency, not the admitted job's CPU or memory allocation.
+export N8N_PW_WORKERS=1
+WORKERS=(--workers 1)
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  # The whole suite: its vitest tests, then every e2e spec (run-local-isolated.mjs given no
-  # path runs tests/e2e).
   echo "🎯 [enact:playwright] Running the whole suite: unit tests, then every e2e spec..."
   "$VITEST_BIN" run --config "$PLAYWRIGHT_DIR/vitest.config.ts"
-  exec node --import "$SCRIPT_DIR/n8n-ready.mjs" "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${WORKERS[@]}"
+  shopt -s globstar nullglob
+  for spec in "$PLAYWRIGHT_DIR"/tests/e2e/**/*.spec.ts; do TARGETS+=("${spec#"$PLAYWRIGHT_DIR"/}"); done
+  [ ${#TARGETS[@]} -gt 0 ] || { echo "playwright-runner: whole suite contains no e2e specs" >&2; exit 1; }
 fi
 
 SPECS=()
@@ -151,6 +147,18 @@ if [ ${#UNITS[@]} -gt 0 ]; then
 fi
 
 if [ ${#SPECS[@]} -gt 0 ]; then
+  export ENACT_PW_BACKEND=shared
+  # One public CA handoff before fixtures clear/reset MockServer expectations. Children
+  # reuse this job-private file; per-spec resolver calls must never fetch it again.
+  unset ENACT_NATIVE_PROXY_ENV_FILE
+  if [ -n "${ENACT_NATIVE_PROXY_URL:-}" ]; then
+    proxy_dir=$(mktemp -d "${TMPDIR:-/tmp}/enact-pw-proxy.XXXXXX")
+    trap 'rm -rf -- "$proxy_dir"' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    node "$SCRIPT_DIR/native-proxy.mjs" prepare "$ENACT_NATIVE_PROXY_URL" "$proxy_dir" > "$proxy_dir/environment.json"
+    export ENACT_NATIVE_PROXY_ENV_FILE="$proxy_dir/environment.json"
+  fi
   echo "🎯 [enact:playwright] Executing ${#SPECS[@]} Playwright E2E spec(s) with isolated environment..."
   # Footprints enact asks for (ENACT_FOOTPRINT_DIR: `enact reach record`, `enact run`
   # recording): each wanted spec alone, recorded (trace/e2e-footprints.sh).
@@ -161,13 +169,15 @@ if [ ${#SPECS[@]} -gt 0 ]; then
     # of its own, started with that env; every group runs, the first failure fails the run.
     # A group's second field is its workers: `1` for specs resetting the database, else `-`.
     status=0
+    groups=$(node "$SCRIPT_DIR/pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${SPECS[@]}") || exit "$?"
+    [ -n "$groups" ] || { echo "playwright-runner: no groups for requested specs" >&2; exit 1; }
     while IFS=$'\t' read -r -a group; do
       group_workers=("${WORKERS[@]}")
       [ "${group[1]}" = - ] || group_workers=(--workers "${group[1]}")
       N8N_TEST_ENV="${group[0]}" node --import "$SCRIPT_DIR/n8n-ready.mjs" \
         "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${group_workers[@]}" "${group[@]:2}" ||
         { s=$?; [ "$status" -ne 0 ] || status=$s; }
-    done < <(node "$SCRIPT_DIR/pw-spec-env.mjs" "$PLAYWRIGHT_DIR" "${SPECS[@]}")
+    done <<< "$groups"
     exit "$status"
   fi
 fi

@@ -6,6 +6,7 @@ import type { N8NConfig, N8NStack } from 'n8n-containers/stack';
 import { CAPABILITIES, type CapabilityOption } from './capabilities';
 import { ApiHelpers } from '../services/api-helper';
 import { getBackendUrl } from '../utils/url-helper';
+import { nativeBackendUrl } from './native-backend';
 
 export type ContainerWorkerFixtures = {
 	containerConfig: N8NConfig;
@@ -85,9 +86,10 @@ export const containerFixtures: Fixtures<object, ContainerWorkerFixtures> = {
 	],
 	dbSetup: [
 		async ({ n8nContainer, n8nStackConfig }, use) => {
-			if (n8nContainer) {
-				console.log('Resetting database for new container');
-				const apiContext = await request.newContext({ baseURL: n8nContainer.baseUrl });
+			const backend = nativeBackendUrl() ?? n8nContainer?.baseUrl;
+			if (backend) {
+				console.log('Resetting database for new worker backend');
+				const apiContext = await request.newContext({ baseURL: backend });
 				const api = new ApiHelpers(apiContext);
 				await api.resetDatabase();
 				await apiContext.dispose();

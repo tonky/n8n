@@ -13,6 +13,7 @@ n8n: services: enve.profiles.dev.services & {
 	kafka: enact: kind:    "kafka"
 	mysql: enact: kind:    "mysql"
 	cli: enact: kind:      "http"
+	proxy: enact: kind:    "http"
 }
 
 pipeline: schema.#Pipeline & {

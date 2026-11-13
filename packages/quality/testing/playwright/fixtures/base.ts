@@ -8,6 +8,7 @@ import { a11yFixtures, type A11yTestFixtures } from './a11y';
 import { shouldSkipContainerRequirement } from './capabilities';
 import { consoleErrorFixtures } from './console-error-monitor';
 import { containerFixtures, type ContainerWorkerFixtures } from './containers';
+import { nativeBackendUrl, nativeBackendServices, nativeProxyCapability } from './native-backend';
 import { engineParityDisposition, workflowSettingsFor } from './engine-parity';
 import { N8N_AUTH_COOKIE } from '../config/constants';
 import { setupDefaultInterceptors } from '../config/intercepts';
@@ -96,9 +97,11 @@ export const test = base.extend<
 
 	// Service requirements now come from test.use(), so local projects cannot filter them by title.
 	containerRequirement: [
-		async ({ capability }, use, testInfo) => {
+		async ({ capability, n8nStackConfig }, use, testInfo) => {
+			if (nativeBackendUrl() && nativeProxyCapability(n8nStackConfig)) await nativeBackendServices(n8nStackConfig);
 			testInfo.skip(
-				shouldSkipContainerRequirement(capability, !!getBackendUrl()),
+				!(nativeBackendUrl() && nativeProxyCapability(n8nStackConfig)) &&
+					shouldSkipContainerRequirement(capability, !!getBackendUrl()),
 				'This test requires container services',
 			);
 			await use(undefined);
@@ -175,7 +178,8 @@ export const test = base.extend<
 		await use(n8nInstance);
 	},
 
-	api: async ({ backendUrl, n8nStackConfig }, use, testInfo) => {
+	api: async ({ backendUrl, n8nStackConfig, dbSetup }, use, testInfo) => {
+		void dbSetup; // Initialize this worker before API beforeAll hooks, including retries.
 		const context = await request.newContext({ baseURL: backendUrl });
 		const api = new ApiHelpers(context, { workflowSettings: workflowSettingsFor(n8nStackConfig) });
 		await api.setupFromTags(testInfo.tags);
@@ -248,8 +252,12 @@ export const test = base.extend<
 		await use(setupFunction);
 	},
 
-	services: async ({ n8nContainer }, use) => {
-		await use(n8nContainer.services);
+	services: async ({ n8nContainer, n8nStackConfig }, use, testInfo) => {
+		if (nativeBackendUrl() && !nativeProxyCapability(n8nStackConfig)) {
+			// The same upstream local-mode exclusion, applied before auto service fixtures.
+			testInfo.skip(shouldSkipContainerRequirement(n8nStackConfig, true), 'This test requires container services');
+		}
+		await use(nativeBackendUrl() ? await nativeBackendServices(n8nStackConfig) : n8nContainer.services);
 	},
 });
 

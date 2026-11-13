@@ -55,6 +55,35 @@ profiles: dev: schema.#Profile & #Runtime & {
 // Shared service ports and application variables; tools are role-specific.
 #Runtime: {
 	services: {
+		proxy: {
+			package: schema.#ArchiveBuildSpec & {
+				pname:   "n8n-mockserver"
+				version: "5.15.0"
+				src:     "https://repo.maven.apache.org/maven2/org/mock-server/mockserver-netty/5.15.0/mockserver-netty-5.15.0-shaded.jar"
+				sha256:  "866bd44bfda37a3dc7d95f89c3abb34175dab5014326cd74b3e03fd023eddebf"
+				installPhase: """
+					set -eu
+					mkdir -p "$out/share/n8n-mockserver" "$out/bin"
+					cp n8n-mockserver "$out/share/n8n-mockserver/mockserver.jar"
+					cat > "$out/bin/n8n-mockserver" <<'LAUNCHER'
+					#!/bin/sh
+					set -eu
+					home="$(cd "$(dirname "$(readlink -f "$0")")/../share/n8n-mockserver" && pwd)"
+					exec java -Xms128m -Xmx512m -Dmockserver.localBoundIP=127.0.0.1 -Dmockserver.proactivelyInitialiseTLS=true -Dmockserver.dynamicallyCreateCertificateAuthorityCertificate=true -Dmockserver.directoryToSaveDynamicSSLCertificate="${DATA_DIR:?managed proxy data directory required}" -jar "$home/mockserver.jar" "$@"
+					LAUNCHER
+					chmod 0755 "$out/bin/n8n-mockserver"
+					"""
+			}
+			packages: [{pname: "jdk21_headless"}]
+			port: 1080
+			resources: {cpu: "0.5", ramMb: 768}
+			command: "n8n-mockserver -serverPort $PORT -logLevel WARN"
+			lifecycle: postStart: "node helpers/native-proxy.mjs publish-ca http://127.0.0.1:$PORT \"$DATA_DIR/CertificateAuthorityCertificate.pem\""
+			readinessProbe: {
+				command: "curl -fsS --connect-timeout 1 --max-time 3 -X PUT http://127.0.0.1:$PORT/mockserver/status >/dev/null"
+				timeout: "60s"
+			}
+		}
 		postgres: _postgres & {name: "postgres", port: 5438}
 		// nodes-base's Kafka and MySQL integration tests (n8n-containers' kafka and mysql
 		// services): a KRaft broker, and the database and user its MySqlContainer creates.
@@ -88,6 +117,7 @@ profiles: dev: schema.#Profile & #Runtime & {
 		}
 	}
 	environment: {
+		ENACT_NATIVE_PROXY_URL:               "http://127.0.0.1:${ENVE_SERVICE_PROXY_PORT}"
 		TZ:                                   "UTC"
 		PGTZ:                                 "UTC"
 		DATABASE_URL:                         "postgresql://postgres@127.0.0.1:${ENVE_SERVICE_POSTGRES_PORT}/postgres"

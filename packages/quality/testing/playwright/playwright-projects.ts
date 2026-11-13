@@ -1,3 +1,4 @@
+import { nativeBackendUrl } from './fixtures/native-backend';
 import type { Project } from '@playwright/test';
 import type { N8NConfig } from 'n8n-containers/stack';
 
@@ -206,6 +207,8 @@ export function getProjects(): Project[] {
 		projects.push({
 			name: 'e2e',
 			testDir: './tests/e2e',
+			// A single external backend cannot isolate concurrent workers.
+			...(nativeBackendUrl() ? { workers: 1 } : {}),
 			grepInvert: ALLOW_CONTAINER_ONLY ? undefined : CONTAINER_ONLY,
 			fullyParallel: true,
 			use: { baseURL: getFrontendUrl() },
