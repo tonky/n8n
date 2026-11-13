@@ -332,6 +332,7 @@ jobs:
         ENACT_BASE_REF: ${{ inputs.base_ref || github.base_ref || github.event.pull_request.base.ref }}
         ENACT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'master' }}
+        ENACT_DETECT_OTHER_OUTPUTS: ${{ format('{{"history_input_artifact":{0}}}', toJSON(steps.history_restore.outputs.artifact)) }}
         ENACT_EVENT_BEFORE: ${{ github.event.before }}
         ENACT_FORCE_NO_CACHE: ${{ inputs.no_cache == 'true' || vars.ENACT_NO_CACHE == 'true' || contains(github.event.pull_request.title, '[no-cache]') || contains(github.event.pull_request.body, '[no-cache]') || contains(github.event.pull_request.labels.*.name, 'no-cache') }}
         ENACT_FORCE_RERUN: ${{ contains(github.event.pull_request.title, '[rerun]') || contains(github.event.pull_request.body, '[rerun]') || contains(github.event.pull_request.labels.*.name, 'rerun') || contains(github.event.pull_request.labels.*.name, 'showcase') || startsWith(github.head_ref, 'proof/') || startsWith(github.ref_name, 'proof/') || startsWith(github.head_ref, 'showcase/proof/') || startsWith(github.ref_name, 'showcase/proof/') }}
