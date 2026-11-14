@@ -223,7 +223,7 @@ pipeline: schema.#Pipeline & {
 
 	caches: {
 		vitest_transforms: {paths: [".enact/state/cache/vitest"], key: ["pnpm-lock.yaml", "enve.lock", "helpers/vitest-runner.sh"], scope: "shared", host: true, used_by: {components: [for n, p in _packages if len(p.tests) > 0 {n}], jobs: ["test", "integration", "migrate", "migrate_sqlite"]}}
-		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml", "enve.lock", "helpers/typecheck-runner.sh"], scope: "task", host: true, refresh: "rolling", used_by: {components: [for n, _ in _packages {n}], jobs: ["build", "typecheck"]}}
+		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml", "enve.lock", "helpers/typecheck-runner.sh"], scope: "task", host: true, optional: true, refresh: "rolling", used_by: {components: [for n, _ in _packages {n}], jobs: ["build", "typecheck"]}}
 	}
 
 	components: {

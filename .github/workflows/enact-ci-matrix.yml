@@ -560,7 +560,7 @@ jobs:
       id: save_host_cache_node_build
       if: ${{ (steps.runner_caches.outputs.host != '' && contains(format(',{0},', matrix.caches), ',node_build,')) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
-      run: enact ci host-cache save
+      run: enact ci host-cache save --optional
       env:
         ENACT_HOST_CACHE_KEY: node_build-${{ runner.os }}-${{ matrix.task_id }}-${{ runner.arch }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'helpers/typecheck-runner.sh') }}
         ENACT_HOST_CACHE_PATHS: .turbo
