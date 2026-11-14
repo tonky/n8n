@@ -9,6 +9,8 @@ export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/tmp/.cache/ms-play
 export PNPM_MANAGE_PACKAGE_MANAGER_VERSIONS=false
 export N8N_ENCRYPTION_KEY="${N8N_ENCRYPTION_KEY:-e2e-test-encryption-key-n8n}"
 export N8N_GIT_COMMIT="${N8N_GIT_COMMIT:-${GITHUB_SHA:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}}"
+# Keep CURRENTS_RECORD_KEY unset so upstream fixtures/quarantine.ts skips quarantined broken tests on forks.
+unset CURRENTS_RECORD_KEY
 # Isolated Playwright runner uses local throwaway SQLite instance per spec
 export DB_TYPE=sqlite
 unset DB_POSTGRESDB_HOST DB_POSTGRESDB_PORT DB_POSTGRESDB_DATABASE DB_POSTGRESDB_USER DB_POSTGRESDB_PASSWORD
@@ -102,14 +104,32 @@ if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
 fi
 
 PLAYWRIGHT_DIR="$REPO_ROOT/packages/quality/testing/playwright"
+run_playwright_units() {
+  if [ -n "${ENACT_FOOTPRINT_DIR:-}" ]; then
+    (
+      cd "$PLAYWRIGHT_DIR" &&
+        env -u DB_TYPE ENACT_SERVICES_ACTIVE=0 N8N_WORKSPACE_DEPS_BUILT=1 "$SCRIPT_DIR/vitest-runner.sh" "$@"
+    )
+  elif [ $# -eq 0 ]; then
+    "$VITEST_BIN" run --config "$PLAYWRIGHT_DIR/vitest.config.ts"
+  else
+    "$VITEST_BIN" run "$@"
+  fi
+}
+
 # run-local-isolated owns one backend shared by this invocation's tests. A worker
 # replacement must reset it before retry hooks; concurrent workers cannot share it.
 # This limits test concurrency, not the admitted job's CPU or memory allocation.
 export N8N_PW_WORKERS=1
 WORKERS=(--workers 1)
+PW_EXTRA_ARGS=()
+if [ -f "$PLAYWRIGHT_DIR/playwright.config.ts" ] && [ -f "$SCRIPT_DIR/playwright.enact.config.ts" ]; then
+  PW_EXTRA_ARGS=(--config "$SCRIPT_DIR/playwright.enact.config.ts" --trace=off)
+fi
+
 if [ ${#TARGETS[@]} -eq 0 ]; then
   echo "🎯 [enact:playwright] Running the whole suite: unit tests, then every e2e spec..."
-  "$VITEST_BIN" run --config "$PLAYWRIGHT_DIR/vitest.config.ts"
+  run_playwright_units
   shopt -s globstar nullglob
   for spec in "$PLAYWRIGHT_DIR"/tests/e2e/**/*.spec.ts; do TARGETS+=("${spec#"$PLAYWRIGHT_DIR"/}"); done
   [ ${#TARGETS[@]} -gt 0 ] || { echo "playwright-runner: whole suite contains no e2e specs" >&2; exit 1; }
@@ -144,7 +164,7 @@ fi
 
 if [ ${#UNITS[@]} -gt 0 ]; then
   echo "🎯 [enact:playwright] Executing ${#UNITS[@]} unit/framework test target(s)..."
-  "$VITEST_BIN" run "${UNITS[@]}"
+  run_playwright_units "${UNITS[@]}"
 fi
 
 if [ ${#SPECS[@]} -gt 0 ]; then
@@ -176,7 +196,8 @@ if [ ${#SPECS[@]} -gt 0 ]; then
       group_workers=("${WORKERS[@]}")
       [ "${group[1]}" = - ] || group_workers=(--workers "${group[1]}")
       N8N_TEST_ENV="${group[0]}" node --import "$SCRIPT_DIR/n8n-ready.mjs" \
-        "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${group_workers[@]}" "${group[@]:2}" ||
+        "$PLAYWRIGHT_DIR/scripts/run-local-isolated.mjs" "${group_workers[@]}" \
+        ${PW_EXTRA_ARGS[@]+"${PW_EXTRA_ARGS[@]}"} "${group[@]:2}" ||
         { s=$?; [ "$status" -ne 0 ] || status=$s; }
     done <<< "$groups"
     exit "$status"

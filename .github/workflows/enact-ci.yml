@@ -119,7 +119,6 @@ jobs:
       builds__n8n_db__build: ${{ steps.diff.outputs.builds__n8n_db__build }}
       builds_cli__build: ${{ steps.diff.outputs.builds_cli__build }}
       builds_playwright__build: ${{ steps.diff.outputs.builds_playwright__build }}
-      built__n8n_db__build: ${{ steps.diff.outputs.built__n8n_db__build }}
       built__n8n_db__build_cli__build: ${{ steps.diff.outputs.built__n8n_db__build_cli__build }}
       built__n8n_db__build_cli__build_playwright__build: ${{ steps.diff.outputs.built__n8n_db__build_cli__build_playwright__build }}
       history_input_artifact: ${{ steps.history_restore.outputs.artifact }}
@@ -344,6 +343,7 @@ jobs:
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
         ENACT_RECORD: ${{ (github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) && 'every' || (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch) && 'auto' || 'off' }}
         ENACT_SAME_REPO_PR: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        GH_TOKEN: ${{ github.token }}
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         GIT_CONFIG_COUNT: "1"
@@ -382,7 +382,6 @@ jobs:
     - build-outputs--n8n-db--build
     - build-outputs-cli--build
     - build-outputs-playwright--build
-    - test-built--n8n-db--build
     - test-built--n8n-db--build-cli--build
     - test-built--n8n-db--build-cli--build-playwright--build
     if: "!cancelled()"
@@ -599,21 +598,6 @@ jobs:
     with:
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
       matrix: ${{ needs.detect.outputs.matrix }}
-      warm_reach: ${{ inputs.warm_reach }}
-    secrets: inherit
-  test-built--n8n-db--build:
-    permissions:
-      actions: read
-      contents: read
-    name: Run Tests on Built Outputs
-    needs:
-    - detect
-    - build-outputs--n8n-db--build
-    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built__n8n_db__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build != '[]' && needs.detect.outputs.built__n8n_db__build != '' }}
-    uses: ./.github/workflows/enact-ci-matrix.yml
-    with:
-      history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
-      matrix: ${{ needs.detect.outputs.built__n8n_db__build }}
       warm_reach: ${{ inputs.warm_reach }}
     secrets: inherit
   test-built--n8n-db--build-cli--build:

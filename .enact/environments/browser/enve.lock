@@ -2,8 +2,8 @@
   "platforms": {
     "aarch64-darwin": {
       "binding": {
-        "environment_sha256": "6607f03d4e162e8bc2f5c0aa2ab48e108e87cc0902c5a4138e4fbbb29f95794b",
-        "inventory_sha256": "1375d97006414a834ca91cb47c3ea6d422d406d090ec796664cb5e3dd1d20f89",
+        "environment_sha256": "f018bd0f243c2d31a153a076a581e3351d939c6d6fdd174584dd0e9cf33acfce",
+        "inventory_sha256": "28eba06e1a8f939f77cda0f3125d20f6f9b505f9b144829c7955a4128df9780f",
         "profile": null,
         "version": 2
       },
@@ -1314,6 +1314,14 @@
           ]
         },
         {
+          "hash_name": "yxyia1xxbkm7klgzaarmga65w4sr1p6p-lsof-4.99.7",
+          "nar_hash": "sha256:0c4cciy5jgb23y2s2c79s52hj0vclq25zsh7i52ws8lvhaks310g",
+          "nar_size": 204752,
+          "references": [
+            "n9925m4950mn5i2bmlh50lds2ih6yg1v-ncurses-6.6"
+          ]
+        },
+        {
           "hash_name": "z1xkb1z8gb94anq0dm7ppm92wvjpcyy3-libxml2-2.15.4",
           "nar_hash": "sha256:0ghm0pn6fqqb5029ssqk2ma30l9knsg6vhr0g456vmbybp6cdqd4",
           "nar_size": 1228856,
@@ -1660,6 +1668,34 @@
             },
             {
               "constraint": {
+                "attr": "lsof",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "aarch64-darwin",
+                "version": null
+              },
+              "package": {
+                "attr_path": "lsof",
+                "name": "lsof",
+                "origin": {
+                  "Channel": {
+                    "build": 347155173,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "out": "/nix/store/yxyia1xxbkm7klgzaarmga65w4sr1p6p-lsof-4.99.7"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/yxyia1xxbkm7klgzaarmga65w4sr1p6p-lsof-4.99.7"
+                ],
+                "version": "4.99.7"
+              }
+            },
+            {
+              "constraint": {
                 "attr": "mysql84",
                 "context": "profiles.dev",
                 "output": null,
@@ -1929,7 +1965,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "b9f181b9093efd0b29e3dfbc79a9212bcb0b6588f450ebc13a879efb80b5fd27"
+        "projectSha256": "c84973d14573c99267bc41082691d1401eb305f163c0ad0b99ea1a5fd580ccad"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -2097,6 +2133,21 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "21.0.11"
+        },
+        "lsof": {
+          "closure": "yxyia1xxbkm7klgzaarmga65w4sr1p6p-lsof-4.99.7",
+          "outputs": [
+            "yxyia1xxbkm7klgzaarmga65w4sr1p6p-lsof-4.99.7"
+          ],
+          "source": {
+            "attr": "lsof",
+            "build": 347155173,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "4.99.7"
         },
         "mysql": {
           "closure": "vlyxr0vb4g778x3amvcksfr87q89cl41-mysql-8.4.11",
@@ -2358,8 +2409,8 @@
     },
     "aarch64-linux": {
       "binding": {
-        "environment_sha256": "6607f03d4e162e8bc2f5c0aa2ab48e108e87cc0902c5a4138e4fbbb29f95794b",
-        "inventory_sha256": "11755eff4c58b4911b66e5ee792e566cb354eac99aaf5e1e316c88f62fca4e1c",
+        "environment_sha256": "f018bd0f243c2d31a153a076a581e3351d939c6d6fdd174584dd0e9cf33acfce",
+        "inventory_sha256": "8d69443c41e6a75a962eebd39a6e78f369727c999b9827b8eba0279d88108322",
         "profile": null,
         "version": 2
       },
@@ -4659,6 +4710,14 @@
           ]
         },
         {
+          "hash_name": "v8myy03dp6bk2j7ljjagnx9cnl9xrjr7-lsof-4.99.7",
+          "nar_hash": "sha256:1kkbc1lkmiqdbdsas9bn3y80j81hnki53syiy6zxhx4v0dplx2qr",
+          "nar_size": 327184,
+          "references": [
+            "hx9wvdx2l59iahwf9nmrx7rwkm6cymgs-glibc-2.44-25"
+          ]
+        },
+        {
           "hash_name": "vayjj33h8smgsg99dsyws9lkiaqyqwgb-libmpc-1.4.1",
           "nar_hash": "sha256:0b66psvay2vjmdp1wxz7dhbymjmym51rfjqknvj7ih6zbjq5007a",
           "nar_size": 363776,
@@ -5789,6 +5848,34 @@
             },
             {
               "constraint": {
+                "attr": "lsof",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "aarch64-linux",
+                "version": null
+              },
+              "package": {
+                "attr_path": "lsof",
+                "name": "lsof",
+                "origin": {
+                  "Channel": {
+                    "build": 347155175,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "out": "/nix/store/v8myy03dp6bk2j7ljjagnx9cnl9xrjr7-lsof-4.99.7"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/v8myy03dp6bk2j7ljjagnx9cnl9xrjr7-lsof-4.99.7"
+                ],
+                "version": "4.99.7"
+              }
+            },
+            {
+              "constraint": {
                 "attr": "mysql84",
                 "context": "profiles.dev",
                 "output": null,
@@ -6206,7 +6293,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "b9f181b9093efd0b29e3dfbc79a9212bcb0b6588f450ebc13a879efb80b5fd27"
+        "projectSha256": "c84973d14573c99267bc41082691d1401eb305f163c0ad0b99ea1a5fd580ccad"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -6374,6 +6461,21 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "21.0.12.1+1"
+        },
+        "lsof": {
+          "closure": "v8myy03dp6bk2j7ljjagnx9cnl9xrjr7-lsof-4.99.7",
+          "outputs": [
+            "v8myy03dp6bk2j7ljjagnx9cnl9xrjr7-lsof-4.99.7"
+          ],
+          "source": {
+            "attr": "lsof",
+            "build": 347155175,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "4.99.7"
         },
         "mysql": {
           "closure": "s5wmx762zwwh6x7lbzm58g1rj9qb3x7m-mysql-8.4.11",
@@ -6678,8 +6780,8 @@
     },
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "6607f03d4e162e8bc2f5c0aa2ab48e108e87cc0902c5a4138e4fbbb29f95794b",
-        "inventory_sha256": "d223d6e0ce203180243f38696b59f7107b682ba0175f375da55636ac4092eadb",
+        "environment_sha256": "f018bd0f243c2d31a153a076a581e3351d939c6d6fdd174584dd0e9cf33acfce",
+        "inventory_sha256": "06ac19ca9714b77721cbbecea5c4bb78493aef6d83b26edf12aa0298dff18c2c",
         "profile": null,
         "version": 2
       },
@@ -7596,6 +7698,14 @@
             "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25",
             "jy9fp83kqfw7kn208xm5i38sa8srfbkq-db-4.8.30",
             "wx1y0adli2qggk81pm4marx3km1scqxg-libxcrypt-4.5.2"
+          ]
+        },
+        {
+          "hash_name": "dgfvsd31jkbyjny9342d7k7akbla35xs-lsof-4.99.7",
+          "nar_hash": "sha256:18dmf0jrq3xhdclixhdgavd9hpzyhnimmgriy6diacr0bc4fwc11",
+          "nar_size": 278928,
+          "references": [
+            "h4wfwic161kxrr74jlzla5lsm28hgary-glibc-2.44-25"
           ]
         },
         {
@@ -10110,6 +10220,34 @@
             },
             {
               "constraint": {
+                "attr": "lsof",
+                "context": "profiles.dev",
+                "output": null,
+                "system": "x86_64-linux",
+                "version": null
+              },
+              "package": {
+                "attr_path": "lsof",
+                "name": "lsof",
+                "origin": {
+                  "Channel": {
+                    "build": 347155176,
+                    "evaluation": 1829846,
+                    "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/"
+                  }
+                },
+                "outputs": {
+                  "out": "/nix/store/dgfvsd31jkbyjny9342d7k7akbla35xs-lsof-4.99.7"
+                },
+                "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c",
+                "store_paths": [
+                  "/nix/store/dgfvsd31jkbyjny9342d7k7akbla35xs-lsof-4.99.7"
+                ],
+                "version": "4.99.7"
+              }
+            },
+            {
+              "constraint": {
                 "attr": "mysql84",
                 "context": "profiles.dev",
                 "output": null,
@@ -10527,7 +10665,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "b9f181b9093efd0b29e3dfbc79a9212bcb0b6588f450ebc13a879efb80b5fd27"
+        "projectSha256": "c84973d14573c99267bc41082691d1401eb305f163c0ad0b99ea1a5fd580ccad"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -10695,6 +10833,21 @@
             "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
           },
           "version": "21.0.12.1+1"
+        },
+        "lsof": {
+          "closure": "dgfvsd31jkbyjny9342d7k7akbla35xs-lsof-4.99.7",
+          "outputs": [
+            "dgfvsd31jkbyjny9342d7k7akbla35xs-lsof-4.99.7"
+          ],
+          "source": {
+            "attr": "lsof",
+            "build": 347155176,
+            "evaluation": 1829846,
+            "kind": "channel",
+            "release": "nixpkgs/nixpkgs-26.11pre1085727.8c6b39505383/",
+            "rev": "8c6b39505383e6d5dcb431f00cb3597b71f8045c"
+          },
+          "version": "4.99.7"
         },
         "mysql": {
           "closure": "fhx1akr809cy1c9lg0z9m7zn5ksilf39-mysql-8.4.11",

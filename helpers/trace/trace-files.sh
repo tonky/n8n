@@ -32,6 +32,11 @@ for service in ${SERVICE_DEPS:-}; do
   FLAGS+=(--service-dep "$service")
 done
 
+ENV_FILE="$ROOT/enve.cue"
+if [ -n "${ENACT_ENVIRONMENT_FILE:-}" ] && [ -f "$ROOT/$ENACT_ENVIRONMENT_FILE" ]; then
+  ENV_FILE="$ROOT/$ENACT_ENVIRONMENT_FILE"
+fi
+
 exec "$ENACT" trace run --no-fingerprint --node-functions --reach-file "$MAP" --attribution "$MAP.attribution.jsonl" \
   ${FLAGS[@]+"${FLAGS[@]}"} -- \
-  enve run --locked -q ${ENVE_FLAGS[@]+"${ENVE_FLAGS[@]}"} -f "$ROOT/enve.cue" -- "$ROOT/helpers/vitest-runner.sh" "$@"
+  enve run --locked -q ${ENVE_FLAGS[@]+"${ENVE_FLAGS[@]}"} -f "$ENV_FILE" -- "$ROOT/helpers/vitest-runner.sh" "$@"

@@ -50,6 +50,7 @@ profiles: dev: schema.#Profile & #Runtime & {
 	pkgs.python & {version: "3.13"},
 	pkgs.uv,
 	{pname: "flock"},
+	{pname: "lsof"},
 	// nodes-base's Kafka integration test drives the broker's CLI (kafka-topics.sh, ...).
 	pkgs.kafka,
 ]

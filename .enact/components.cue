@@ -181,6 +181,13 @@ pipeline: schema.#Pipeline & {
 		},
 		{outputs: ["packages/cli/test-exports-*/**"], inputs: ["packages/cli/test/integration/environments/source-control-export.service.test.ts"]},
 		{
+			outputs: [
+				"packages/quality/testing/playwright/test-results/**",
+				"packages/quality/testing/playwright/playwright-report/**",
+			]
+			inputs: ["packages/quality/testing/playwright/playwright.config.ts"]
+		},
+		{
 			// schema-docs.mjs migrates this temporary SQLite database, then removes it.
 			// Its observed bytes depend on the DB implementation and schema helpers.
 			outputs: ["packages/@n8n/db/.tmp-schema-docs", "packages/@n8n/db/.tmp-schema-docs/**"]
@@ -215,8 +222,8 @@ pipeline: schema.#Pipeline & {
 	]
 
 	caches: {
-		vitest_transforms: {paths: [".enact/state/cache/vitest"], key: ["pnpm-lock.yaml", "enve.lock", "helpers/vitest-runner.sh"], scope: "task", host: true, used_by: {components: [for n, p in _packages if len(p.tests) > 0 {n}], jobs: ["test", "integration", "migrate", "migrate_sqlite"]}}
-		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml", "enve.lock", "helpers/typecheck-runner.sh"], scope: "task", host: true, refresh: "rolling", used_by: jobs: ["build", "lint", "typecheck"]}
+		vitest_transforms: {paths: [".enact/state/cache/vitest"], key: ["pnpm-lock.yaml", "enve.lock", "helpers/vitest-runner.sh"], scope: "shared", host: true, used_by: {components: [for n, p in _packages if len(p.tests) > 0 {n}], jobs: ["test", "integration", "migrate", "migrate_sqlite"]}}
+		node_build:        {paths: [".turbo"], key: ["package.json", "pnpm-lock.yaml", "enve.lock", "helpers/typecheck-runner.sh"], scope: "task", host: true, refresh: "rolling", used_by: {components: [for n, _ in _packages {n}], jobs: ["build", "typecheck"]}}
 	}
 
 	components: {
@@ -345,13 +352,6 @@ pipeline: schema.#Pipeline & {
 					command: _vitest
 					env: ENACT_FOOTPRINT_SERVICES: strings.Join([for service in Services {service.name}], " ")
 				}]
-			}
-		}
-
-		"@n8n/efficiency": {
-			jobs: {
-				lint:      needs: ["@n8n/db:build"]
-				typecheck: needs: ["@n8n/db:build"]
 			}
 		}
 
@@ -611,24 +611,16 @@ pipeline: schema.#Pipeline & {
 			title:       "n8n End-to-End Playwright Suite"
 			kind:        "verification"
 			domain:      "verification"
-			watch_paths: [P.dir + "/**", "helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs", "helpers/native-proxy.mjs", "helpers/pw-capability.mjs"]
+			watch_paths: [
+				P.dir + "/**", "helpers/playwright-runner.sh", "helpers/playwright.enact.config.ts",
+				"helpers/editor-chunks.mjs", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs",
+				"helpers/native-proxy.mjs", "helpers/pw-capability.mjs",
+			]
 			uses:        [{protocol: schema.#Protocol.Http, target: "proxy", title: "Local HTTP proxy for Playwright tests"}]
-			shards:      4
+			shards:      6
 			recorder:    "own"
 			target_scope: _target_scope & {
-				#dir:   P.dir
-				#tests: [P.dir + "/tests/**/*.spec.ts", P.dir + "/**/*.test.{ts,mjs}"]
-				#ignore: [
-					P.dir + "/tests/dev-server-smoke/**/*.spec.ts",
-				]
-				exclude: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]
-				#runner: ["helpers/playwright-runner.sh", "helpers/pw-spec-env.mjs", "helpers/native-proxy.mjs", "helpers/pw-capability.mjs"]
-				// Not run either: the `engine-v2:e2e` project (upstream's "E2E on engine v2", the
-				// `@engine:*` specs of tests/e2e, which this suite runs on engine v1). It exists only
-				// in container mode: n8n-containers starts Postgres, a main in remote engine mode and
-				// an `n8n engine` container sharing its storage, and the parity fixture reads the
-				// engine mode from that stack's config.
-				not_run: [{
+				let _notRun = [{
 					tests:  [for d in ["cli-workflows", "evals", "infrastructure", "performance"] {P.dir + "/tests/" + d + "/**/*.spec.ts"}]
 					reason: "Playwright projects other than e2e and dev-server-smoke: upstream runs them against containers (infrastructure, performance), workflow fixtures (cli-workflows) or an LLM (evals)"
 				}, {
@@ -651,9 +643,79 @@ pipeline: schema.#Pipeline & {
 				}, {
 					tests:  [P.dir + "/tests/e2e/ai/hitl-for-tools.spec.ts"]
 					reason: "upstream scripts/distribute-tests.mjs QUARANTINE excludes this spec from orchestrated distribution and PR shards (34.2% flakyRate)"
+				}, {
+					tests: [for s in [
+						"auth/oidc",
+						"auth/password-reset",
+						"dynamic-credentials/execution-status",
+						"dynamic-credentials/external-user-trigger",
+						"dynamic-credentials/form-trigger-end-user-credential-shell",
+						"dynamic-credentials/mcp-trigger-credential-gate",
+						"dynamic-credentials/resolver-deletion",
+						"dynamic-credentials/webhook-trigger-private-credential",
+						"instance-ai/instance-ai-onboarding",
+						"nodes/email-send-node",
+						"nodes/kafka-nodes",
+						"sentry/sentry-baseline",
+						"settings/community-nodes/node-api-version-guard",
+						"settings/environments/promotion-environments",
+						"settings/environments/source-control",
+						"settings/external-secrets/aws-secrets-manager",
+						"settings/external-secrets/secret-providers-connections-ui",
+						"settings/external-secrets/secret-providers-connections",
+						"settings/log-streaming/log-streaming-observability",
+						"settings/log-streaming/log-streaming-ui-e2e",
+						"source-control/pull",
+						"source-control/push",
+					] {P.dir + "/tests/e2e/" + s + ".spec.ts"}]
+					reason: "100% of tests require non-proxy container services (keycloak, mailpit, kafka, kent, npmRegistry, gitea, localstack, observability, sandbox) that containerRequirement unconditionally skips in local mode"
+				}, {
+					tests: [for s in [
+						"instance-ai/instance-ai-multimain",
+						"instance-ai/instance-ai-out-of-credits",
+						"instance-ai/instance-ai-remediation-guard",
+						"push/sse-push-backend",
+						"scheduling/schedule-trigger-multimain",
+						"scheduling/schedule-trigger-restart",
+						"workflows/editor/expressions/env-access",
+					] {P.dir + "/tests/e2e/" + s + ".spec.ts"}]
+					reason: "100% of tests unconditionally skip in single-main local mode (!n8nContainer or mainUrls.length < 2)"
+				}, {
+					tests: [for s in [
+						"ai/evaluations",
+						"ai/langchain-memory",
+						"ai/langchain-tools",
+						"app-config/nps-survey",
+						"instance-ai/instance-ai-timeouts",
+						"node-creator/categories",
+						"workflows/editor/execution/previous-nodes",
+						"workflows/editor/workflow-actions/copy-paste",
+						"workflows/editor/workflow-actions/duplicate",
+						"workflows/editor/workflow-actions/run",
+						"workflows/editor/workflow-actions/settings",
+					] {P.dir + "/tests/e2e/" + s + ".spec.ts"}]
+					reason: "100% of tests in the spec are unconditionally disabled upstream via file-level test.fixme or test.skip"
 				}]
+				#dir:   P.dir
+				#tests: [P.dir + "/tests/**/*.spec.ts", P.dir + "/**/*.test.{ts,mjs}"]
+				#ignore: [
+					P.dir + "/tests/dev-server-smoke/**/*.spec.ts",
+					for g in _notRun for t in g.tests if !strings.Contains(t, "::") {t},
+				]
+				exclude: [P.dir + "/tests/dev-server-smoke/**/*.spec.ts"]
+				#runner: [
+					"helpers/playwright-runner.sh", "helpers/playwright.enact.config.ts",
+					"helpers/editor-chunks.mjs", "helpers/pw-spec-env.mjs",
+					"helpers/native-proxy.mjs", "helpers/pw-capability.mjs",
+				]
+				// Not run either: the `engine-v2:e2e` project (upstream's "E2E on engine v2", the
+				// `@engine:*` specs of tests/e2e, which this suite runs on engine v1). It exists only
+				// in container mode: n8n-containers starts Postgres, a main in remote engine mode and
+				// an `n8n engine` container sharing its storage, and the parity fixture reads the
+				// engine mode from that stack's config.
+				not_run: _notRun
 			}
-			resources: {cpus: 4.0, memory_mb: 10240}
+			resources: {cpus: 4.0, memory_mb: 6144}
 			jobs: {
 				build: {
 					environment_file: ".enact/environments/checks/enve.cue"
@@ -665,22 +727,24 @@ pipeline: schema.#Pipeline & {
 						paths: [
 							for d in _e2eBuilds if !list.Contains(_cliBuilds, d) && !list.Contains(_dbBuilds, d) {d + "/dist"},
 							"packages/frontend/editor-ui/dist/index.html",
+							"packages/frontend/editor-ui/dist/.enact-editor-chunks.json",
 						]
 						key: [
 							for _, d in _packages if d.built {d.dir + "/**"},
-							"helpers/build-workspace-deps.sh", "helpers/pnpm-store.sh",
+							"helpers/build-workspace-deps.sh", "helpers/editor-chunks.mjs", "helpers/pnpm-store.sh",
 							"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml",
 							"tsconfig.json", "turbo.json",
 						]
 					}
-					tasks: [{command: "helpers/build-workspace-deps.sh --only --upstream-key-file=.enact/state/outputs/cli--build.key " + strings.Join([for _, p in _packages if list.Contains(_e2eBuilds, p.dir) && !list.Contains(_cliBuilds, p.dir) && !list.Contains(_dbBuilds, p.dir) {p.pkg}], " ")}]
+					tasks: [
+						{command: "helpers/build-workspace-deps.sh --only --upstream-key-file=.enact/state/outputs/cli--build.key " + strings.Join([for _, p in _packages if list.Contains(_e2eBuilds, p.dir) && !list.Contains(_cliBuilds, p.dir) && !list.Contains(_dbBuilds, p.dir) {p.pkg}], " ")},
+						{name: "Index editor UI Vite chunks", command: "node helpers/editor-chunks.mjs packages/frontend/editor-ui/dist/.enact-editor-chunks.json"},
+					]
 				}
 				lint: {
-					needs:    ["@n8n/db:build"]
 					services: false
 				}
 				typecheck: {
-					needs:    ["@n8n/db:build"]
 					services: false
 				}
 				dev_server_smoke: {

@@ -62,51 +62,9 @@ jobs:
         echo "ENACT_HOST_CACHE=$host" >> "$GITHUB_ENV"
         printf 'host=%s\n' "$host" >> "$GITHUB_OUTPUT"
         printf 'Host cache: %s\n' "${host:-none}"
-    - name: Look Up Built Outputs in the Host Cache
-      id: outputs-host-lookup
-      if: ${{ steps.runner_caches.outputs.host != '' && matrix.output_key != '' }}
-      continue-on-error: true
-      run: |
-        set -euo pipefail
-        store="${ENACT_OUTPUTS_CACHE:-}"
-        entry="$store/${GITHUB_REPOSITORY:-repo}/$ENACT_OUTPUTS_KEY"
-        hit=false
-        if [ -n "$store" ] && [ -f "$entry/.enact-ready" ] && \
-            ENACT_OUTPUTS_VERIFY_ROOT="$entry" "${ENACT_OUTPUTS_VERIFIER:-enact}" ci host-outputs verify >/dev/null 2>&1; then
-            hit=true
-            while IFS= read -r pattern; do
-                [ -n "$pattern" ] || continue
-                # shellcheck disable=SC2086 # glob pattern from outputs.paths
-                for src in "$entry"/$pattern; do
-                    [ -e "$src" ] || [ -L "$src" ] || { hit=false; break 2; }
-                done
-            done <<<"$ENACT_OUTPUTS_PATHS"
-        fi
-        if [ "$hit" = true ]; then
-            touch "$entry/.enact-ready" 2>/dev/null || true
-        fi
-        printf 'cache-hit=%s\n' "$hit" >> "$GITHUB_OUTPUT"
-      env:
-        ENACT_OUTPUTS_KEY: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
-        ENACT_OUTPUTS_PATHS: ${{ matrix.output_paths }}
-    - name: Look Up Built Outputs
-      id: outputs-lookup
-      if: ${{ matrix.output_key != '' }}
-      continue-on-error: true
-      uses: actions/cache/restore@v6
-      with:
-        key: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
-        lookup-only: "true"
-        path: ${{ matrix.output_paths }}
-    - name: Skip on Built Outputs Found
-      id: skip
-      if: ${{ matrix.output_key != '' }}
-      run: "[ \"$HIT\" != true ] || echo hit=true >> \"$GITHUB_OUTPUT\""
-      env:
-        HIT: ${{ steps.outputs-host-lookup.outputs.cache-hit == 'true' || steps.outputs-lookup.outputs.cache-hit == 'true' }}
     - name: Checkout Repository (sparse) from the Host Mirror
       id: host_checkout
-      if: ${{ (steps.runner_caches.outputs.host != '') && !steps.skip.outputs.hit }}
+      if: ${{ steps.runner_caches.outputs.host != '' }}
       continue-on-error: true
       run: |
         set -euo pipefail
@@ -165,7 +123,7 @@ jobs:
         ENACT_GIT_TOKEN: ${{ github.token }}
         ENACT_SPARSE_CONE: ${{ matrix.sparse_checkout }}
     - name: Checkout Repository (sparse)
-      if: ${{ (matrix.sparse_checkout != '' && (steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure')) && !steps.skip.outputs.hit }}
+      if: ${{ matrix.sparse_checkout != '' && (steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure') }}
       uses: actions/checkout@v7
       with:
         fetch-depth: "1"
@@ -176,7 +134,7 @@ jobs:
         sparse-checkout-cone-mode: "true"
         submodules: "false"
     - name: Checkout Repository (full)
-      if: ${{ (matrix.sparse_checkout == '' && (steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure')) && !steps.skip.outputs.hit }}
+      if: ${{ matrix.sparse_checkout == '' && (steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure') }}
       uses: actions/checkout@v7
       with:
         fetch-depth: "1"
@@ -185,7 +143,6 @@ jobs:
         show-progress: "false"
         submodules: "false"
     - name: Install committed enact & enve builds
-      if: ${{ !steps.skip.outputs.hit }}
       run: |
         P="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
         E="${GITHUB_WORKSPACE:-$PWD}/bin/$P/enact"
@@ -194,6 +151,48 @@ jobs:
         chmod +x "$E" 2>/dev/null || true
         "$E" --version >/dev/null 2>&1 || { echo "::error title=No enact for $P::$E does not run on this $P runner; commit its build as bin/$P/enact"; exit 1; }
         "$E" ci install-binaries
+    - name: Look Up Built Outputs in the Host Cache
+      id: outputs-host-lookup
+      if: ${{ steps.runner_caches.outputs.host != '' && matrix.output_key != '' }}
+      continue-on-error: true
+      run: |
+        set -euo pipefail
+        store="${ENACT_OUTPUTS_CACHE:-}"
+        entry="$store/${GITHUB_REPOSITORY:-repo}/$ENACT_OUTPUTS_KEY"
+        hit=false
+        if [ -n "$store" ] && [ -f "$entry/.enact-ready" ] && \
+            ENACT_OUTPUTS_VERIFY_ROOT="$entry" "${ENACT_OUTPUTS_VERIFIER:-enact}" ci host-outputs verify >/dev/null 2>&1; then
+            hit=true
+            while IFS= read -r pattern; do
+                [ -n "$pattern" ] || continue
+                # shellcheck disable=SC2086 # glob pattern from outputs.paths
+                for src in "$entry"/$pattern; do
+                    [ -e "$src" ] || [ -L "$src" ] || { hit=false; break 2; }
+                done
+            done <<<"$ENACT_OUTPUTS_PATHS"
+        fi
+        if [ "$hit" = true ]; then
+            touch "$entry/.enact-ready" 2>/dev/null || true
+        fi
+        printf 'cache-hit=%s\n' "$hit" >> "$GITHUB_OUTPUT"
+      env:
+        ENACT_OUTPUTS_KEY: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
+        ENACT_OUTPUTS_PATHS: ${{ matrix.output_paths }}
+    - name: Look Up Built Outputs
+      id: outputs-lookup
+      if: ${{ matrix.output_key != '' }}
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
+        lookup-only: "true"
+        path: ${{ matrix.output_paths }}
+    - name: Skip on Built Outputs Found
+      id: skip
+      if: ${{ matrix.output_key != '' }}
+      run: "[ \"$HIT\" != true ] || echo hit=true >> \"$GITHUB_OUTPUT\""
+      env:
+        HIT: ${{ steps.outputs-host-lookup.outputs.cache-hit == 'true' || steps.outputs-lookup.outputs.cache-hit == 'true' }}
     - name: Ensure enve & enact CLI on PATH
       id: setup-runner
       if: ${{ !steps.skip.outputs.hit }}
@@ -236,7 +235,7 @@ jobs:
       if: ${{ (toJson(matrix.output_keys) != 'null') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: |-
         cat > "$ENACT_OUTPUTS_PRODUCERS_FILE" <<'PRODUCERS_JSON'
-        {"-n8n-db--build":{"job":"@n8n/db:build","paths":"packages/@n8n/api-types/dist\npackages/@n8n/backend-common/dist\npackages/@n8n/backend-network/dist\npackages/@n8n/blob-storage/dist\npackages/@n8n/client-oauth2/dist\npackages/@n8n/config/dist\npackages/@n8n/constants/dist\npackages/@n8n/db/dist\npackages/@n8n/decorators/dist\npackages/@n8n/di/dist\npackages/@n8n/errors/dist\npackages/@n8n/eslint-config/dist\npackages/@n8n/expression-runtime/dist\npackages/@n8n/inbound-auth/dist\npackages/@n8n/oxlint-config/dist\npackages/@n8n/permissions/dist\npackages/@n8n/tournament/dist\npackages/@n8n/typeorm/dist\npackages/@n8n/utils/dist\npackages/@n8n/vitest-config/dist\npackages/@n8n/workflow-sdk/dist\npackages/core/dist\npackages/frontend/@n8n/eslint-plugin-design-system/dist\npackages/workflow/dist\npackages/@n8n/db/dist/index.js\npackages/@n8n/db/src/migrations/sqlite/index.ts\npackages/@n8n/db/src/migrations/postgresdb/index.ts\n.enact/state/outputs/-n8n-db--build.key\n.enact/state/outputs/-n8n-db--build.manifest-v1.json"},"cli--build":{"job":"cli:build","paths":"packages/@n8n/agents/dist\npackages/@n8n/ai-node-sdk/dist\npackages/@n8n/ai-utilities/dist\npackages/@n8n/ai-workflow-builder.ee/dist\npackages/@n8n/backend-services/dist\npackages/@n8n/backend-test-utils/dist\npackages/@n8n/chat-hub/dist\npackages/@n8n/engine/dist\npackages/@n8n/imap/dist\npackages/@n8n/instance-ai/dist\npackages/@n8n/json-schema-to-zod/dist\npackages/@n8n/mcp-apps/dist\npackages/@n8n/mcp-browser/dist\npackages/@n8n/node-engine-compatibility/dist\npackages/@n8n/nodes-langchain/dist\npackages/@n8n/scheduler/dist\npackages/@n8n/stylelint-config/dist\npackages/@n8n/syslog-client/dist\npackages/@n8n/task-runner/dist\npackages/@n8n/telemetry/dist\npackages/cli/dist\npackages/frontend/@n8n/composables/dist\npackages/frontend/@n8n/design-system/dist\npackages/frontend/@n8n/frontend-constants/dist\npackages/frontend/@n8n/frontend-utils/dist\npackages/frontend/@n8n/i18n/dist\npackages/modules/apps/backend/dist\npackages/modules/insights/backend/dist\npackages/modules/quick-connect/backend/dist\npackages/modules/workflow-builder/backend/dist\npackages/nodes-base/dist\npackages/cli/dist/constants.js\n.enact/state/outputs/cli--build.key\n.enact/state/outputs/cli--build.manifest-v1.json"},"playwright--build":{"job":"playwright:build","paths":"packages/@n8n/codemirror-lang/dist\npackages/@n8n/codemirror-lang-html/dist\npackages/@n8n/codemirror-lang-sql/dist\npackages/frontend/@n8n/chat/dist\npackages/frontend/@n8n/rest-api-client/dist\npackages/frontend/@n8n/stores/dist\npackages/frontend/editor-ui/dist\npackages/quality/policy/rules-engine/dist\npackages/quality/testing/janitor/dist\npackages/quality/testing/test-impact/dist\npackages/frontend/editor-ui/dist/index.html\n.enact/state/outputs/playwright--build.key\n.enact/state/outputs/playwright--build.manifest-v1.json"}}
+        {"-n8n-db--build":{"job":"@n8n/db:build","paths":"packages/@n8n/api-types/dist\npackages/@n8n/backend-common/dist\npackages/@n8n/backend-network/dist\npackages/@n8n/blob-storage/dist\npackages/@n8n/client-oauth2/dist\npackages/@n8n/config/dist\npackages/@n8n/constants/dist\npackages/@n8n/db/dist\npackages/@n8n/decorators/dist\npackages/@n8n/di/dist\npackages/@n8n/errors/dist\npackages/@n8n/eslint-config/dist\npackages/@n8n/expression-runtime/dist\npackages/@n8n/inbound-auth/dist\npackages/@n8n/oxlint-config/dist\npackages/@n8n/permissions/dist\npackages/@n8n/tournament/dist\npackages/@n8n/typeorm/dist\npackages/@n8n/utils/dist\npackages/@n8n/vitest-config/dist\npackages/@n8n/workflow-sdk/dist\npackages/core/dist\npackages/frontend/@n8n/eslint-plugin-design-system/dist\npackages/workflow/dist\npackages/@n8n/db/dist/index.js\npackages/@n8n/db/src/migrations/sqlite/index.ts\npackages/@n8n/db/src/migrations/postgresdb/index.ts\n.enact/state/outputs/-n8n-db--build.key\n.enact/state/outputs/-n8n-db--build.manifest-v1.json"},"cli--build":{"job":"cli:build","paths":"packages/@n8n/agents/dist\npackages/@n8n/ai-node-sdk/dist\npackages/@n8n/ai-utilities/dist\npackages/@n8n/ai-workflow-builder.ee/dist\npackages/@n8n/backend-services/dist\npackages/@n8n/backend-test-utils/dist\npackages/@n8n/chat-hub/dist\npackages/@n8n/engine/dist\npackages/@n8n/imap/dist\npackages/@n8n/instance-ai/dist\npackages/@n8n/json-schema-to-zod/dist\npackages/@n8n/mcp-apps/dist\npackages/@n8n/mcp-browser/dist\npackages/@n8n/node-engine-compatibility/dist\npackages/@n8n/nodes-langchain/dist\npackages/@n8n/scheduler/dist\npackages/@n8n/stylelint-config/dist\npackages/@n8n/syslog-client/dist\npackages/@n8n/task-runner/dist\npackages/@n8n/telemetry/dist\npackages/cli/dist\npackages/frontend/@n8n/composables/dist\npackages/frontend/@n8n/design-system/dist\npackages/frontend/@n8n/frontend-constants/dist\npackages/frontend/@n8n/frontend-utils/dist\npackages/frontend/@n8n/i18n/dist\npackages/modules/apps/backend/dist\npackages/modules/insights/backend/dist\npackages/modules/quick-connect/backend/dist\npackages/modules/workflow-builder/backend/dist\npackages/nodes-base/dist\npackages/cli/dist/constants.js\n.enact/state/outputs/cli--build.key\n.enact/state/outputs/cli--build.manifest-v1.json"},"playwright--build":{"job":"playwright:build","paths":"packages/@n8n/codemirror-lang/dist\npackages/@n8n/codemirror-lang-html/dist\npackages/@n8n/codemirror-lang-sql/dist\npackages/frontend/@n8n/chat/dist\npackages/frontend/@n8n/rest-api-client/dist\npackages/frontend/@n8n/stores/dist\npackages/frontend/editor-ui/dist\npackages/quality/policy/rules-engine/dist\npackages/quality/testing/janitor/dist\npackages/quality/testing/test-impact/dist\npackages/frontend/editor-ui/dist/index.html\npackages/frontend/editor-ui/dist/.enact-editor-chunks.json\n.enact/state/outputs/playwright--build.key\n.enact/state/outputs/playwright--build.manifest-v1.json"}}
         PRODUCERS_JSON
       env:
         ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
@@ -347,6 +346,7 @@ jobs:
           packages/quality/testing/janitor/dist
           packages/quality/testing/test-impact/dist
           packages/frontend/editor-ui/dist/index.html
+          packages/frontend/editor-ui/dist/.enact-editor-chunks.json
           .enact/state/outputs/playwright--build.key
           .enact/state/outputs/playwright--build.manifest-v1.json
     - name: Require Built Outputs
@@ -371,7 +371,7 @@ jobs:
       continue-on-error: true
       run: enact ci host-cache restore
       env:
-        ENACT_HOST_CACHE_KEY: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
+        ENACT_HOST_CACHE_KEY: vitest_transforms-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
         ENACT_HOST_CACHE_PATHS: .enact/state/cache/vitest
     - parallel:
       - name: Restore Python build & venv cache
@@ -414,11 +414,9 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
-          key: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
+          key: vitest_transforms-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
           path: .enact/state/cache/vitest
-          restore-keys: |-
-            vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-
-            vitest_transforms-${{ runner.os }}-
+          restore-keys: vitest_transforms-${{ runner.os }}-
     - name: Record Restored Package Caches
       if: ${{ (steps.runner_caches.outputs.host == '' && github.event_name != 'pull_request') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
@@ -572,7 +570,7 @@ jobs:
       continue-on-error: true
       run: enact ci host-cache save
       env:
-        ENACT_HOST_CACHE_KEY: vitest_transforms-${{ runner.os }}-${{ matrix.task_id }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
+        ENACT_HOST_CACHE_KEY: vitest_transforms-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'enve.lock', 'helpers/vitest-runner.sh') }}
         ENACT_HOST_CACHE_PATHS: .enact/state/cache/vitest
     - name: Check Package Caches for New Entries
       id: cache_delta
