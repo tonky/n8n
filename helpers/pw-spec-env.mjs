@@ -38,8 +38,13 @@ for (const spec of specs) {
   const nativeProxy = process.env.ENACT_PW_BACKEND === 'shared' && config.services.length > 0 && config.services.every(name=>name==='proxy');
   const env = JSON.stringify({...base, ...config.env, ...(nativeProxy ? proxyEnv() : {})});
   const workers = process.env.ENACT_PW_BACKEND === 'shared' || source.includes('@db:reset') ? '1' : '-';
-  const key = `${env}\t${workers}`;
+  // Specs that flip server-wide mode at runtime (e.g. setQueueMode) leave executionsConfig.mode='queue' in memory.
+  const isolated = process.env.ENACT_PW_BACKEND === 'shared' && /\bsetQueueMode\s*\(/.test(source) ? spec : '';
+  const key = `${env}\t${workers}\t${isolated}`;
   if (!groups.has(key)) groups.set(key,[]);
   groups.get(key).push(spec);
 }
-for (const [key,members] of groups) console.log([key,...members].join('\t'));
+for (const [key,members] of groups) {
+  const [env, workers] = key.split('\t');
+  console.log([env, workers, ...members].join('\t'));
+}
