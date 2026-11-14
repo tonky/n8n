@@ -636,14 +636,21 @@ pipeline: schema.#Pipeline & {
 					reason: "drives Playwright in a subprocess under its own Vitest config (test:harness), which the runner's vitest.config.ts leaves out"
 				}, {
 					tests: [for s in [
-						"auth/token-exchange", "settings/log-streaming/log-streaming", "workflow-reviews/review-round-trip",
+						"auth/token-exchange", "settings/log-streaming/log-streaming", "settings/log-streaming/log-streaming-delivery", "workflow-reviews/review-round-trip",
 						"type-availability-policies/credential-type-policy", "type-availability-policies/credential-type-policy-worker",
 						"type-availability-policies/node-type-policy",
 					] {P.dir + "/tests/e2e/" + s + ".spec.ts"}]
 					reason: "@licensed specs whose module starts only with an enterprise license (upstream's N8N_LICENSE_CERT/N8N_LICENSE_ACTIVATION_KEY secrets; its fork PRs run --grep-invert=@licensed): enableFeature can't start it later"
 				}, {
-					tests:  [P.dir + "/tests/e2e/api/workflow-publication-service.spec.ts"]
-					reason: "its `services` fixture reads n8nContainer.services, null outside container mode: a TypeError before the test's own sqlite skip (upstream, on x86 and ARM)"
+					tests: [
+						P.dir + "/tests/e2e/api/workflow-publication-service.spec.ts",
+						P.dir + "/tests/e2e/agents/background-workflow-stop.spec.ts",
+						P.dir + "/tests/e2e/settings/external-secrets/vault.spec.ts",
+					]
+					reason: "fixtures/hooks dereference n8nContainer services/mainUrls or unguarded @licensed cleanup outside container mode before local skip applies (upstream, on x86 and ARM)"
+				}, {
+					tests:  [P.dir + "/tests/e2e/ai/hitl-for-tools.spec.ts"]
+					reason: "upstream scripts/distribute-tests.mjs QUARANTINE excludes this spec from orchestrated distribution and PR shards (34.2% flakyRate)"
 				}]
 			}
 			resources: {cpus: 4.0, memory_mb: 10240}
@@ -738,7 +745,8 @@ pipeline: schema.#Pipeline & {
 						name:      "Run Tests"
 						command:   "helpers/playwright-runner.sh {relative_targets}"
 						services: ["proxy"]
-						timeout:   _wholeSuiteTimeout
+						// Cold footprint recording boots a fresh n8n server per spec (~60 specs/shard).
+						timeout:   "75m"
 						env:       DB_TYPE: "sqlite"
 						unset_env: _unsetPgEnv
 					}]

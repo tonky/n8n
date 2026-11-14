@@ -36,7 +36,7 @@ export async function nativeBackendServices(config: N8NConfig): Promise<ServiceH
 		if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) || url.username || url.password) {
 			throw new Error('Native proxy requires an allocated loopback HTTP endpoint');
 		}
-		helpers.proxy = new ProxyServer(url.href, resolve(__dirname, '../expectations'));
+		helpers.proxy = new ProxyServer(url.origin, resolve(__dirname, '../expectations'));
 	}
 	return new Proxy(helpers, {
 		get(target, name) {
