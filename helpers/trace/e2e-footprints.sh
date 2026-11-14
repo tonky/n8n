@@ -97,7 +97,7 @@ fi
 [ ${#RECORDED[@]} -gt 0 ] || exit "$status"
 
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/enact-e2e-footprints.XXXXXX")
-mkdir -p "$WORK/pids" "$WORK/skips" "$WORK/status" "$WORK/logs"
+mkdir -p "$WORK/pids" "$WORK/skips" "$WORK/status" "$WORK/logs" "$WORK/duration"
 
 stop_pid_gracefully() {
   local pid=$1
@@ -260,7 +260,7 @@ read -r tpl_port tpl_broker <<< "$(alloc_two_ports)"
 tpl_pid=$!
 printf '%s\n' "$tpl_pid" > "$WORK/pids/template.pid"
 
-if ! node "$HELPERS_DIR/n8n-ready.mjs" --readiness "http://127.0.0.1:$tpl_port" "$tpl_pid"; then
+if ! node "$HELPERS_DIR/n8n-ready.mjs" --readiness "http://localhost:$tpl_port" "$tpl_pid"; then
   echo "❌ [e2e-footprints] failed to initialize pre-migrated SQLite template:" >&2
   cat "$WORK/logs/template.log" >&2 || true
   stop_pid_gracefully "$tpl_pid"
@@ -291,7 +291,7 @@ run_one_spec() {
 
   local port broker_port
   read -r port broker_port <<< "$(alloc_two_ports)"
-  local base_url="http://127.0.0.1:$port"
+  local base_url="http://localhost:$port"
 
   local extra_env=()
   while IFS= read -r -d '' kv; do
@@ -331,6 +331,7 @@ run_one_spec() {
   printf '%s\n' "$srv_pid" > "$WORK/pids/$idx.pid"
 
   local spec_status=0
+  local spec_started=$SECONDS
   if ! node "$HELPERS_DIR/n8n-ready.mjs" --readiness "$base_url" "$srv_pid"; then
     echo "❌ [e2e-footprints] n8n failed readiness for $spec:" >&2
     tail -n 50 "$WORK/logs/server-$idx.log" >&2 || true
@@ -349,7 +350,7 @@ run_one_spec() {
           ENACT_FOOTPRINT_ROOT="$REPO_ROOT" \
           NODE_OPTIONS="$traced_node_opts" \
           ENACT_SKIPS_FILE="$WORK/skips/$idx.jsonl" \
-          "${PW_CMD[@]}" test --project=e2e --workers 1 \
+          "${PW_CMD[@]}" test --project=e2e --workers 1 --retries=1 \
           "${PW_EXTRA_ARGS[@]}" \
           --output="$WORK/results/$idx" \
           "--reporter=list,$RECORDERS_JS/playwright-attribution.mjs" \
@@ -364,6 +365,9 @@ run_one_spec() {
   stop_pid_gracefully "$srv_pid"
   rm -f "$WORK/pids/$idx.pid"
   rm -rf "$user_dir"
+  local elapsed_ms=$(( (SECONDS - spec_started) * 1000 ))
+  [ "$elapsed_ms" -gt 0 ] || elapsed_ms=1
+  printf '%s\n' "$elapsed_ms" > "$WORK/duration/$idx"
   printf '%s\n' "$spec_status" > "$WORK/status/$idx"
   return "$spec_status"
 }

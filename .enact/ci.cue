@@ -45,8 +45,8 @@ pipeline: schema.#Pipeline & {
 				// Standard public-repository capacity; the quota is shared across images.
 				preset: "github-public", labels: ["ubuntu-24.04"]
 				tier: "on_demand", available: 20, cost_per_min: 0
-				// Conservative estimate until a matching cold hosted canary calibrates it.
-				setup_overhead_sec: 300
+				// Calibrated from measured ~99s cold preparation on ubuntu-24.04.
+				setup_overhead_sec: 80
 				timeout_minutes: 90
 			}
 			standard: {

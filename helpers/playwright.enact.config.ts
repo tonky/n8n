@@ -28,7 +28,7 @@ export default {
 	use: {
 		...baseConfig.use,
 		trace: 'off' as const,
-		video: 'retain-on-failure' as const,
+		video: 'off' as const,
 		screenshot: 'only-on-failure' as const,
 		currentsFixturesEnabled: false,
 	},
