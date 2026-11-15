@@ -64,7 +64,7 @@ pipeline: schema.#Pipeline & {
 				}
 			}
 			arm64: {
-				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci", "mac1"], host_id: "mac1", tier: "dedicated", available: 1, throughput: 1.35, cost_per_min: 0.010, timeout_minutes: 90
+				labels: ["self-hosted", "Linux", "ARM64", "tonky-ci"], host_id: "mac1", tier: "dedicated", available: 1, throughput: 1.0, cost_per_min: 0.014, timeout_minutes: 90
 				pool: {
 					cpus: 16, memory_mb: 36864
 					// mac1's dispatcher runs 4c/8G while a Mac lane or gate holds the host
