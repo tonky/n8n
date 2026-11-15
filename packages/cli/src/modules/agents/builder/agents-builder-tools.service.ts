@@ -41,7 +41,6 @@ import {
 import { OutboundHttp } from '@n8n/backend-network';
 import type { User } from '@n8n/db';
 import { Service } from '@n8n/di';
-import { TELEMETRY_EVENT } from '@n8n/telemetry';
 import type { BuilderCredentialService, BuilderToolsOptions } from './builder-session';
 import { runInBuilderTelemetrySession } from './builder-telemetry-session';
 import type { Operation } from 'fast-json-patch';
@@ -139,32 +138,6 @@ const CONFIG_WRITE_RESULT_RULE =
  * Models sometimes still send a structured argument as a JSON string. Parse it
  * so the schema sees the value, and keep it unchanged when it is not valid JSON.
  */
-function configuredTriggerTypes(config: AgentJsonConfig | null): Set<string> {
-	return new Set(
-		(config?.integrations ?? [])
-			// Legacy schedule rows in a stored config have no credentialId and are not channels.
-			.filter(
-				(integration) =>
-					typeof integration.credentialId === 'string' && !isDraftIntegration(integration),
-			)
-			.map((integration) => integration.type),
-	);
-}
-
-/** Reports each configured channel type that a builder config save dropped. */
-function trackRemovedTriggers(
-	track: BuilderTrackFn,
-	previous: AgentJsonConfig | null,
-	next: AgentJsonConfig,
-): void {
-	const remaining = configuredTriggerTypes(next);
-	const triggers = [...remaining].sort();
-	for (const type of configuredTriggerTypes(previous)) {
-		if (remaining.has(type)) continue;
-		track(TELEMETRY_EVENT.AGENTS.BUILDER_REMOVED_TRIGGER, { trigger_type: type, triggers });
-	}
-}
-
 function parseJsonStringInput(value: unknown): unknown {
 	if (typeof value !== 'string') return value;
 	const parsed = tryParseConfigJson(value);
@@ -677,8 +650,8 @@ export class AgentsBuilderToolsService {
 			}
 			this.telemetry.track(entry, enriched);
 		};
-		const writeConfigTool = this.buildWriteConfigTool(agentId, projectId, user, track);
-		const patchConfigTool = this.buildPatchConfigTool(agentId, projectId, user, track);
+		const writeConfigTool = this.buildWriteConfigTool(agentId, projectId, user);
+		const patchConfigTool = this.buildPatchConfigTool(agentId, projectId, user);
 		const publishAgentTool = this.buildPublishAgentTool(user, projectId, agentId);
 		const unpublishAgentTool = this.buildUnpublishAgentTool(user, projectId, agentId);
 		const callAgentTool = this.buildCallAgentTool(user, projectId, agentId, credentialProvider);
@@ -695,7 +668,7 @@ export class AgentsBuilderToolsService {
 			buildAskQuestionsTool({ track }),
 			this.withConfigMutationMarker(
 				this.withConfigSnapshotOnResume(
-					this.createConfigureChannelTool(agentId, projectId, user, track),
+					this.createConfigureChannelTool(agentId, projectId, track),
 					agentId,
 					projectId,
 					(result) => typeof result.configured === 'boolean',
@@ -760,10 +733,10 @@ export class AgentsBuilderToolsService {
 					)
 					.map((integration) => integration.credentialId);
 			},
-			listChatIntegrationTypes: async () =>
-				(await this.agentIntegrationPersistenceService.listBuilderChatIntegrations(user)).map(
-					(integration) => integration.type,
-				),
+			listChatIntegrationTypes: () =>
+				this.agentIntegrationPersistenceService
+					.listChatIntegrations()
+					.map((integration) => integration.type),
 			listAiGatewayManagedCredentialTypes: async () => {
 				const agent = await this.agentsService.findById(agentId, projectId);
 				return listAiGatewayManagedCredentialTypes(agent?.schema?.tools, this.nodeTypes);
@@ -774,16 +747,15 @@ export class AgentsBuilderToolsService {
 	private createConfigureChannelTool(
 		agentId: string,
 		projectId: string,
-		user: User,
 		track: BuilderTrackFn,
 	): BuiltTool {
 		return buildConfigureChannelTool({
 			agentId,
 			projectId,
-			listChatIntegrationTypes: async () =>
-				(await this.agentIntegrationPersistenceService.listBuilderChatIntegrations(user)).map(
-					(integration) => integration.type,
-				),
+			listChatIntegrationTypes: () =>
+				this.agentIntegrationPersistenceService
+					.listChatIntegrations()
+					.map((integration) => integration.type),
 			track,
 		});
 	}
@@ -1078,12 +1050,7 @@ export class AgentsBuilderToolsService {
 			.build();
 	}
 
-	private buildPatchConfigTool(
-		agentId: string,
-		projectId: string,
-		user: User,
-		track: BuilderTrackFn,
-	) {
+	private buildPatchConfigTool(agentId: string, projectId: string, user: User) {
 		return new Tool(BUILDER_TOOLS.PATCH_CONFIG)
 			.legacyNames(...getLegacyBuilderToolNames(BUILDER_TOOLS.PATCH_CONFIG))
 			.description(
@@ -1108,24 +1075,12 @@ export class AgentsBuilderToolsService {
 					operations,
 					baseConfigHash,
 				}: { operations: unknown; baseConfigHash: string | null }) =>
-					await this.patchBuilderConfig(
-						agentId,
-						projectId,
-						user,
-						operations,
-						baseConfigHash,
-						track,
-					),
+					await this.patchBuilderConfig(agentId, projectId, user, operations, baseConfigHash),
 			)
 			.build();
 	}
 
-	private buildWriteConfigTool(
-		agentId: string,
-		projectId: string,
-		user: User,
-		track: BuilderTrackFn,
-	) {
+	private buildWriteConfigTool(agentId: string, projectId: string, user: User) {
 		return new Tool(BUILDER_TOOLS.WRITE_CONFIG)
 			.legacyNames(...getLegacyBuilderToolNames(BUILDER_TOOLS.WRITE_CONFIG))
 			.description(
@@ -1150,7 +1105,7 @@ export class AgentsBuilderToolsService {
 			)
 			.handler(
 				async ({ config, baseConfigHash }: { config: unknown; baseConfigHash: string | null }) =>
-					await this.writeBuilderConfig(agentId, projectId, user, config, baseConfigHash, track),
+					await this.writeBuilderConfig(agentId, projectId, user, config, baseConfigHash),
 			)
 			.build();
 	}
@@ -1708,7 +1663,6 @@ export class AgentsBuilderToolsService {
 		user: User,
 		input: unknown,
 		baseConfigHash: string | null,
-		track: BuilderTrackFn,
 	) {
 		const editorLock = await this.getEditorLockFailure(agentId);
 		if (editorLock) return editorLock;
@@ -1720,7 +1674,7 @@ export class AgentsBuilderToolsService {
 		const validated = this.validateBuilderConfig(merged, fresh.snapshot.config);
 		if (!validated.ok) return validated;
 		// Compare with the merged config, so kept fields alone do not echo the full config back.
-		const saved = await this.saveBuilderConfig(
+		return await this.saveBuilderConfig(
 			agentId,
 			projectId,
 			user,
@@ -1728,8 +1682,6 @@ export class AgentsBuilderToolsService {
 			fresh.snapshot.configHash,
 			merged,
 		);
-		if (saved.ok) trackRemovedTriggers(track, fresh.snapshot.config, validated.config);
-		return saved;
 	}
 
 	private async patchBuilderConfig(
@@ -1738,7 +1690,6 @@ export class AgentsBuilderToolsService {
 		user: User,
 		operations: unknown,
 		baseConfigHash: string | null,
-		track: BuilderTrackFn,
 	) {
 		const editorLock = await this.getEditorLockFailure(agentId);
 		if (editorLock) return { ...editorLock, stage: 'locked' };
@@ -1758,7 +1709,7 @@ export class AgentsBuilderToolsService {
 		const validated = this.validateBuilderConfig(patched.config, fresh.snapshot.config);
 		if (!validated.ok) return { ...validated, stage: 'schema' };
 		// The patch starts from the full stored config, so a missing field was removed by an op.
-		const saved = await this.saveBuilderConfig(
+		return await this.saveBuilderConfig(
 			agentId,
 			projectId,
 			user,
@@ -1767,8 +1718,6 @@ export class AgentsBuilderToolsService {
 			patched.config,
 			true,
 		);
-		if (saved.ok) trackRemovedTriggers(track, fresh.snapshot.config, validated.config);
-		return saved;
 	}
 
 	private async applyConfigPatch(

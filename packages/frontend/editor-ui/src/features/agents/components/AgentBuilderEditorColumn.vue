@@ -108,7 +108,6 @@ const emit = defineEmits<{
 	'remove-vector-store': [vectorStore: AgentJsonVectorStoreConfig];
 	'update:connected-triggers': [triggers: string[]];
 	'trigger-added': [payload: { triggerType: string; triggers: string[] }];
-	'trigger-removed': [payload: { triggerType: string; triggers: string[] }];
 	'toggle-task': [payload: { id: string; enabled: boolean }];
 	'toggle-mcp-access': [enabled: boolean];
 	'tasks-changed': [];
@@ -251,7 +250,6 @@ defineExpose({ onSetupTaskAction });
 							:reload-key="tasksReloadKey"
 							@update:connected-triggers="emit('update:connected-triggers', $event)"
 							@trigger-added="emit('trigger-added', $event)"
-							@trigger-removed="emit('trigger-removed', $event)"
 							@agent-changed="emit('agent-changed')"
 							@toggle-task="emit('toggle-task', $event)"
 							@tasks-changed="emit('tasks-changed')"

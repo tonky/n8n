@@ -144,7 +144,6 @@ export function createIntegrationContextTool(params: {
 								descriptor,
 								queryExecutor,
 								persistence: ctx.persistence,
-								abortSignal: ctx.abortSignal,
 							}),
 						};
 					}),
@@ -158,7 +157,6 @@ export function createIntegrationContextTool(params: {
 				descriptor,
 				queryExecutor,
 				persistence: ctx.persistence,
-				abortSignal: ctx.abortSignal,
 			});
 		});
 }

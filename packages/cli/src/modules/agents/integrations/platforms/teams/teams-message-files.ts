@@ -12,7 +12,7 @@ const GRAPH_V1 = `${GRAPH_ORIGIN}/v1.0`;
 export interface GraphHttp {
 	get(
 		url: string,
-		config?: { responseType?: 'arraybuffer'; maxContentLength?: number; signal?: AbortSignal },
+		config?: { responseType?: 'arraybuffer'; maxContentLength?: number },
 	): Promise<{ data: unknown }>;
 }
 

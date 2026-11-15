@@ -1,5 +1,4 @@
 import {
-	N8N_CHAT_INTEGRATION_TYPE,
 	isDraftIntegration,
 	type AgentIntegrationConfig,
 	type AgentJsonConfig,
@@ -24,9 +23,7 @@ export type AgentCapabilityCounts = {
 /**
  * Count each capability the agent has configured. Half-finished entries don't
  * count: a channel without a credential and an MCP server without a URL are
- * both placeholders that validation reports as incomplete. n8n Chat doesn't
- * count either: new agents get it by default, so it says nothing about whether
- * the builder configured the agent.
+ * both placeholders that validation reports as incomplete.
  */
 export function countAgentCapabilities(
 	config: AgentJsonConfig | null,
@@ -41,10 +38,7 @@ export function countAgentCapabilities(
 		mcpServer: size(config?.mcpServers?.filter((server) => server.url.trim() !== '')),
 		vectorStore: size(config?.vectorStores),
 		task: size(config?.tasks),
-		channel: integrations.filter(
-			(integration) =>
-				integration.type !== N8N_CHAT_INTEGRATION_TYPE && !isDraftIntegration(integration),
-		).length,
+		channel: integrations.filter((integration) => !isDraftIntegration(integration)).length,
 	};
 }
 

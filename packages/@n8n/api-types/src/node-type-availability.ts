@@ -1,8 +1,5 @@
-import { z } from 'zod';
-
 /** The scope whose policy decided a node type's availability. */
-export const nodeTypeAvailabilityScopeSchema = z.enum(['instance', 'project']);
-export type NodeTypeAvailabilityScope = z.infer<typeof nodeTypeAvailabilityScopeSchema>;
+export type NodeTypeAvailabilityScope = 'instance' | 'project';
 
 /**
  * One node type's effective availability in a project, composed from the instance and
