@@ -298,16 +298,28 @@ if [ -n "${ENACT_FOOTPRINT_DIR:-}" ]; then
 fi
 
 # Transforms persist across runs under `.enact/state/cache/vitest/<pkg>-...` (keyed by
-# package, DB mode and shard so the lockfile's two peer builds of vitest 5.0.1 never mix
-# transforms across packages, parallel shards never race on rmdir, and node_modules stays
-# clean; every run still reads the sources it uses, so traces see them): halves start-up.
-# VITEST_FS_CACHE=0 turns it off.
+# package and DB mode so the lockfile's two peer builds of vitest 5.0.1 never mix
+# transforms across packages and node_modules stays clean; every run still reads the
+# sources it uses, so traces see them): halves start-up. Local and bin-packed runs
+# suffix `-s<shard>` so parallel shards sharing a checkout never race on rmdir; isolated
+# CI shard jobs omit the shard suffix so all shards reuse shard 1's shared
+# `vitest_transforms` cache. VITEST_FS_CACHE=0 turns it off.
 CACHE_OPTS=()
 if [ "${VITEST_FS_CACHE:-1}" != 0 ]; then
   PKG_CACHE_KEY=$(printf '%s' "${PWD#"$REPO_ROOT"/}" | tr '/@:' '___')
+  SHARD_CACHE_SUFFIX="-s${ENACT_SHARD_INDEX:-1}"
+  if [ -n "${CI:-}" ] && [ -n "${ENACT_MATRIX_COMMAND:-}" ] &&
+    { [[ "$ENACT_MATRIX_COMMAND" == *" --shard "* ]] || [ "${ENACT_SHARD_TOTAL:-1}" -le 1 ]; } &&
+    [[ "$ENACT_MATRIX_COMMAND" != *" --shard "*" --shard "* ]] &&
+    [[ "$ENACT_MATRIX_COMMAND" != *" -c "*" -c "* ]] &&
+    [[ "$ENACT_MATRIX_COMMAND" != *" -c "*" --shard "* ]] &&
+    [[ "$ENACT_MATRIX_COMMAND" != *" --shard "*" -c "* ]] &&
+    [[ ! "$ENACT_MATRIX_COMMAND" =~ [[:space:]]-c[[:space:]]+[^[:space:]]*, ]]; then
+    SHARD_CACHE_SUFFIX=""
+  fi
   CACHE_OPTS=(
     --fsModuleCache
-    --fsModuleCachePath "$REPO_ROOT/.enact/state/cache/vitest/${PKG_CACHE_KEY}-${DB_TYPE:-default}-m${VITEST_MIGRATION:-0}-s${ENACT_SHARD_INDEX:-1}"
+    --fsModuleCachePath "$REPO_ROOT/.enact/state/cache/vitest/${PKG_CACHE_KEY}-${DB_TYPE:-default}-m${VITEST_MIGRATION:-0}${SHARD_CACHE_SUFFIX}"
   )
 fi
 

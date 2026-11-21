@@ -356,7 +356,7 @@ pipeline: schema.#Pipeline & {
 		}
 
 		"@n8n/node-cli": jobs: {
-			test: {worker: "standard", resource_forecast: {mode: "advisory"}}
+			test: {resource_forecast: {mode: "advisory"}}
 		}
 
 		"nodes-base": {

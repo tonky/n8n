@@ -31,7 +31,7 @@ if [ "${1:-}" = "--ensure-browsers" ]; then
         if ! "$browser_bin" --version >/dev/null 2>&1; then
           echo "📦 [playwright-runner] Pulling Nix store RUNPATH closure for $browser_bin..." >&2
           enve cache pull "$ENACT_BROWSER_LOCK" \
-            --cache "${ENACT_R2_BUCKET:-https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev}" \
+            --cache "${ENACT_R2_BUCKET:-https://cache.tonky.dev}" \
             -j 16 >&2 || true
         fi
         break
@@ -77,7 +77,7 @@ if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
           if ! "$browser_bin" --version >/dev/null 2>&1; then
             echo "📦 [playwright-runner] Pulling Nix store RUNPATH closure for $browser_bin..." >&2
             enve cache pull "$ENACT_BROWSER_LOCK" \
-              --cache "${ENACT_R2_BUCKET:-https://pub-30fd937eb7634039b8c49d49bfec91a9.r2.dev}" \
+              --cache "${ENACT_R2_BUCKET:-https://cache.tonky.dev}" \
               -j 16 >&2 || true
           fi
           break
