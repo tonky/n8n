@@ -1049,6 +1049,7 @@ jobs:
           packages/@n8n/chat-hub
           packages/@n8n/cli
           packages/quality/policy/code-health
+          packages
           packages/quality/policy/rules-engine
           packages/@n8n/code-runtime-js
           packages/@n8n/code-task-contract
@@ -1073,6 +1074,7 @@ jobs:
           packages/@n8n/scheduler
           packages/@n8n/syslog-client
           packages/@n8n/task-runner
+          packages/@n8n/task-runner-python
           packages/@n8n/workflow-engine-check
           packages/cli
           packages/cli/src/modules/instance-ai/internal-messages.ts
@@ -1102,16 +1104,20 @@ jobs:
           packages/@n8n/extension-sdk
           packages/@n8n/leases
           packages/@n8n/mcp-browser-extension
+          packages/cli/src/modules/modules.manifest.ts
           packages/frontend/@n8n/frontend-vite-config/index.ts
           packages/frontend/editor-ui/src/app/modules.manifest.ts
           packages/quality/efficiency/scale/benchmark
           packages/@n8n/n8n-node-codegen
           packages/cli/src/public-api/v1
+          packages/@n8n/imap/package.json
+          packages/@n8n/imap/tsconfig.json
+          packages/@n8n/imap/tsconfig.build.json
+          packages/nodes-base/nodes/N8n/v2/overrides.ts
           packages/@n8n/node-cli
           packages/quality/efficiency/microbenchmarks
           packages/@n8n/scan-community-package
           packages/frontend/@n8n/storybook
-          packages/@n8n/task-runner-python
           helpers/n8n-template-db.cjs
           lefthook.yml
           knip.ts
@@ -1301,6 +1307,7 @@ jobs:
           packages/@n8n/chat-hub
           packages/@n8n/cli
           packages/quality/policy/code-health
+          packages
           packages/quality/policy/rules-engine
           packages/@n8n/code-runtime-js
           packages/@n8n/code-task-contract
@@ -1325,6 +1332,7 @@ jobs:
           packages/@n8n/scheduler
           packages/@n8n/syslog-client
           packages/@n8n/task-runner
+          packages/@n8n/task-runner-python
           packages/@n8n/workflow-engine-check
           packages/cli
           packages/cli/src/modules/instance-ai/internal-messages.ts
@@ -1354,16 +1362,20 @@ jobs:
           packages/@n8n/extension-sdk
           packages/@n8n/leases
           packages/@n8n/mcp-browser-extension
+          packages/cli/src/modules/modules.manifest.ts
           packages/frontend/@n8n/frontend-vite-config/index.ts
           packages/frontend/editor-ui/src/app/modules.manifest.ts
           packages/quality/efficiency/scale/benchmark
           packages/@n8n/n8n-node-codegen
           packages/cli/src/public-api/v1
+          packages/@n8n/imap/package.json
+          packages/@n8n/imap/tsconfig.json
+          packages/@n8n/imap/tsconfig.build.json
+          packages/nodes-base/nodes/N8n/v2/overrides.ts
           packages/@n8n/node-cli
           packages/quality/efficiency/microbenchmarks
           packages/@n8n/scan-community-package
           packages/frontend/@n8n/storybook
-          packages/@n8n/task-runner-python
           helpers/n8n-template-db.cjs
           lefthook.yml
           knip.ts

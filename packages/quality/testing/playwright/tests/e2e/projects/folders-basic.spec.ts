@@ -124,10 +124,10 @@ test.describe(
 			const folder = await n8n.api.projects.createFolder(projectId);
 			await n8n.navigate.toFolder(folder.id, projectId);
 			await n8n.workflows.addResource.workflow();
+			await n8n.page.waitForURL(/\/workflow\//);
+			await n8n.canvas.waitForCanvasReady();
 			// Change name to trigger save
-			await n8n.canvas.setWorkflowName('Workflow in Folder');
-			await n8n.page.keyboard.press('Enter');
-			await n8n.canvas.waitForSaveWorkflowCompleted();
+			await n8n.canvas.saveNewWorkflow('Workflow in Folder');
 			await n8n.navigate.toFolder(folder.id, projectId);
 			await expect(n8n.workflows.cards.getWorkflows()).toBeVisible();
 		});

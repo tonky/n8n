@@ -42,8 +42,9 @@ _target_scope: {
 	#tests:    [...string]
 	#ignore:   [...string] | *[]
 	#runner:   [...string] | *[]
-	fallback:  *"all" | "none"
-	tests:     #tests
+	fallback:         *"all" | "none"
+	tests:            #tests
+	incidental_reads: *["**/.gitignore"] | [...string]
 	rules: [
 		if len(#ignore) > 0 {match: #ignore, action: "ignore"},
 		{match: ["docs/generated/**", ".tbls.*.yml", "packages/**/{README,AGENTS,CHANGELOG,LICENSE}*.md"], action: "ignore"},
@@ -281,7 +282,7 @@ pipeline: schema.#Pipeline & {
 				depends_on:  *["js-root", for d in p.deps {d}] | [...string]
 				workspace_scope: {
 					include_dependencies: true
-					if len(p.reads) > 0 {include: [p.dir, for f in p.reads {f}]}
+					if len(p.reads) > 0 {include: *[p.dir, for f in p.reads {f}] | [...string]}
 				}
 				if p.shards > 0 {shards: *p.shards | int}
 				if len(p.tests) > 0 {
@@ -377,6 +378,11 @@ pipeline: schema.#Pipeline & {
 
 		"@n8n/node-cli": jobs: {
 			test: {resource_forecast: {mode: "advisory"}}
+		}
+
+		"@n8n/code-health": {
+			let P = _packages["@n8n/code-health"]
+			workspace_scope: include: [P.dir, "packages"]
 		}
 
 		"@n8n/n8n-node-codegen": {
@@ -543,7 +549,8 @@ pipeline: schema.#Pipeline & {
 		cli: {
 			let P = _packages.cli
 			let Services = [n8n.services.postgres, n8n.services.redis]
-			let _migrationScope = _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"]}
+			let _cliIncidental = ["**/.gitignore", "packages/frontend/editor-ui/package.json"]
+			let _migrationScope = _target_scope & {#dir: P.dir, #tests: [P.dir + "/test/migration/**/*.test.ts"], incidental_reads: _cliIncidental}
 			title:  "n8n CLI & Backend Service"
 			kind:   "service"
 			domain: "backend"
@@ -553,13 +560,16 @@ pipeline: schema.#Pipeline & {
 				{protocol: schema.#Protocol.Tcp, target: "@n8n/task-runner-python", title: "Dispatches Python code node tasks"},
 			]
 			watch_paths: [P.dir + "/**", "helpers/n8n-template-db.cjs"]
+			workspace_scope: include: [P.dir, "packages/@n8n/task-runner-python"]
 			services:         Services
 			service:          n8n.services.cli
 			shards:           8
 			resources:        {cpus: 2.0, memory_mb: 4096}
 			record_resources: {cpus: 4.0, memory_mb: 6144}
 			recorded_by:      ["enact-node", "n8n-services"]
-			target_scope: not_run: [{
+			target_scope: {
+				incidental_reads: _cliIncidental
+				not_run: [{
 				tests: [
 					P.dir + "/test/integration/commands/credentials.cmd.test.ts",
 					P.dir + "/test/integration/ldap/ldap.api.test.ts",
@@ -569,6 +579,7 @@ pipeline: schema.#Pipeline & {
 				tests:  [P.dir + "/src/controllers/__tests__/e2e-coverage-windows.test.ts"]
 				reason: "fails under traced Vitest runs (T17: rootCount=2 vs 1 in NODE_V8_COVERAGE child process; passes 3/3 untraced on Node 24.22.2)"
 			}]
+			}
 			jobs: {
 				build: {
 					environment_file: ".enact/environments/checks/enve.cue"
@@ -637,8 +648,9 @@ pipeline: schema.#Pipeline & {
 					recorder: "trace"
 					recorded_by: ["enact-trace"]
 					target_scope: {
-						fallback: "all"
-						tests: [P.dir + "/scripts/check-migrations-sqlite.sh"]
+						fallback:         "all"
+						tests:            [P.dir + "/scripts/check-migrations-sqlite.sh"]
+						incidental_reads: _cliIncidental
 						rules: [
 							{match: [P.dir + "/scripts/check-migrations-sqlite.sh", "helpers/vitest-runner.sh"], action: "full_component"},
 							{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}", "packages/**/package.json"], engine: "reach"},
@@ -673,6 +685,7 @@ pipeline: schema.#Pipeline & {
 				"helpers/native-proxy.mjs", "helpers/pw-capability.mjs",
 				for r in P.reads {r},
 			]
+			workspace_scope: include: [P.dir, for r in P.reads {r}, "packages"]
 			uses:        [{protocol: schema.#Protocol.Http, target: "proxy", title: "Local HTTP proxy for Playwright tests"}]
 			shards:      6
 			recorder:    "own"
