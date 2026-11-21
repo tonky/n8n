@@ -159,3 +159,5 @@ afterEach(() => {
 });
 
 loadLanguage('en', englishBaseText as unknown as LocaleMessages);
+
+// canary: phase2 step A3 P28 spilled-shard retry

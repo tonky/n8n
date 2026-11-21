@@ -359,3 +359,10 @@ describe('Mapping Utils', () => {
 		});
 	});
 });
+
+it('p28 spilled-shard retry sentinel (fails attempt 1 only)', () => {
+	const attempt = process.env.GITHUB_RUN_ATTEMPT ?? '1';
+	if (attempt === '1') {
+		throw new Error(`canary P28 spilled-shard retry sentinel: failing attempt=${attempt}`);
+	}
+});
