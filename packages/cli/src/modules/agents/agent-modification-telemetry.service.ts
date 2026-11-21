@@ -1,5 +1,5 @@
 // Experiment cleanup (123_surface_mcp_to_claude_trial_users)
-import { EventService } from '@n8n/backend-services';
+import { EventService, TelemetryProxy } from '@n8n/backend-services';
 // EOF Experiment cleanup
 import type { AgentActor, AgentIntegrationConfig, AgentJsonConfig } from '@n8n/api-types';
 import type { User } from '@n8n/db';
@@ -7,8 +7,6 @@ import { Service } from '@n8n/di';
 import { TELEMETRY_EVENT, type InferTelemetryProps } from '@n8n/telemetry';
 import isEqual from 'lodash/isEqual';
 import { InstanceSettings } from 'n8n-core';
-
-import { Telemetry } from '@/telemetry';
 
 import { buildVectorStoreFingerprints } from './agent-knowledge-telemetry';
 import { buildAgentCapabilityTelemetryProperties } from './agent-telemetry';
@@ -32,6 +30,7 @@ export type AgentConfigPart =
 	| 'credential'
 	| 'memory'
 	| 'name'
+	| 'description'
 	| 'config'
 	| 'tools'
 	| 'providerTools'
@@ -53,6 +52,7 @@ const CONFIG_PARTS = [
 	'credential',
 	'memory',
 	'name',
+	'description',
 	'config',
 	'tools',
 	'providerTools',
@@ -161,13 +161,13 @@ export type AgentCreationEvent = Omit<AgentModificationEvent, 'changedParts' | '
 
 export type AgentSidecarChanges = Partial<Record<'tools' | 'skills' | 'tasks', boolean>>;
 
-export function buildAgentMutationEvent(
-	agent: Agent,
+export function buildAgentMutationEvent<AgentType extends Agent>(
+	agent: AgentType,
 	skillRefs: AgentSkillRefs,
 	projectId: string,
 	context: AgentMutationTelemetryContext,
 	changedParts: AgentConfigPart[],
-): AgentModificationEvent {
+): AgentModificationEvent & { agent: AgentType } {
 	const config = agent.schema ? toAgentDocument(agent.schema, skillRefs) : null;
 	return {
 		agent,
@@ -200,7 +200,7 @@ function modificationProperties({
 @Service()
 export class AgentModificationTelemetryService {
 	constructor(
-		private readonly telemetry: Telemetry,
+		private readonly telemetry: TelemetryProxy,
 		private readonly instanceSettings: InstanceSettings,
 		// Experiment cleanup (123_surface_mcp_to_claude_trial_users)
 		private readonly eventService: EventService,
@@ -296,7 +296,7 @@ export class AgentModificationTelemetryService {
 			!event.config?.model?.trim() &&
 			!event.config?.instructions?.trim() &&
 			capabilityCount === 0 &&
-			!changedParts?.some((part) => part !== 'name')
+			!changedParts?.some((part) => part !== 'name' && part !== 'description')
 		) {
 			return;
 		}

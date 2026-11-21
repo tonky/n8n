@@ -1,9 +1,9 @@
-import { nativeBackendUrl } from './fixtures/native-backend';
 import type { Project } from '@playwright/test';
 import type { N8NConfig } from 'n8n-containers/stack';
 
 import { ALLOW_CONTAINER_ONLY, CONTAINER_ONLY_MODES, LICENSED_TAG } from './fixtures/capabilities';
 import { ENGINE_TAG_PREFIX } from './fixtures/engine-parity';
+import { nativeBackendUrl } from './fixtures/native-backend';
 import { getBackendUrl, getFrontendUrl } from './utils/url-helper';
 
 // Tests that require container environment (won't run against local n8n).

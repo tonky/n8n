@@ -997,6 +997,7 @@ jobs:
           packages/@n8n/api-types
           packages/@n8n/backend-common
           packages/@n8n/backend-network
+          packages/@n8n/backend-test-utils/src/index.ts
           packages/@n8n/client-oauth2
           packages/@n8n/config
           packages/@n8n/constants
@@ -1017,6 +1018,7 @@ jobs:
           packages/@n8n/ai-node-sdk
           packages/@n8n/ai-workflow-builder.ee
           packages/@n8n/workflow-sdk
+          packages/@n8n/app-sdk
           packages/modules/apps/backend
           .tbls.postgres.yml
           .tbls.sqlite.yml
@@ -1025,16 +1027,20 @@ jobs:
           packages/@n8n/backend-test-utils
           packages/@n8n/blob-storage
           packages/@n8n/db
+          packages/@n8n/telemetry
           packages/@n8n/typeorm
           packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json
           packages/core
           packages/quality/environments/containers
+          packages/modules/code-sandbox/backend
+          packages/modules/data-table/backend
+          packages/modules/execution-ledger/backend
+          packages/modules/execution-limits/backend
           packages/modules/insights/backend
           packages/modules/quick-connect/backend
           packages/modules/workflow-builder/backend
           packages/frontend/@n8n/chat
           packages/@n8n/stylelint-config
-          packages/@n8n/telemetry
           packages/frontend/@n8n/composables
           packages/frontend/@n8n/design-system
           packages/frontend/@n8n/frontend-constants
@@ -1044,11 +1050,14 @@ jobs:
           packages/@n8n/cli
           packages/quality/policy/code-health
           packages/quality/policy/rules-engine
+          packages/@n8n/code-runtime-js
+          packages/@n8n/code-task-contract
           packages/@n8n/codemirror-lang
           packages/@n8n/codemirror-lang-sql
           packages/@n8n/crdt
           helpers/schema-check.sh
           packages/quality/efficiency
+          .github/test-metrics/playwright.json
           docker/images/runners/n8n-task-runners.json
           packages/@n8n/codemirror-lang-html
           packages/@n8n/engine
@@ -1064,9 +1073,11 @@ jobs:
           packages/@n8n/scheduler
           packages/@n8n/syslog-client
           packages/@n8n/task-runner
+          packages/@n8n/workflow-engine-check
           packages/cli
           packages/cli/src/modules/instance-ai/internal-messages.ts
           packages/cli/src/modules/instance-ai/node-definition-resolver.ts
+          packages/cli/src/public-api/v1/openapi.yml
           packages/cli/tsconfig.json
           packages/frontend/@n8n/frontend-module-sdk
           packages/frontend/@n8n/frontend-test-utils
@@ -1074,11 +1085,13 @@ jobs:
           packages/frontend/@n8n/rest-api-client
           packages/frontend/@n8n/stores
           packages/frontend/editor-ui
+          packages/modules/apps/frontend
           packages/modules/inbox/frontend
           packages/modules/insights/frontend
           packages/modules/instance-registry/frontend
           packages/modules/mcp/frontend
           packages/modules/otel/frontend
+          packages/modules/promotions/frontend
           packages/modules/self-healing/frontend
           packages/modules/type-availability-policies/frontend
           packages/nodes-base
@@ -1086,10 +1099,13 @@ jobs:
           packages/quality/testing/playwright
           packages/quality/testing/test-impact
           packages/@n8n/extension-sdk
+          packages/@n8n/leases
           packages/@n8n/mcp-browser-extension
           packages/frontend/@n8n/frontend-vite-config/index.ts
           packages/frontend/editor-ui/src/app/modules.manifest.ts
           packages/quality/efficiency/scale/benchmark
+          packages/@n8n/n8n-node-codegen
+          packages/cli/src/public-api/v1
           packages/@n8n/node-cli
           packages/quality/efficiency/microbenchmarks
           packages/@n8n/scan-community-package
@@ -1232,6 +1248,7 @@ jobs:
           packages/@n8n/api-types
           packages/@n8n/backend-common
           packages/@n8n/backend-network
+          packages/@n8n/backend-test-utils/src/index.ts
           packages/@n8n/client-oauth2
           packages/@n8n/config
           packages/@n8n/constants
@@ -1252,6 +1269,7 @@ jobs:
           packages/@n8n/ai-node-sdk
           packages/@n8n/ai-workflow-builder.ee
           packages/@n8n/workflow-sdk
+          packages/@n8n/app-sdk
           packages/modules/apps/backend
           .tbls.postgres.yml
           .tbls.sqlite.yml
@@ -1260,16 +1278,20 @@ jobs:
           packages/@n8n/backend-test-utils
           packages/@n8n/blob-storage
           packages/@n8n/db
+          packages/@n8n/telemetry
           packages/@n8n/typeorm
           packages/cli/src/services/ownership-transfer/ownership-transfer.manifest.json
           packages/core
           packages/quality/environments/containers
+          packages/modules/code-sandbox/backend
+          packages/modules/data-table/backend
+          packages/modules/execution-ledger/backend
+          packages/modules/execution-limits/backend
           packages/modules/insights/backend
           packages/modules/quick-connect/backend
           packages/modules/workflow-builder/backend
           packages/frontend/@n8n/chat
           packages/@n8n/stylelint-config
-          packages/@n8n/telemetry
           packages/frontend/@n8n/composables
           packages/frontend/@n8n/design-system
           packages/frontend/@n8n/frontend-constants
@@ -1279,11 +1301,14 @@ jobs:
           packages/@n8n/cli
           packages/quality/policy/code-health
           packages/quality/policy/rules-engine
+          packages/@n8n/code-runtime-js
+          packages/@n8n/code-task-contract
           packages/@n8n/codemirror-lang
           packages/@n8n/codemirror-lang-sql
           packages/@n8n/crdt
           helpers/schema-check.sh
           packages/quality/efficiency
+          .github/test-metrics/playwright.json
           docker/images/runners/n8n-task-runners.json
           packages/@n8n/codemirror-lang-html
           packages/@n8n/engine
@@ -1299,9 +1324,11 @@ jobs:
           packages/@n8n/scheduler
           packages/@n8n/syslog-client
           packages/@n8n/task-runner
+          packages/@n8n/workflow-engine-check
           packages/cli
           packages/cli/src/modules/instance-ai/internal-messages.ts
           packages/cli/src/modules/instance-ai/node-definition-resolver.ts
+          packages/cli/src/public-api/v1/openapi.yml
           packages/cli/tsconfig.json
           packages/frontend/@n8n/frontend-module-sdk
           packages/frontend/@n8n/frontend-test-utils
@@ -1309,11 +1336,13 @@ jobs:
           packages/frontend/@n8n/rest-api-client
           packages/frontend/@n8n/stores
           packages/frontend/editor-ui
+          packages/modules/apps/frontend
           packages/modules/inbox/frontend
           packages/modules/insights/frontend
           packages/modules/instance-registry/frontend
           packages/modules/mcp/frontend
           packages/modules/otel/frontend
+          packages/modules/promotions/frontend
           packages/modules/self-healing/frontend
           packages/modules/type-availability-policies/frontend
           packages/nodes-base
@@ -1321,10 +1350,13 @@ jobs:
           packages/quality/testing/playwright
           packages/quality/testing/test-impact
           packages/@n8n/extension-sdk
+          packages/@n8n/leases
           packages/@n8n/mcp-browser-extension
           packages/frontend/@n8n/frontend-vite-config/index.ts
           packages/frontend/editor-ui/src/app/modules.manifest.ts
           packages/quality/efficiency/scale/benchmark
+          packages/@n8n/n8n-node-codegen
+          packages/cli/src/public-api/v1
           packages/@n8n/node-cli
           packages/quality/efficiency/microbenchmarks
           packages/@n8n/scan-community-package
@@ -1391,7 +1423,7 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
         AWS_REGION: auto
         AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
-        ENACT_ENVIRONMENT_DIRS: "[\"packages/@n8n/agents\",\"packages/@n8n/ai-utilities\",\"packages/@n8n/ai-workflow-builder.ee\",\"packages/@n8n/api-types\",\"packages/@n8n/backend-common\",\"packages/@n8n/backend-network\",\"packages/@n8n/backend-services\",\"packages/@n8n/blob-storage\",\"packages/@n8n/chat-hub\",\"packages/@n8n/cli\",\"packages/@n8n/client-oauth2\",\"packages/@n8n/codemirror-lang\",\"packages/@n8n/codemirror-lang-sql\",\"packages/@n8n/config\",\"packages/@n8n/crdt\",\"packages/@n8n/db\",\"packages/@n8n/decorators\",\"packages/@n8n/di\",\"packages/@n8n/engine\",\"packages/@n8n/eslint-config\",\"packages/@n8n/eslint-plugin-community-nodes\",\"packages/@n8n/expression-runtime\",\"packages/@n8n/imap\",\"packages/@n8n/inbound-auth\",\"packages/@n8n/instance-ai\",\"packages/@n8n/json-schema-to-zod\",\"packages/@n8n/mcp-apps\",\"packages/@n8n/mcp-browser\",\"packages/@n8n/mcp-browser-extension\",\"packages/@n8n/module-cli\",\"packages/@n8n/node-cli\",\"packages/@n8n/node-engine-compatibility\",\"packages/@n8n/nodes-langchain\",\"packages/@n8n/permissions\",\"packages/@n8n/scan-community-package\",\"packages/@n8n/scheduler\",\"packages/@n8n/stylelint-config\",\"packages/@n8n/syslog-client\",\"packages/@n8n/task-runner\",\"packages/@n8n/task-runner-python\",\"packages/@n8n/telemetry\",\"packages/@n8n/tournament\",\"packages/@n8n/utils\",\"packages/@n8n/vitest-config\",\"packages/@n8n/workflow-sdk\",\"packages/cli\",\"packages/core\",\"packages/frontend/@n8n/chat\",\"packages/frontend/@n8n/composables\",\"packages/frontend/@n8n/design-system\",\"packages/frontend/@n8n/eslint-plugin-design-system\",\"packages/frontend/@n8n/frontend-constants\",\"packages/frontend/@n8n/frontend-module-sdk\",\"packages/frontend/@n8n/frontend-test-utils\",\"packages/frontend/@n8n/frontend-utils\",\"packages/frontend/@n8n/i18n\",\"packages/frontend/@n8n/rest-api-client\",\"packages/frontend/@n8n/stores\",\"packages/frontend/editor-ui\",\"packages/modules/apps/backend\",\"packages/modules/inbox/frontend\",\"packages/modules/insights/backend\",\"packages/modules/insights/frontend\",\"packages/modules/instance-registry/frontend\",\"packages/modules/mcp/frontend\",\"packages/modules/otel/frontend\",\"packages/modules/quick-connect/backend\",\"packages/modules/self-healing/frontend\",\"packages/modules/type-availability-policies/frontend\",\"packages/modules/workflow-builder/backend\",\"packages/nodes-base\",\"packages/quality/environments/containers\",\"packages/quality/policy/code-health\",\"packages/quality/policy/rules-engine\",\"packages/quality/testing/janitor\",\"packages/quality/testing/test-impact\",\"packages/workflow\"]"
+        ENACT_ENVIRONMENT_DIRS: "[\"packages/@n8n/agents\",\"packages/@n8n/ai-utilities\",\"packages/@n8n/ai-workflow-builder.ee\",\"packages/@n8n/api-types\",\"packages/@n8n/app-sdk\",\"packages/@n8n/backend-common\",\"packages/@n8n/backend-network\",\"packages/@n8n/backend-services\",\"packages/@n8n/blob-storage\",\"packages/@n8n/chat-hub\",\"packages/@n8n/cli\",\"packages/@n8n/client-oauth2\",\"packages/@n8n/code-runtime-js\",\"packages/@n8n/code-task-contract\",\"packages/@n8n/codemirror-lang\",\"packages/@n8n/codemirror-lang-sql\",\"packages/@n8n/config\",\"packages/@n8n/crdt\",\"packages/@n8n/db\",\"packages/@n8n/decorators\",\"packages/@n8n/di\",\"packages/@n8n/engine\",\"packages/@n8n/errors\",\"packages/@n8n/eslint-config\",\"packages/@n8n/eslint-plugin-community-nodes\",\"packages/@n8n/expression-runtime\",\"packages/@n8n/imap\",\"packages/@n8n/inbound-auth\",\"packages/@n8n/instance-ai\",\"packages/@n8n/json-schema-to-zod\",\"packages/@n8n/leases\",\"packages/@n8n/mcp-apps\",\"packages/@n8n/mcp-browser\",\"packages/@n8n/mcp-browser-extension\",\"packages/@n8n/module-cli\",\"packages/@n8n/n8n-node-codegen\",\"packages/@n8n/node-cli\",\"packages/@n8n/node-engine-compatibility\",\"packages/@n8n/nodes-langchain\",\"packages/@n8n/permissions\",\"packages/@n8n/scan-community-package\",\"packages/@n8n/scheduler\",\"packages/@n8n/stylelint-config\",\"packages/@n8n/syslog-client\",\"packages/@n8n/task-runner\",\"packages/@n8n/task-runner-python\",\"packages/@n8n/telemetry\",\"packages/@n8n/tournament\",\"packages/@n8n/utils\",\"packages/@n8n/vitest-config\",\"packages/@n8n/workflow-engine-check\",\"packages/@n8n/workflow-sdk\",\"packages/cli\",\"packages/core\",\"packages/frontend/@n8n/chat\",\"packages/frontend/@n8n/composables\",\"packages/frontend/@n8n/design-system\",\"packages/frontend/@n8n/eslint-plugin-design-system\",\"packages/frontend/@n8n/frontend-constants\",\"packages/frontend/@n8n/frontend-module-sdk\",\"packages/frontend/@n8n/frontend-test-utils\",\"packages/frontend/@n8n/frontend-utils\",\"packages/frontend/@n8n/i18n\",\"packages/frontend/@n8n/rest-api-client\",\"packages/frontend/@n8n/stores\",\"packages/frontend/editor-ui\",\"packages/modules/apps/backend\",\"packages/modules/apps/frontend\",\"packages/modules/code-sandbox/backend\",\"packages/modules/data-table/backend\",\"packages/modules/execution-ledger/backend\",\"packages/modules/execution-limits/backend\",\"packages/modules/inbox/frontend\",\"packages/modules/insights/backend\",\"packages/modules/insights/frontend\",\"packages/modules/instance-registry/frontend\",\"packages/modules/mcp/frontend\",\"packages/modules/otel/frontend\",\"packages/modules/promotions/frontend\",\"packages/modules/quick-connect/backend\",\"packages/modules/self-healing/frontend\",\"packages/modules/type-availability-policies/frontend\",\"packages/modules/workflow-builder/backend\",\"packages/node-dev\",\"packages/nodes-base\",\"packages/quality/environments/containers\",\"packages/quality/policy/code-health\",\"packages/quality/policy/rules-engine\",\"packages/quality/testing/janitor\",\"packages/quality/testing/test-impact\",\"packages/workflow\"]"
         ENACT_ENVIRONMENT_FILES: "[\".enact/environments/browser/enve.cue\",\".enact/environments/checks/enve.cue\"]"
         ENACT_JOB_SERVICES: kafka,mysql,postgres,proxy,redis
         ENACT_PREPARE_ENVIRONMENT_FILES: "[\".enact/environments/checks/enve.cue\"]"

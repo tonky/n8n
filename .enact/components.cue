@@ -63,9 +63,9 @@ pipeline: schema.#Pipeline & {
 			".actrc", ".agents/**", ".aikido", ".claude/**", ".claude-plugin/**", ".devcontainer/**", ".dockerignore",
 			".env.*.example", ".git-blame-ignore-revs", ".jscpd.json", ".github/ISSUE_TEMPLATE/**",
 			".github/actionlint.yml", ".github/actions/**", ".github/docker-compose.yml",
-			".github/poutine-rules/**", ".github/scripts/**", ".github/test-metrics/**", ".github/upstream-workflows/**",
+			".github/poutine-rules/**", ".github/scripts/**", ".github/test-metrics/e2e-impact-map.json", ".github/upstream-workflows/**",
 			".npmignore", ".opencode", ".poutine.yml", ".vscode/**", "OWNERS", "assets/**",
-			"codecov.yml", "cubic.yaml", "docker/**", "packages/extensions/.gitkeep",
+			"codecov.yml", "cubic.yaml", "docker/**", "docs/backend/**", "packages/extensions/.gitkeep",
 			"security/**", "scripts/cloud-session*.mjs",
 		]
 		include: [
@@ -198,6 +198,14 @@ pipeline: schema.#Pipeline & {
 		{
 			outputs: ["packages/@n8n/workflow-sdk/test-fixtures/real-workflows/[0-9]*.json"]
 			inputs:  ["packages/@n8n/workflow-sdk/test-fixtures/real-workflows/public_published_templates.zip", "packages/@n8n/workflow-sdk/test-fixtures/real-workflows/manifest.json"]
+		},
+		{
+			outputs: ["packages/@n8n/n8n-node-codegen/dist", "packages/@n8n/n8n-node-codegen/dist/**"]
+			inputs:  ["packages/cli/src/public-api/v1/**"]
+		},
+		{
+			outputs: [".turbo", ".turbo/**"]
+			inputs:  ["package.json", "pnpm-lock.yaml", "turbo.json"]
 		},
 		for db in ["sqlite", "postgresdb"] {
 			outputs: [
@@ -371,6 +379,13 @@ pipeline: schema.#Pipeline & {
 			test: {resource_forecast: {mode: "advisory"}}
 		}
 
+		"@n8n/n8n-node-codegen": {
+			jobs: test: tasks: [
+				{name: "Bundle OpenAPI Spec", command: "pnpm --filter @n8n/n8n-node-codegen bundle-spec"},
+				{name: "Run Tests", command: _vitest},
+			]
+		}
+
 		"nodes-base": {
 			let P = _packages["nodes-base"]
 			let Services = {kafka: n8n.services.kafka, mysql: n8n.services.mysql}
@@ -399,10 +414,11 @@ pipeline: schema.#Pipeline & {
 			reason: "real model providers and vector stores (API keys): upstream runs them by hand (test:integration)"
 		}]
 
-		"@n8n/scan-community-package": target_scope: not_run: [{
-			tests:  [_packages["@n8n/scan-community-package"].dir + "/test/provenance.test.mjs"]
-			reason: "a node:test file the package's vitest picks up: \"No test suite found\""
+		"@n8n/engine": target_scope: not_run: [{
+			tests:  [_packages["@n8n/engine"].dir + "/**/*.integration.test.ts"]
+			reason: "uses @testcontainers/redis: upstream runs them via test:integration and excludes them in vitest.config.ts"
 		}]
+
 		"@n8n/workflow-sdk": target_scope: not_run: [{
 			tests:  [_packages["@n8n/workflow-sdk"].dir + "/src/codegen/codegen-roundtrip.test.ts"]
 			reason: "57 real-workflow roundtrips fail against the manifest's expected warnings once the fixtures are extracted (a fresh checkout loads none at parse time and runs one test)"
@@ -412,6 +428,7 @@ pipeline: schema.#Pipeline & {
 			let Dir = "packages/@n8n/task-runner-python"
 			name:            "@n8n/task-runner-python"
 			title:           "n8n Python Task Runner"
+			technology:      "python"
 			kind:            "service"
 			domain:          "execution"
 			root:            Dir
@@ -651,6 +668,7 @@ pipeline: schema.#Pipeline & {
 				P.dir + "/**", "helpers/playwright-runner.sh", "helpers/playwright.enact.config.ts",
 				"helpers/editor-chunks.mjs", "helpers/pw-spec-env.mjs", "helpers/n8n-ready.mjs",
 				"helpers/native-proxy.mjs", "helpers/pw-capability.mjs",
+				for r in P.reads {r},
 			]
 			uses:        [{protocol: schema.#Protocol.Http, target: "proxy", title: "Local HTTP proxy for Playwright tests"}]
 			shards:      6
@@ -659,9 +677,6 @@ pipeline: schema.#Pipeline & {
 				let _notRun = [{
 					tests:  [for d in ["cli-workflows", "evals", "infrastructure", "performance"] {P.dir + "/tests/" + d + "/**/*.spec.ts"}]
 					reason: "Playwright projects other than e2e and dev-server-smoke: upstream runs them against containers (infrastructure, performance), workflow fixtures (cli-workflows) or an LLM (evals)"
-				}, {
-					tests:  [P.dir + "/tests/framework/harness-contract.test.ts"]
-					reason: "drives Playwright in a subprocess under its own Vitest config (test:harness), which the runner's vitest.config.ts leaves out"
 				}, {
 					tests: [for s in [
 						"auth/token-exchange", "settings/log-streaming/log-streaming", "settings/log-streaming/log-streaming-delivery", "workflow-reviews/review-round-trip",
