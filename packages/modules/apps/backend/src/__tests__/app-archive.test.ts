@@ -243,3 +243,5 @@ describe('AppArchive', () => {
 		await expect(archives.unpack(body.subarray(0, body.length - 100))).rejects.toThrow('invalid');
 	});
 });
+
+// canary: phase2 step A1 (V1 vitest shard cache + H-sched-1)
