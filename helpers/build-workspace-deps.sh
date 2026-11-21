@@ -120,14 +120,6 @@ if [ "$task" = "build:unchecked" ] && [ -d .enact ]; then
           exec "$enact" helper ensure-outputs cli:build
         fi
         ;;
-      @n8n/performance^...)
-        if [ $# -eq 1 ] && [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "playwright:build" ]; then
-          [ ! -f packages/quality/testing/playwright/package.json ] || exec "$enact" helper ensure-outputs playwright:build
-          # A cone without playwright's root (cli's or @n8n/performance's) can't run its producer:
-          # restored outputs serve, else turbo builds `n8n...` / `@n8n/performance^...` below.
-          "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
-        fi
-        ;;
       @n8n/db)
         if [ $# -eq 1 ] && [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "@n8n/db:build" ]; then
           exec "$enact" helper ensure-outputs @n8n/db:build
