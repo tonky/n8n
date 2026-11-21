@@ -19,3 +19,5 @@ describe('shouldSkipContainerRequirement', () => {
 		expect(shouldSkipContainerRequirement('proxy', false)).toBe(false);
 	});
 });
+
+// canary: phase2 step A2 keyless R2 outputs hit proof
