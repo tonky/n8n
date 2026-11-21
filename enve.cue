@@ -24,6 +24,26 @@ import (
 	installPhase: "mkdir -p \"$out/bin\" && cp pnpm \"$out/bin/\" && chmod +x \"$out/bin/pnpm\""
 }
 
+// Pinned to upstream packages/@n8n/db/scripts/schema-docs.mjs (1.94.5) so nixpkgs tbls
+// bumps (e.g. 1.97.0) never drift SQLite composite-PK or Postgres relationship doc output.
+#Tbls: schema.#ArchiveBuildSpec & {
+	pname:   "tbls"
+	version: "1.94.5"
+	src: {
+		"x86_64-linux":   "https://github.com/k1LoW/tbls/releases/download/v1.94.5/tbls_v1.94.5_linux_amd64.tar.gz"
+		"aarch64-linux":  "https://github.com/k1LoW/tbls/releases/download/v1.94.5/tbls_v1.94.5_linux_arm64.tar.gz"
+		"x86_64-darwin":  "https://github.com/k1LoW/tbls/releases/download/v1.94.5/tbls_v1.94.5_darwin_amd64.zip"
+		"aarch64-darwin": "https://github.com/k1LoW/tbls/releases/download/v1.94.5/tbls_v1.94.5_darwin_arm64.zip"
+	}
+	sha256: {
+		"x86_64-linux":   "0ee4381c65fb222c64f0dba039dc956a20097167500e2cf96fd7264249b94f79"
+		"aarch64-linux":  "cf8e47fe2b5bde9b6ec919ead72667b1774a94ac3cff75f37c96d045aad50098"
+		"x86_64-darwin":  "c090035eacd3452f57510c616884ed3e9e8fb2e3e5fcf883c65101a388d730ec"
+		"aarch64-darwin": "da1d17f3174c9aa6ca78925f9af27588ad5c733dbddf8ff539533ab2946b3693"
+	}
+	installPhase: "mkdir -p \"$out/bin\" && cp tbls \"$out/bin/\" && chmod +x \"$out/bin/tbls\""
+}
+
 // Every PostgreSQL service's server flags and its n8n database, in UTC.
 let _postgres = {
 	command: "postgres -D \"$DATA_DIR\" -k \"$SOCKET_DIR\" -p $PORT -c shared_buffers=32MB -c work_mem=4MB -c max_connections=100 -c max_locks_per_transaction=256 -c fsync=off -c synchronous_commit=off"
@@ -42,7 +62,7 @@ profiles: dev: schema.#Profile & #Runtime & {
 	pkgs.nodejs & {version: "24"},
 	pkgs.postgresql,
 	pkgs.redis,
-	{pname: "tbls"},
+	#Tbls,
 	{pname: "curl"},
 	{pname: "ripgrep"},
 	{pname: "bash"},

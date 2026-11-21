@@ -1097,6 +1097,7 @@ jobs:
           packages/nodes-base
           packages/quality/testing/janitor
           packages/quality/testing/playwright
+          packages/quality/testing/playwright/workflows
           packages/quality/testing/test-impact
           packages/@n8n/extension-sdk
           packages/@n8n/leases
@@ -1348,6 +1349,7 @@ jobs:
           packages/nodes-base
           packages/quality/testing/janitor
           packages/quality/testing/playwright
+          packages/quality/testing/playwright/workflows
           packages/quality/testing/test-impact
           packages/@n8n/extension-sdk
           packages/@n8n/leases

@@ -2,8 +2,8 @@
   "platforms": {
     "aarch64-darwin": {
       "binding": {
-        "environment_sha256": "f018bd0f243c2d31a153a076a581e3351d939c6d6fdd174584dd0e9cf33acfce",
-        "inventory_sha256": "f5c07bc3b9f345b7942c5f242d6439d88aa6e720608501cba46bb4846c348f71",
+        "environment_sha256": "af02c16c1d92433fef57886327091d04181ea75a5cdb183ccbea813e839ccb7b",
+        "inventory_sha256": "79335f4eb00ae0c078847564431c3e9ea8d0db56a762c4e7fbdf7569cca66b9d",
         "profile": null,
         "version": 2
       },
@@ -338,17 +338,6 @@
           "nar_size": 536,
           "references": [
             "29wli9hgxjmnvj0i1h9if6icnihrxidh-xcbuild-0.1.1-unstable-2019-11-20"
-          ]
-        },
-        {
-          "hash_name": "a8gvm4r71hr46myxnq2wni0a0p4pnh3f-tbls-1.97.0",
-          "nar_hash": "sha256:03zbvvnvrq3brmirfrldi87r39rs0f6frvarglxgaq9rb3k6wcs5",
-          "nar_size": 93721928,
-          "references": [
-            "2d2vj6a8is5afkc5mj64rcm35yz2cn5z-tzdata-2026f",
-            "b6j6inyhicwmf0nhg7glk3yywvkhyp86-libresolv-96",
-            "vfjr879s6xjzjrskw2l0k0c9wsvffj57-mailcap-2.1.54",
-            "y74m2j1cwjfzjfi3ybx9yh0428vl1rcq-iana-etc-20251215"
           ]
         },
         {
@@ -792,6 +781,9 @@
           ]
         },
         {
+          "hash_name": "mnq7ms4s1i3irjkb7fqfyc04mws01f4n-tbls-1.94.5"
+        },
+        {
           "hash_name": "mxzykyjd429llpnnvy1dvmvrv4sjb42f-llvm-21.1.8",
           "nar_hash": "sha256:0ag9vcscnd361kd79x0vjw9pcy15cyh2vxs43wqhxwac9w423z19",
           "nar_size": 104559064,
@@ -1082,14 +1074,6 @@
           "references": []
         },
         {
-          "hash_name": "y74m2j1cwjfzjfi3ybx9yh0428vl1rcq-iana-etc-20251215",
-          "nar_hash": "sha256:1wp2f6d53k67b2d5490xs1mvhb35irp3mmmxg6hmn1j1m78w7wza",
-          "nar_size": 571168,
-          "references": [
-            "y74m2j1cwjfzjfi3ybx9yh0428vl1rcq-iana-etc-20251215"
-          ]
-        },
-        {
           "hash_name": "y8cq344hrzswfcbp5mhhbdb728bkz3y0-adv_cmds-237",
           "nar_hash": "sha256:0572lwh5nmicj4145785lgzp73lm4rbkp9yi0p8ilh5ja93c6k2w",
           "nar_size": 900712,
@@ -1219,6 +1203,40 @@
             34
           ],
           "pnpm": [
+            104,
+            235,
+            121,
+            103,
+            100,
+            140,
+            0,
+            155,
+            66,
+            93,
+            21,
+            250,
+            216,
+            235,
+            242,
+            51,
+            74,
+            138,
+            93,
+            208,
+            207,
+            217,
+            153,
+            38,
+            233,
+            138,
+            12,
+            16,
+            210,
+            150,
+            192,
+            34
+          ],
+          "tbls": [
             104,
             235,
             121,
@@ -1640,34 +1658,6 @@
             },
             {
               "constraint": {
-                "attr": "tbls",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-darwin",
-                "version": null
-              },
-              "package": {
-                "attr_path": "tbls",
-                "name": "tbls",
-                "origin": {
-                  "Channel": {
-                    "build": 354333427,
-                    "evaluation": 1831727,
-                    "release": "nixpkgs/nixpkgs-26.11pre1125912.93a9ed0a8660/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/a8gvm4r71hr46myxnq2wni0a0p4pnh3f-tbls-1.97.0"
-                },
-                "rev": "93a9ed0a866099a230ed5146a5bb7d16fd5c9b14",
-                "store_paths": [
-                  "/nix/store/a8gvm4r71hr46myxnq2wni0a0p4pnh3f-tbls-1.97.0"
-                ],
-                "version": "1.97.0"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "unzip",
                 "context": "profiles.dev",
                 "output": null,
@@ -1731,7 +1721,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "c84973d14573c99267bc41082691d1401eb305f163c0ad0b99ea1a5fd580ccad"
+        "projectSha256": "aee19314e19383abd88bd38862de03097b27c3d7c60d8dc519adb564d3739353"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -2142,19 +2132,47 @@
           "version": "15.2.0"
         },
         "tbls": {
-          "closure": "a8gvm4r71hr46myxnq2wni0a0p4pnh3f-tbls-1.97.0",
-          "outputs": [
-            "a8gvm4r71hr46myxnq2wni0a0p4pnh3f-tbls-1.97.0"
+          "buildIdentity": [
+            104,
+            235,
+            121,
+            103,
+            100,
+            140,
+            0,
+            155,
+            66,
+            93,
+            21,
+            250,
+            216,
+            235,
+            242,
+            51,
+            74,
+            138,
+            93,
+            208,
+            207,
+            217,
+            153,
+            38,
+            233,
+            138,
+            12,
+            16,
+            210,
+            150,
+            192,
+            34
           ],
-          "source": {
-            "attr": "tbls",
-            "build": 354333427,
-            "evaluation": 1831727,
-            "kind": "channel",
-            "release": "nixpkgs/nixpkgs-26.11pre1125912.93a9ed0a8660/",
-            "rev": "93a9ed0a866099a230ed5146a5bb7d16fd5c9b14"
-          },
-          "version": "1.97.0"
+          "buildInputs": [
+            "16imcy0hiwbc3c6j2n0cn17a6z1mncd5-bash-interactive-5.3p20",
+            "s3nhfncnjczym02h4rz782phaz760jr8-coreutils-9.12",
+            "xymwlnl7clwdzp4cniaai5dbibq8dvr3-bash-interactive-5.3p20-dev"
+          ],
+          "closure": "mnq7ms4s1i3irjkb7fqfyc04mws01f4n-tbls-1.94.5",
+          "version": "1.94.5"
         },
         "uv": {
           "closure": "ipknqjd32qvnp3jj1yn85kqw2sfdqyfa-uv-0.13.9",
@@ -2175,8 +2193,8 @@
     },
     "aarch64-linux": {
       "binding": {
-        "environment_sha256": "f018bd0f243c2d31a153a076a581e3351d939c6d6fdd174584dd0e9cf33acfce",
-        "inventory_sha256": "3e0f21c7629112dbe135b2cc76ade5014abc4033e2ae2c4cff7a6b8a1a709493",
+        "environment_sha256": "af02c16c1d92433fef57886327091d04181ea75a5cdb183ccbea813e839ccb7b",
+        "inventory_sha256": "86da683463611ac685d46a6e6de0807e5971b435e0f30ad562f78ec57d794262",
         "profile": null,
         "version": 2
       },
@@ -3606,14 +3624,6 @@
           ]
         },
         {
-          "hash_name": "kclh78hg7ksxc0z325hk587awjdy4c8z-iana-etc-20251215",
-          "nar_hash": "sha256:0jhzdbnh615zrw431f4nqs58mhs1qm3w8xs9wjkjq5l6jmmm78qm",
-          "nar_size": 571168,
-          "references": [
-            "kclh78hg7ksxc0z325hk587awjdy4c8z-iana-etc-20251215"
-          ]
-        },
-        {
           "hash_name": "kms4apb9hdbbphfw4f1qp873v9qa7rsy-xkeyboard-config-2.49",
           "nar_hash": "sha256:14f2cxalchaqshcgil6pbwcjggm5z7s9f2ilw4cvc53m73p14zz4",
           "nar_size": 10964872,
@@ -3782,17 +3792,6 @@
           "references": [
             "xl3n26zm1kv1zhj3mma2x929f4sx3dlh-bash-5.3p20",
             "ycwb9dbr67z9y7wdzm73bgjs4gsq8kb6-nodejs-slim-24.22.2"
-          ]
-        },
-        {
-          "hash_name": "n22pydfb7ryiaa0zgvfbjjz8dv4kqbjx-tbls-1.97.0",
-          "nar_hash": "sha256:02h9hklmqz35g27nbs5rv3drsg89hz14p7rdl7gzha8bk7i2qf26",
-          "nar_size": 93081208,
-          "references": [
-            "1q857rs68rs3gijls9wdnsjqnwnv5zd8-glibc-2.44-57",
-            "kclh78hg7ksxc0z325hk587awjdy4c8z-iana-etc-20251215",
-            "rvj4a9qjd40xi1cazwdyvvbhc0zg8b2m-mailcap-2.1.54",
-            "vbifgniaj4l3zgbkh60lxhrd2vzcyiss-tzdata-2026f"
           ]
         },
         {
@@ -4323,6 +4322,9 @@
           ]
         },
         {
+          "hash_name": "xhql24vjrpwxzr9r1arlp3ycq4wjw3qd-tbls-1.94.5"
+        },
+        {
           "hash_name": "xkz5j3mqxxwn41ly5lsspb5mpw0ld14i-libxrender-0.9.13",
           "nar_hash": "sha256:0cqf9qf8qn99hbcp5lkvdwljw26c6fw205ydbar076m8lqr2nk0f",
           "nar_size": 76392,
@@ -4610,6 +4612,40 @@
             34
           ],
           "pnpm": [
+            104,
+            235,
+            121,
+            103,
+            100,
+            140,
+            0,
+            155,
+            66,
+            93,
+            21,
+            250,
+            216,
+            235,
+            242,
+            51,
+            74,
+            138,
+            93,
+            208,
+            207,
+            217,
+            153,
+            38,
+            233,
+            138,
+            12,
+            16,
+            210,
+            150,
+            192,
+            34
+          ],
+          "tbls": [
             104,
             235,
             121,
@@ -5722,34 +5758,6 @@
             },
             {
               "constraint": {
-                "attr": "tbls",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "aarch64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "tbls",
-                "name": "tbls",
-                "origin": {
-                  "Channel": {
-                    "build": 354333410,
-                    "evaluation": 1831727,
-                    "release": "nixpkgs/nixpkgs-26.11pre1125912.93a9ed0a8660/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/n22pydfb7ryiaa0zgvfbjjz8dv4kqbjx-tbls-1.97.0"
-                },
-                "rev": "93a9ed0a866099a230ed5146a5bb7d16fd5c9b14",
-                "store_paths": [
-                  "/nix/store/n22pydfb7ryiaa0zgvfbjjz8dv4kqbjx-tbls-1.97.0"
-                ],
-                "version": "1.97.0"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "udev",
                 "context": "profiles.dev",
                 "output": null,
@@ -5843,7 +5851,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "c84973d14573c99267bc41082691d1401eb305f163c0ad0b99ea1a5fd580ccad"
+        "projectSha256": "aee19314e19383abd88bd38862de03097b27c3d7c60d8dc519adb564d3739353"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -6297,19 +6305,47 @@
           "version": "15.2.0"
         },
         "tbls": {
-          "closure": "n22pydfb7ryiaa0zgvfbjjz8dv4kqbjx-tbls-1.97.0",
-          "outputs": [
-            "n22pydfb7ryiaa0zgvfbjjz8dv4kqbjx-tbls-1.97.0"
+          "buildIdentity": [
+            104,
+            235,
+            121,
+            103,
+            100,
+            140,
+            0,
+            155,
+            66,
+            93,
+            21,
+            250,
+            216,
+            235,
+            242,
+            51,
+            74,
+            138,
+            93,
+            208,
+            207,
+            217,
+            153,
+            38,
+            233,
+            138,
+            12,
+            16,
+            210,
+            150,
+            192,
+            34
           ],
-          "source": {
-            "attr": "tbls",
-            "build": 354333410,
-            "evaluation": 1831727,
-            "kind": "channel",
-            "release": "nixpkgs/nixpkgs-26.11pre1125912.93a9ed0a8660/",
-            "rev": "93a9ed0a866099a230ed5146a5bb7d16fd5c9b14"
-          },
-          "version": "1.97.0"
+          "buildInputs": [
+            "1fyngphwizrqdykdynz8p5fr6b4mnp1d-bash-interactive-5.3p20-dev",
+            "jw0lpdmxdr8ixp4a0hmjpvdg4r6y7p35-coreutils-9.12",
+            "x5b3k5pnynrjijw5bzvqrcbdhi5p81d3-bash-interactive-5.3p20"
+          ],
+          "closure": "xhql24vjrpwxzr9r1arlp3ycq4wjw3qd-tbls-1.94.5",
+          "version": "1.94.5"
         },
         "uv": {
           "closure": "wvx76gpi9f8936k9adl5v84xsi4wc0cl-uv-0.13.9",
@@ -6330,8 +6366,8 @@
     },
     "x86_64-linux": {
       "binding": {
-        "environment_sha256": "f018bd0f243c2d31a153a076a581e3351d939c6d6fdd174584dd0e9cf33acfce",
-        "inventory_sha256": "619540bb3152bdfe7428763572981b46d0eb562dc6bf8a77282de014c9c474d0",
+        "environment_sha256": "af02c16c1d92433fef57886327091d04181ea75a5cdb183ccbea813e839ccb7b",
+        "inventory_sha256": "b4d975a3aa4c3502b9059f7400580ed0192fa06a8de5dd562fd4465eb61b1caa",
         "profile": null,
         "version": 2
       },
@@ -6379,6 +6415,9 @@
             "v3za74snmvklqb98bfah0b2m0cxa2051-liburing-2.14",
             "wa7a9r7b6asfir8r8wdp7wbzx3dj8qhm-libxml2-2.15.4"
           ]
+        },
+        {
+          "hash_name": "0pas7rmsm7yz0rsng70lq6cll0snzx6v-tbls-1.94.5"
         },
         {
           "hash_name": "0yg57qqzvssbvf29xww2njm380i8ngpp-protobuf-21.12-lib",
@@ -7296,17 +7335,6 @@
           ]
         },
         {
-          "hash_name": "dibdcn99vdbwazhya8xm3xyig3i89kw9-tbls-1.97.0",
-          "nar_hash": "sha256:0cl0h0aagfcyxc5vp7h5r7188q70mpfsvrmlv548mkjkf6ii9r1x",
-          "nar_size": 99511736,
-          "references": [
-            "f8q90niwcnphbc8b7qc3mlpznqbjj2ny-iana-etc-20251215",
-            "h13i4ll3mjswm4sswhrqai6crkn886jp-mailcap-2.1.54",
-            "r3hvhzl5fxhrgn0rfy5g7rda17702pj4-glibc-2.44-57",
-            "s92hlmg73b3zlw38dfgm13v9cah2bm80-tzdata-2026f"
-          ]
-        },
-        {
           "hash_name": "didldd2ic95rij2d3239npz5f63kjxbq-libxdamage-1.1.7-dev",
           "nar_hash": "sha256:04vi01k78csr282hihwk0bx3dqdplz3vf8vr8h7cif23qq7kk1d2",
           "nar_size": 4632,
@@ -7387,14 +7415,6 @@
             "f6sc8iqwxy7ig3lqi07as1pz5mag109i-icu4c-78.3",
             "myhwfdgqm39yms5clinafii9i1nmq43h-gcc-16.2.0-lib",
             "r3hvhzl5fxhrgn0rfy5g7rda17702pj4-glibc-2.44-57"
-          ]
-        },
-        {
-          "hash_name": "f8q90niwcnphbc8b7qc3mlpznqbjj2ny-iana-etc-20251215",
-          "nar_hash": "sha256:0jr2xnwlg29l1wrxzvlf6xbw5r0cj14902df7wmsv05sd3yl3am2",
-          "nar_size": 571168,
-          "references": [
-            "f8q90niwcnphbc8b7qc3mlpznqbjj2ny-iana-etc-20251215"
           ]
         },
         {
@@ -8797,6 +8817,40 @@
             150,
             192,
             34
+          ],
+          "tbls": [
+            104,
+            235,
+            121,
+            103,
+            100,
+            140,
+            0,
+            155,
+            66,
+            93,
+            21,
+            250,
+            216,
+            235,
+            242,
+            51,
+            74,
+            138,
+            93,
+            208,
+            207,
+            217,
+            153,
+            38,
+            233,
+            138,
+            12,
+            16,
+            210,
+            150,
+            192,
+            34
           ]
         },
         "graph": {
@@ -9877,34 +9931,6 @@
             },
             {
               "constraint": {
-                "attr": "tbls",
-                "context": "profiles.dev",
-                "output": null,
-                "system": "x86_64-linux",
-                "version": null
-              },
-              "package": {
-                "attr_path": "tbls",
-                "name": "tbls",
-                "origin": {
-                  "Channel": {
-                    "build": 354333407,
-                    "evaluation": 1831727,
-                    "release": "nixpkgs/nixpkgs-26.11pre1125912.93a9ed0a8660/"
-                  }
-                },
-                "outputs": {
-                  "out": "/nix/store/dibdcn99vdbwazhya8xm3xyig3i89kw9-tbls-1.97.0"
-                },
-                "rev": "93a9ed0a866099a230ed5146a5bb7d16fd5c9b14",
-                "store_paths": [
-                  "/nix/store/dibdcn99vdbwazhya8xm3xyig3i89kw9-tbls-1.97.0"
-                ],
-                "version": "1.97.0"
-              }
-            },
-            {
-              "constraint": {
                 "attr": "udev",
                 "context": "profiles.dev",
                 "output": null,
@@ -9998,7 +10024,7 @@
           }
         },
         "lockSourcePath": "enve.lock",
-        "projectSha256": "c84973d14573c99267bc41082691d1401eb305f163c0ad0b99ea1a5fd580ccad"
+        "projectSha256": "aee19314e19383abd88bd38862de03097b27c3d7c60d8dc519adb564d3739353"
       },
       "environment": {
         "CLI_HOST": "127.0.0.1",
@@ -10452,19 +10478,47 @@
           "version": "15.2.0"
         },
         "tbls": {
-          "closure": "dibdcn99vdbwazhya8xm3xyig3i89kw9-tbls-1.97.0",
-          "outputs": [
-            "dibdcn99vdbwazhya8xm3xyig3i89kw9-tbls-1.97.0"
+          "buildIdentity": [
+            104,
+            235,
+            121,
+            103,
+            100,
+            140,
+            0,
+            155,
+            66,
+            93,
+            21,
+            250,
+            216,
+            235,
+            242,
+            51,
+            74,
+            138,
+            93,
+            208,
+            207,
+            217,
+            153,
+            38,
+            233,
+            138,
+            12,
+            16,
+            210,
+            150,
+            192,
+            34
           ],
-          "source": {
-            "attr": "tbls",
-            "build": 354333407,
-            "evaluation": 1831727,
-            "kind": "channel",
-            "release": "nixpkgs/nixpkgs-26.11pre1125912.93a9ed0a8660/",
-            "rev": "93a9ed0a866099a230ed5146a5bb7d16fd5c9b14"
-          },
-          "version": "1.97.0"
+          "buildInputs": [
+            "07pismcxcb118acfjxq9kkiqvbrkry43-bash-interactive-5.3p20-dev",
+            "a50ml7za6h61m4mv4cdbvkl33c6sx5yn-coreutils-9.12",
+            "lfm00fnq66xfgbn099vqckabyl5jllz6-bash-interactive-5.3p20"
+          ],
+          "closure": "0pas7rmsm7yz0rsng70lq6cll0snzx6v-tbls-1.94.5",
+          "version": "1.94.5"
         },
         "uv": {
           "closure": "nqlc3gnpj3fgd0yyn7acf51yw2f0mjsi-uv-0.13.9",
