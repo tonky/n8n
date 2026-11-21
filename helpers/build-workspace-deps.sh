@@ -110,7 +110,7 @@ if [ "$task" = "build:unchecked" ] && [ -d .enact ]; then
               '@n8n/oxlint-config...' \
               "${@:2}"
           else
-            [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
+            [ ! -f packages/quality/testing/playwright/package.json ] || exec "$enact" helper ensure-outputs playwright:build
             "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
           fi
         fi
@@ -122,7 +122,7 @@ if [ "$task" = "build:unchecked" ] && [ -d .enact ]; then
         ;;
       @n8n/performance^...)
         if [ $# -eq 1 ] && [ "${ENACT_COMPONENT:-}:${ENACT_JOB:-}" != "playwright:build" ]; then
-          [ ! -d packages/quality/testing/playwright ] || exec "$enact" helper ensure-outputs playwright:build
+          [ ! -f packages/quality/testing/playwright/package.json ] || exec "$enact" helper ensure-outputs playwright:build
           # A cone without playwright's root (cli's or @n8n/performance's) can't run its producer:
           # restored outputs serve, else turbo builds `n8n...` / `@n8n/performance^...` below.
           "$enact" helper ensure-outputs playwright:build 2>/dev/null && exit 0
