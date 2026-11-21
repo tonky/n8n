@@ -565,6 +565,9 @@ pipeline: schema.#Pipeline & {
 					P.dir + "/test/integration/ldap/ldap.api.test.ts",
 				]
 				reason: "assume single-connection SQLite test:integration timing/locks: credentials.cmd.test.ts asserts 2 DbLockService.withLock calls while PostgreSQL DbConnection.migrate() adds a 3rd; ldap.api.test.ts:381 calls getPersonalProject(memberUser) without await so beforeEach UserRepository.delete() races on PostgreSQL's pool"
+			}, {
+				tests:  [P.dir + "/src/controllers/__tests__/e2e-coverage-windows.test.ts"]
+				reason: "fails under traced Vitest runs (T17: rootCount=2 vs 1 in NODE_V8_COVERAGE child process; passes 3/3 untraced on Node 24.22.2)"
 			}]
 			jobs: {
 				build: {
@@ -679,7 +682,7 @@ pipeline: schema.#Pipeline & {
 					reason: "Playwright projects other than e2e and dev-server-smoke: upstream runs them against containers (infrastructure, performance), workflow fixtures (cli-workflows) or an LLM (evals)"
 				}, {
 					tests: [for s in [
-						"auth/token-exchange", "settings/log-streaming/log-streaming", "settings/log-streaming/log-streaming-delivery", "workflow-reviews/review-round-trip",
+						"auth/token-exchange", "settings/log-streaming/log-streaming", "settings/log-streaming/log-streaming-delivery", "workflow-reviews/required-approval", "workflow-reviews/review-round-trip",
 						"type-availability-policies/credential-type-policy", "type-availability-policies/credential-type-policy-worker",
 						"type-availability-policies/node-type-policy",
 					] {P.dir + "/tests/e2e/" + s + ".spec.ts"}]
@@ -694,6 +697,9 @@ pipeline: schema.#Pipeline & {
 				}, {
 					tests:  [P.dir + "/tests/e2e/ai/hitl-for-tools.spec.ts"]
 					reason: "upstream scripts/distribute-tests.mjs QUARANTINE excludes this spec from orchestrated distribution and PR shards (34.2% flakyRate)"
+				}, {
+					tests:  [P.dir + "/tests/e2e/workflows/editor/ndv/ndv-data-display.spec.ts"]
+					reason: "upstream race at ndv-data-display.spec.ts:82: non-retrying getSchemaItems().count() immediately after switchDisplayMode('schema') returns 0 before Vue renders schema items"
 				}, {
 					tests: [for s in [
 						"auth/oidc",

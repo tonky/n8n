@@ -317,6 +317,7 @@ run_one_spec() {
         N8N_USER_FOLDER="$user_dir" \
         N8N_ENCRYPTION_KEY="$N8N_ENCRYPTION_KEY" \
         N8N_DIAGNOSTICS_ENABLED=false \
+        N8N_INSTANCE_AI_ENABLED=true \
         N8N_VERSION_NOTIFICATIONS_ENABLED=false \
         N8N_LOG_LEVEL="${N8N_LOG_LEVEL:-warn}" \
         N8N_RESTRICT_FILE_ACCESS_TO="" \
@@ -345,7 +346,7 @@ run_one_spec() {
           ENACT_PW_BACKEND=shared \
           PLAYWRIGHT_ALLOW_CONTAINER_ONLY=true \
           PLAYWRIGHT_SKIP_WEBSERVER=true \
-          RESET_E2E_DB=false \
+          RESET_E2E_DB=true \
           ENACT_NODE_READS="$WORK/node/$idx" \
           ENACT_FOOTPRINT_ROOT="$REPO_ROOT" \
           NODE_OPTIONS="$traced_node_opts" \
