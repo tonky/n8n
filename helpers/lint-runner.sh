@@ -207,7 +207,6 @@ const result = {
   genMigration: lint.includes('gen:migration-index'),
   oxlintTypeAware: oxlint.tokens.includes('--type-aware'),
   eslintQuiet: eslint.tokens.includes('--quiet'),
-  nodesBaseHeap: lint.includes('--max-old-space-size=6144'),
   nodesBaseValidate,
   oxlintFiles,
   eslintFiles,
@@ -226,7 +225,6 @@ console.log(`special_whole_lint=${p.specialWholeLint ? 1 : 0}`);
 console.log(`gen_migration=${p.genMigration ? 1 : 0}`);
 console.log(`oxlint_type_aware=${p.oxlintTypeAware ? 1 : 0}`);
 console.log(`eslint_quiet=${p.eslintQuiet ? 1 : 0}`);
-console.log(`nodes_base_heap=${p.nodesBaseHeap ? 1 : 0}`);
 console.log(`nodes_base_validate=${p.nodesBaseValidate ? 1 : 0}`);
 console.log(arr("oxlint_files", p.oxlintFiles));
 console.log(arr("eslint_files", p.eslintFiles));
@@ -264,11 +262,7 @@ else
     eslint_bin="$(local_bin eslint)"
     eslint_args=(--no-warn-ignored --no-error-on-unmatched-pattern)
     [ "$eslint_quiet" -eq 1 ] && eslint_args+=(--quiet)
-    if [ "$nodes_base_heap" -eq 1 ]; then
-      NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" "$eslint_bin" "${eslint_args[@]}" "${eslint_files[@]}"
-    else
-      "$eslint_bin" "${eslint_args[@]}" "${eslint_files[@]}"
-    fi
+    "$eslint_bin" "${eslint_args[@]}" "${eslint_files[@]}"
   fi
   if [ "$nodes_base_validate" -eq 1 ]; then
     node ./scripts/validate-load-options-methods.js

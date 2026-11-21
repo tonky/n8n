@@ -16,7 +16,7 @@ _lint: {
 	#styles: bool | *false
 	#format: bool | *false
 	command: "helpers/lint-runner.sh" + [if #styles {" --styles"}, ""][0] + [if #format {" --format"}, ""][0] + " " + #dir + " " + #pkg + " {relative_changed_files}"
-	env: {GOMEMLIMIT: "3072MiB", GOGC: "50"}
+	env: {GOMEMLIMIT: "3072MiB", GOGC: "50", NODE_OPTIONS: *"--max-old-space-size=4096" | string}
 }
 
 _typecheck: {
@@ -314,8 +314,14 @@ pipeline: schema.#Pipeline & {
 
 		for n in ["cli", "nodes-base", "@n8n/n8n-nodes-langchain"] {
 			(n): jobs: {
-				lint:      resources: {cpus: 2.0, memory_mb: 4608}
-				typecheck: resources: {cpus: 2.0, memory_mb: 6144}
+				lint: {
+					resources: {cpus: 2.0, memory_mb: 4608}
+					tasks: [{env: NODE_OPTIONS: "--max-old-space-size=6144"}]
+				}
+				typecheck: {
+					resources: {cpus: 2.0, memory_mb: 6144}
+					tasks: [{env: NODE_OPTIONS: "--max-old-space-size=6144"}]
+				}
 			}
 		}
 
@@ -323,8 +329,14 @@ pipeline: schema.#Pipeline & {
 			resources:        {cpus: 4.0, memory_mb: 4096}
 			record_resources: {cpus: 4.0, memory_mb: 6144}
 			jobs: {
-				lint:      resources: {cpus: 2.0, memory_mb: 5632}
-				typecheck: resources: {cpus: 2.0, memory_mb: 7168}
+				lint: {
+					resources: {cpus: 2.0, memory_mb: 5632}
+					tasks: [{env: NODE_OPTIONS: "--max-old-space-size=6144"}]
+				}
+				typecheck: {
+					resources: {cpus: 2.0, memory_mb: 7168}
+					tasks: [{env: NODE_OPTIONS: "--max-old-space-size=6144"}]
+				}
 				test: tasks: [{name: "Run Tests", command: _vitest, timeout: _wholeSuiteTimeout}]
 			}
 		}
@@ -414,10 +426,34 @@ pipeline: schema.#Pipeline & {
 					{match: [Dir + "/{pyproject.toml,uv.lock,.python-version,README.md}"], engine: "reach"},
 				]
 			}
-			lint:      "uv run --frozen --all-extras --group dev ruff format --check && uv run --frozen --all-extras --group dev ruff check"
-			typecheck: "uv run --frozen --all-extras --group dev ty check src/"
-			recorder:  "trace"
-			test:      "uv run --frozen --all-extras --group dev pytest {relative_targets}"
+			recorder: "trace"
+			jobs: {
+				lint: {
+					name:     "Lint"
+					direct:   true
+					services: false
+					tasks: [{
+						command:   "uv run --frozen --all-extras --group dev ruff format --check && uv run --frozen --all-extras --group dev ruff check"
+						unset_env: ["NODE_OPTIONS"]
+					}]
+				}
+				typecheck: {
+					name:     "Typecheck"
+					direct:   true
+					services: false
+					tasks: [{
+						command:   "uv run --frozen --all-extras --group dev ty check src/"
+						unset_env: ["NODE_OPTIONS"]
+					}]
+				}
+				test: {
+					name: "Test"
+					tasks: [{
+						command:   "uv run --frozen --all-extras --group dev pytest {relative_targets}"
+						unset_env: ["NODE_OPTIONS"]
+					}]
+				}
+			}
 		}
 
 		"@n8n/db": {
