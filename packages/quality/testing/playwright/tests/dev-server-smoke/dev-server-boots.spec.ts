@@ -163,3 +163,5 @@ test.describe(
 		});
 	},
 );
+
+// step-b2-smoke-canary
