@@ -108,6 +108,7 @@ pipeline: schema.#Pipeline & {
 			exclude: [
 				for d in [p.dir, for b in Bundles {b}] for e in ["/dist/**", "/evaluations/**", "/**/*.test.ts", "/**/*.spec.ts", "/**/*.stories.*", "/**/__tests__/**", "/**/test/**", "/**/*.md"] {d + e},
 				for db in ["sqlite", "postgresdb"] {"packages/@n8n/db/src/migrations/" + db + "/index.ts"},
+				"packages/cli/templates/**",
 				"packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts",
 				"packages/@n8n/expression-runtime/src/pool/**",
 			]
@@ -570,15 +571,16 @@ pipeline: schema.#Pipeline & {
 			target_scope: {
 				incidental_reads: _cliIncidental
 				not_run: [{
-				tests: [
-					P.dir + "/test/integration/commands/credentials.cmd.test.ts",
-					P.dir + "/test/integration/ldap/ldap.api.test.ts",
-				]
-				reason: "assume single-connection SQLite test:integration timing/locks: credentials.cmd.test.ts asserts 2 DbLockService.withLock calls while PostgreSQL DbConnection.migrate() adds a 3rd; ldap.api.test.ts:381 calls getPersonalProject(memberUser) without await so beforeEach UserRepository.delete() races on PostgreSQL's pool"
-			}, {
-				tests:  [P.dir + "/src/controllers/__tests__/e2e-coverage-windows.test.ts"]
-				reason: "fails under traced Vitest runs (T17: rootCount=2 vs 1 in NODE_V8_COVERAGE child process; passes 3/3 untraced on Node 24.22.2)"
-			}]
+					tests: [
+						P.dir + "/test/integration/commands/credentials.cmd.test.ts",
+						P.dir + "/test/integration/ldap/ldap.api.test.ts",
+					]
+					reason: "assume single-connection SQLite test:integration timing/locks: credentials.cmd.test.ts asserts 2 DbLockService.withLock calls while PostgreSQL DbConnection.migrate() adds a 3rd; ldap.api.test.ts:381 calls getPersonalProject(memberUser) without await so beforeEach UserRepository.delete() races on PostgreSQL's pool"
+				}]
+				untraced: [{
+					tests:  [P.dir + "/src/controllers/__tests__/e2e-coverage-windows.test.ts"]
+					reason: "spawns a NODE_V8_COVERAGE child process that fails under traced Vitest runs (T17: rootCount=2 vs 1); runs untraced in CI on Node 24.22.2"
+				}]
 			}
 			jobs: {
 				build: {
@@ -653,7 +655,7 @@ pipeline: schema.#Pipeline & {
 						incidental_reads: _cliIncidental
 						rules: [
 							{match: [P.dir + "/scripts/check-migrations-sqlite.sh", "helpers/vitest-runner.sh"], action: "full_component"},
-							{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}", "packages/**/package.json"], engine: "reach"},
+							{match: ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue,handlebars}", "packages/**/package.json"], engine: "reach"},
 						]
 					}
 					tasks: [
@@ -710,9 +712,6 @@ pipeline: schema.#Pipeline & {
 				}, {
 					tests:  [P.dir + "/tests/e2e/ai/hitl-for-tools.spec.ts"]
 					reason: "upstream scripts/distribute-tests.mjs QUARANTINE excludes this spec from orchestrated distribution and PR shards (34.2% flakyRate)"
-				}, {
-					tests:  [P.dir + "/tests/e2e/workflows/editor/ndv/ndv-data-display.spec.ts"]
-					reason: "upstream race at ndv-data-display.spec.ts:82: non-retrying getSchemaItems().count() immediately after switchDisplayMode('schema') returns 0 before Vue renders schema items"
 				}, {
 					tests: [for s in [
 						"auth/oidc",

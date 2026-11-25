@@ -50,8 +50,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
   COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
@@ -77,6 +77,7 @@ jobs:
     if: ${{ needs.detect.outputs.builds__n8n_db__build != '{"include":[]}' && needs.detect.outputs.builds__n8n_db__build != '[]' && needs.detect.outputs.builds__n8n_db__build != '' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
+      force_warm_suites: ${{ inputs.force_warm_suites }}
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
       matrix: ${{ needs.detect.outputs.builds__n8n_db__build }}
       seed_caches: ${{ inputs.seed_caches }}
@@ -89,10 +90,12 @@ jobs:
     name: Build Outputs
     needs:
     - detect
+    - lookup-outputs-cli--build
     - build-outputs--n8n-db--build
-    if: ${{ !cancelled() && !failure() && needs.detect.outputs.builds_cli__build != '{"include":[]}' && needs.detect.outputs.builds_cli__build != '[]' && needs.detect.outputs.builds_cli__build != '' }}
+    if: ${{ !cancelled() && needs.detect.result == 'success' && needs.build-outputs--n8n-db--build.result != 'failure' && needs.build-outputs--n8n-db--build.result != 'cancelled' && needs.detect.outputs.builds_cli__build != '{"include":[]}' && needs.detect.outputs.builds_cli__build != '[]' && needs.detect.outputs.builds_cli__build != '' && needs.lookup-outputs-cli--build.outputs.hit != 'true' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
+      force_warm_suites: ${{ inputs.force_warm_suites }}
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
       matrix: ${{ needs.detect.outputs.builds_cli__build }}
       seed_caches: ${{ inputs.seed_caches }}
@@ -105,11 +108,13 @@ jobs:
     name: Build Outputs
     needs:
     - detect
+    - lookup-outputs-playwright--build
     - build-outputs--n8n-db--build
     - build-outputs-cli--build
-    if: ${{ !cancelled() && !failure() && needs.detect.outputs.builds_playwright__build != '{"include":[]}' && needs.detect.outputs.builds_playwright__build != '[]' && needs.detect.outputs.builds_playwright__build != '' }}
+    if: ${{ !cancelled() && needs.detect.result == 'success' && needs.build-outputs--n8n-db--build.result != 'failure' && needs.build-outputs--n8n-db--build.result != 'cancelled' && needs.build-outputs-cli--build.result != 'failure' && needs.build-outputs-cli--build.result != 'cancelled' && needs.detect.outputs.builds_playwright__build != '{"include":[]}' && needs.detect.outputs.builds_playwright__build != '[]' && needs.detect.outputs.builds_playwright__build != '' && needs.lookup-outputs-playwright--build.outputs.hit != 'true' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
+      force_warm_suites: ${{ inputs.force_warm_suites }}
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
       matrix: ${{ needs.detect.outputs.builds_playwright__build }}
       seed_caches: ${{ inputs.seed_caches }}
@@ -127,7 +132,7 @@ jobs:
     - Linux
     - tonky-ci
     - tonky-ci-c2m4g
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       builds__n8n_db__build: ${{ steps.diff.outputs.builds__n8n_db__build }}
       builds_cli__build: ${{ steps.diff.outputs.builds_cli__build }}
@@ -168,10 +173,19 @@ jobs:
         export GIT_CONFIG_KEY_1=safe.directory
         export GIT_CONFIG_VALUE_1="$mirror"
         header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
-        refs=("+refs/heads/*:refs/heads/*")
-        case "$GITHUB_REF" in
-            refs/pull/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
+        base_ref="${GITHUB_BASE_REF:-${ENACT_BASE_REF:-}}"
+        depth="${ENACT_HOST_FETCH_DEPTH:-50}"
+        fetch_args=(--no-tags)
+        if [ "$depth" != "0" ]; then
+            fetch_args+=("--depth=$depth")
+        fi
+        refs=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*|refs/pull/*|refs/tags/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
         esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            refs+=("+refs/heads/$base_ref:refs/heads/$base_ref")
+        fi
         (
             flock 9
             if [ ! -f "$mirror/HEAD" ]; then
@@ -180,14 +194,23 @@ jobs:
                 git -C "$mirror" config gc.auto 0
             fi
             ref_current=""
-            case "$GITHUB_REF" in
-                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+            case "${GITHUB_REF:-}" in
+                refs/heads/*|refs/pull/*|refs/tags/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
                 *) ref_current="$GITHUB_SHA" ;;
             esac
-            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+            base_missing=0
+            if [ -n "$base_ref" ] && ! git -C "$mirror" rev-parse --verify -q "refs/heads/$base_ref^{commit}" >/dev/null 2>&1; then
+                base_missing=1
+            fi
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || [ "$base_missing" = 1 ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                if [ "${#refs[@]}" -gt 0 ]; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "${refs[@]}" \
+                        || git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                else
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                fi
                 if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
                 fi
             fi
             touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
@@ -201,32 +224,53 @@ jobs:
         git remote add origin "$url"
         git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
         git config --local gc.auto 0
-        git fetch -q --no-tags "$mirror" "+refs/heads/*:refs/remotes/origin/*"
-        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
-            mapfile -t raw_cone < <(printf '%s\n' "$ENACT_SPARSE_CONE" | sed '/^[[:space:]]*$/d')
-            cone=()
-            for entry in "${raw_cone[@]}"; do
-                case "$entry" in
-                    */.enact-direct-files)
-                        cone+=("$entry")
-                        ;;
-                    *)
-                        kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
-                        if [ "$kind" = "blob" ]; then
-                            case "$entry" in
-                                */*) cone+=("${entry%/*}/.enact-direct-files") ;;
-                            esac
-                        else
-                            cone+=("$entry")
-                        fi
-                        ;;
-                esac
+        mirror_branches=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*) mirror_branches+=("${GITHUB_REF#refs/heads/}") ;;
+        esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            mirror_branches+=("$base_ref")
+        fi
+        if [ "${#mirror_branches[@]}" -gt 0 ]; then
+            for ref_branch in "${mirror_branches[@]}"; do
+                ref_sha=$(git -C "$mirror" rev-parse --verify -q "refs/heads/$ref_branch^{commit}" 2>/dev/null || true)
+                if [ -n "$ref_sha" ]; then
+                    git update-ref "refs/remotes/origin/$ref_branch" "$ref_sha"
+                fi
             done
+        fi
+        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
+            raw_cone=()
+            while IFS= read -r entry; do
+                entry="${entry#"${entry%%[![:space:]]*}"}"
+                entry="${entry%"${entry##*[![:space:]]}"}"
+                [ -n "$entry" ] && raw_cone+=("$entry")
+            done <<<"$ENACT_SPARSE_CONE"
+            cone=()
+            if [ "${#raw_cone[@]}" -gt 0 ]; then
+                for entry in "${raw_cone[@]}"; do
+                    case "$entry" in
+                        */.enact-direct-files)
+                            cone+=("$entry")
+                            ;;
+                        *)
+                            kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
+                            if [ "$kind" = "blob" ]; then
+                                case "$entry" in
+                                    */*) cone+=("${entry%/*}/.enact-direct-files") ;;
+                                esac
+                            else
+                                cone+=("$entry")
+                            fi
+                            ;;
+                    esac
+                done
+            fi
             if [ "${#cone[@]}" -gt 0 ]; then
                 git sparse-checkout set --cone "${cone[@]}"
             fi
         fi
-        case "$GITHUB_REF" in
+        case "${GITHUB_REF:-}" in
             refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
             *) git checkout -q --force --detach "$GITHUB_SHA" ;;
         esac
@@ -440,9 +484,9 @@ jobs:
         echo "$MATRIX"
         echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
         AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
         ENACT_BASE_REF: ${{ inputs.base_ref || github.base_ref || github.event.pull_request.base.ref }}
         ENACT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'master' }}
@@ -506,6 +550,598 @@ jobs:
         name: enact-reach-map
         path: ${{ runner.temp }}/enact-reach
         retention-days: "1"
+  lookup-outputs-cli--build:
+    name: Look Up Outputs (cli--build)
+    permissions:
+      contents: read
+    needs:
+    - detect
+    if: ${{ needs.detect.outputs.builds_cli__build != '{"include":[]}' && needs.detect.outputs.builds_cli__build != '[]' && needs.detect.outputs.builds_cli__build != '' }}
+    runs-on:
+    - self-hosted
+    - Linux
+    - tonky-ci
+    - tonky-ci-c2m4g
+    timeout-minutes: 5
+    continue-on-error: true
+    outputs:
+      hit: ${{ steps.confirm.outputs.hit }}
+    steps:
+    - name: Probe Runner Caches
+      id: runner_caches
+      continue-on-error: true
+      run: |
+        set -euo pipefail
+        host="${ENACT_HOST_CACHE:-}"
+        if [ -n "$host" ] && ! { [ -d "$host/repo" ] && [ -w "$host/repo" ]; }; then
+            echo "::warning::ENACT_HOST_CACHE=$host has no writable repo/ directory; using GitHub's cache"
+            host=""
+        fi
+        if [ -n "$host" ]; then
+            mkdir -p "$host/repo/git" "$host/repo/outputs"
+            echo "ENACT_GIT_MIRROR=$host/repo/git/${GITHUB_REPOSITORY##*/}.git" >> "$GITHUB_ENV"
+            echo "ENACT_OUTPUTS_CACHE=$host/repo/outputs" >> "$GITHUB_ENV"
+        fi
+        echo "ENACT_HOST_CACHE=$host" >> "$GITHUB_ENV"
+        printf 'host=%s\n' "$host" >> "$GITHUB_OUTPUT"
+        printf 'Host cache: %s\n' "${host:-none}"
+    - name: Checkout Repository (sparse) from the Host Mirror
+      id: host_checkout
+      if: ${{ steps.runner_caches.outputs.host != '' }}
+      continue-on-error: true
+      run: |
+        set -euo pipefail
+        url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+        mirror="$ENACT_GIT_MIRROR"
+        export GIT_CONFIG_COUNT=2
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+        export GIT_CONFIG_KEY_1=safe.directory
+        export GIT_CONFIG_VALUE_1="$mirror"
+        header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
+        base_ref="${GITHUB_BASE_REF:-${ENACT_BASE_REF:-}}"
+        depth="${ENACT_HOST_FETCH_DEPTH:-50}"
+        fetch_args=(--no-tags)
+        if [ "$depth" != "0" ]; then
+            fetch_args+=("--depth=$depth")
+        fi
+        refs=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*|refs/pull/*|refs/tags/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
+        esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            refs+=("+refs/heads/$base_ref:refs/heads/$base_ref")
+        fi
+        (
+            flock 9
+            if [ ! -f "$mirror/HEAD" ]; then
+                git init -q --bare "$mirror"
+                git -C "$mirror" config uploadpack.allowAnySHA1InWant true
+                git -C "$mirror" config gc.auto 0
+            fi
+            ref_current=""
+            case "${GITHUB_REF:-}" in
+                refs/heads/*|refs/pull/*|refs/tags/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+                *) ref_current="$GITHUB_SHA" ;;
+            esac
+            base_missing=0
+            if [ -n "$base_ref" ] && ! git -C "$mirror" rev-parse --verify -q "refs/heads/$base_ref^{commit}" >/dev/null 2>&1; then
+                base_missing=1
+            fi
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || [ "$base_missing" = 1 ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                if [ "${#refs[@]}" -gt 0 ]; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "${refs[@]}" \
+                        || git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                else
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                fi
+                if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                fi
+            fi
+            touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
+        ) 9>"$mirror.lock"
+        cd "$GITHUB_WORKSPACE"
+        trap 'rm -rf "$GITHUB_WORKSPACE/.git"' ERR
+        find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        git init -q .
+        echo "$mirror/objects" > .git/objects/info/alternates
+        [ ! -f "$mirror/shallow" ] || cp "$mirror/shallow" .git/shallow
+        git remote add origin "$url"
+        git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
+        git config --local gc.auto 0
+        mirror_branches=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*) mirror_branches+=("${GITHUB_REF#refs/heads/}") ;;
+        esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            mirror_branches+=("$base_ref")
+        fi
+        if [ "${#mirror_branches[@]}" -gt 0 ]; then
+            for ref_branch in "${mirror_branches[@]}"; do
+                ref_sha=$(git -C "$mirror" rev-parse --verify -q "refs/heads/$ref_branch^{commit}" 2>/dev/null || true)
+                if [ -n "$ref_sha" ]; then
+                    git update-ref "refs/remotes/origin/$ref_branch" "$ref_sha"
+                fi
+            done
+        fi
+        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
+            raw_cone=()
+            while IFS= read -r entry; do
+                entry="${entry#"${entry%%[![:space:]]*}"}"
+                entry="${entry%"${entry##*[![:space:]]}"}"
+                [ -n "$entry" ] && raw_cone+=("$entry")
+            done <<<"$ENACT_SPARSE_CONE"
+            cone=()
+            if [ "${#raw_cone[@]}" -gt 0 ]; then
+                for entry in "${raw_cone[@]}"; do
+                    case "$entry" in
+                        */.enact-direct-files)
+                            cone+=("$entry")
+                            ;;
+                        *)
+                            kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
+                            if [ "$kind" = "blob" ]; then
+                                case "$entry" in
+                                    */*) cone+=("${entry%/*}/.enact-direct-files") ;;
+                                esac
+                            else
+                                cone+=("$entry")
+                            fi
+                            ;;
+                    esac
+                done
+            fi
+            if [ "${#cone[@]}" -gt 0 ]; then
+                git sparse-checkout set --cone "${cone[@]}"
+            fi
+        fi
+        case "${GITHUB_REF:-}" in
+            refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
+            *) git checkout -q --force --detach "$GITHUB_SHA" ;;
+        esac
+        git log -1 --format='Checked out %H through the host mirror'
+      env:
+        ENACT_GIT_TOKEN: ${{ github.token }}
+        ENACT_SPARSE_CONE: |-
+          .enact
+          cue.mod
+          .github
+          bin
+    - name: Checkout Repository (sparse)
+      id: sparse_checkout
+      if: ${{ steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure' }}
+      continue-on-error: true
+      run: |
+        set -euo pipefail
+        url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+        export GIT_CONFIG_COUNT=1
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+        header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
+        cd "$GITHUB_WORKSPACE"
+        # shellcheck disable=SC2015
+        find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        git init -q .
+        git remote add origin "$url"
+        git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
+        git config --local protocol.version 2
+        git config --local fetch.parallel 0
+        git config --local checkout.workers 0
+        git config --local index.threads 0
+        git config --local advice.detachedHead false
+        git config --local gc.auto 0
+        cone=()
+        while IFS= read -r entry; do
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            entry="${entry%"${entry##*[![:space:]]}"}"
+            [ -n "$entry" ] && cone+=("$entry")
+        done <<<"${ENACT_SPARSE_CONE:-}"
+        depth="${ENACT_FETCH_DEPTH:-1}"
+        fetch_args=(--no-tags --no-recurse-submodules)
+        if [ "$depth" != "0" ]; then
+            fetch_args+=("--depth=$depth")
+        fi
+        narrow_cone=0
+        if [ "${#cone[@]}" -gt 0 ] && [ "${#cone[@]}" -le 8 ]; then
+            narrow_cone=1
+            for entry in "${cone[@]}"; do
+                case "$entry" in
+                    . | ./ | .. | ../*)
+                        narrow_cone=0
+                        break
+                        ;;
+                    .* | cue.mod | cue.mod/* | bin | bin/* | */*)
+                        ;;
+                    *)
+                        narrow_cone=0
+                        break
+                        ;;
+                esac
+            done
+        fi
+        if [ "$narrow_cone" = 1 ]; then
+            fetch_args+=(--filter=blob:none)
+        fi
+        git fetch -q "${fetch_args[@]}" origin "$GITHUB_SHA" 2>/dev/null \
+            || git fetch -q "${fetch_args[@]}" origin "$GITHUB_REF"
+        if [ "${#cone[@]}" -gt 0 ]; then
+            normalized=()
+            for entry in "${cone[@]}"; do
+                case "$entry" in
+                    */.enact-direct-files)
+                        normalized+=("$entry")
+                        ;;
+                    *)
+                        kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
+                        if [ "$kind" = "blob" ]; then
+                            case "$entry" in
+                                */*) normalized+=("${entry%/*}/.enact-direct-files") ;;
+                            esac
+                        else
+                            normalized+=("$entry")
+                        fi
+                        ;;
+                esac
+            done
+            if [ "${#normalized[@]}" -gt 0 ]; then
+                git sparse-checkout set --cone "${normalized[@]}"
+            fi
+        fi
+        case "$GITHUB_REF" in
+            refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
+            *) git checkout -q --force --detach "$GITHUB_SHA" ;;
+        esac
+        git log -1 --format='Checked out %H (shallow sparse)'
+      env:
+        ENACT_FETCH_DEPTH: "1"
+        ENACT_GIT_TOKEN: ${{ github.token }}
+        ENACT_SPARSE_CONE: |-
+          .enact
+          cue.mod
+          .github
+          bin
+    - name: Install committed enact & enve builds
+      continue-on-error: true
+      run: |
+        P="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
+        E="${GITHUB_WORKSPACE:-$PWD}/bin/$P/enact"
+        [ -f "$E" ] || E="${GITHUB_WORKSPACE:-$PWD}/bin/enact"
+        [ -f "$E" ] || E="$(command -v enact || echo "$HOME/.cargo/bin/enact")"
+        chmod +x "$E" 2>/dev/null || true
+        "$E" --version >/dev/null 2>&1 || { echo "::error title=No enact for $P::$E does not run on this $P runner; commit its build as bin/$P/enact"; exit 1; }
+        "$E" ci install-binaries
+    - name: Probe & Verify Built Outputs
+      id: probe
+      continue-on-error: true
+      run: enact ci host-outputs probe-builds
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
+        AWS_REGION: auto
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
+        ENACT_CACHE_WRITE: read_only
+        ENACT_OUTPUTS_MATRIX: ${{ needs.detect.outputs.builds_cli__build }}
+        ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
+    - name: Upload Verified Outputs Artifact
+      id: publish-artifact
+      if: ${{ steps.probe.outputs.verified == 'true' }}
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
+      with:
+        compression-level: "0"
+        if-no-files-found: error
+        include-hidden-files: "true"
+        name: ${{ steps.probe.outputs.artifact_name }}
+        path: ${{ steps.probe.outputs.artifact_paths }}
+        retention-days: "1"
+    - name: Confirm Verified Outputs Handoff
+      id: confirm
+      run: |-
+        if [ "$VERIFIED" = "true" ] && [ "$UPLOAD_OUTCOME" = "success" ] && [ -n "$ARTIFACT_ID" ]; then
+          echo "hit=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "hit=false" >> "$GITHUB_OUTPUT"
+        fi
+      env:
+        ARTIFACT_ID: ${{ steps.publish-artifact.outputs.artifact-id }}
+        UPLOAD_OUTCOME: ${{ steps.publish-artifact.outcome }}
+        VERIFIED: ${{ steps.probe.outputs.verified }}
+  lookup-outputs-playwright--build:
+    name: Look Up Outputs (playwright--build)
+    permissions:
+      contents: read
+    needs:
+    - detect
+    if: ${{ needs.detect.outputs.builds_playwright__build != '{"include":[]}' && needs.detect.outputs.builds_playwright__build != '[]' && needs.detect.outputs.builds_playwright__build != '' }}
+    runs-on:
+    - self-hosted
+    - Linux
+    - tonky-ci
+    - tonky-ci-c2m4g
+    timeout-minutes: 5
+    continue-on-error: true
+    outputs:
+      hit: ${{ steps.confirm.outputs.hit }}
+    steps:
+    - name: Probe Runner Caches
+      id: runner_caches
+      continue-on-error: true
+      run: |
+        set -euo pipefail
+        host="${ENACT_HOST_CACHE:-}"
+        if [ -n "$host" ] && ! { [ -d "$host/repo" ] && [ -w "$host/repo" ]; }; then
+            echo "::warning::ENACT_HOST_CACHE=$host has no writable repo/ directory; using GitHub's cache"
+            host=""
+        fi
+        if [ -n "$host" ]; then
+            mkdir -p "$host/repo/git" "$host/repo/outputs"
+            echo "ENACT_GIT_MIRROR=$host/repo/git/${GITHUB_REPOSITORY##*/}.git" >> "$GITHUB_ENV"
+            echo "ENACT_OUTPUTS_CACHE=$host/repo/outputs" >> "$GITHUB_ENV"
+        fi
+        echo "ENACT_HOST_CACHE=$host" >> "$GITHUB_ENV"
+        printf 'host=%s\n' "$host" >> "$GITHUB_OUTPUT"
+        printf 'Host cache: %s\n' "${host:-none}"
+    - name: Checkout Repository (sparse) from the Host Mirror
+      id: host_checkout
+      if: ${{ steps.runner_caches.outputs.host != '' }}
+      continue-on-error: true
+      run: |
+        set -euo pipefail
+        url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+        mirror="$ENACT_GIT_MIRROR"
+        export GIT_CONFIG_COUNT=2
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+        export GIT_CONFIG_KEY_1=safe.directory
+        export GIT_CONFIG_VALUE_1="$mirror"
+        header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
+        base_ref="${GITHUB_BASE_REF:-${ENACT_BASE_REF:-}}"
+        depth="${ENACT_HOST_FETCH_DEPTH:-50}"
+        fetch_args=(--no-tags)
+        if [ "$depth" != "0" ]; then
+            fetch_args+=("--depth=$depth")
+        fi
+        refs=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*|refs/pull/*|refs/tags/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
+        esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            refs+=("+refs/heads/$base_ref:refs/heads/$base_ref")
+        fi
+        (
+            flock 9
+            if [ ! -f "$mirror/HEAD" ]; then
+                git init -q --bare "$mirror"
+                git -C "$mirror" config uploadpack.allowAnySHA1InWant true
+                git -C "$mirror" config gc.auto 0
+            fi
+            ref_current=""
+            case "${GITHUB_REF:-}" in
+                refs/heads/*|refs/pull/*|refs/tags/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+                *) ref_current="$GITHUB_SHA" ;;
+            esac
+            base_missing=0
+            if [ -n "$base_ref" ] && ! git -C "$mirror" rev-parse --verify -q "refs/heads/$base_ref^{commit}" >/dev/null 2>&1; then
+                base_missing=1
+            fi
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || [ "$base_missing" = 1 ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                if [ "${#refs[@]}" -gt 0 ]; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "${refs[@]}" \
+                        || git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                else
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                fi
+                if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                fi
+            fi
+            touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
+        ) 9>"$mirror.lock"
+        cd "$GITHUB_WORKSPACE"
+        trap 'rm -rf "$GITHUB_WORKSPACE/.git"' ERR
+        find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        git init -q .
+        echo "$mirror/objects" > .git/objects/info/alternates
+        [ ! -f "$mirror/shallow" ] || cp "$mirror/shallow" .git/shallow
+        git remote add origin "$url"
+        git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
+        git config --local gc.auto 0
+        mirror_branches=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*) mirror_branches+=("${GITHUB_REF#refs/heads/}") ;;
+        esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            mirror_branches+=("$base_ref")
+        fi
+        if [ "${#mirror_branches[@]}" -gt 0 ]; then
+            for ref_branch in "${mirror_branches[@]}"; do
+                ref_sha=$(git -C "$mirror" rev-parse --verify -q "refs/heads/$ref_branch^{commit}" 2>/dev/null || true)
+                if [ -n "$ref_sha" ]; then
+                    git update-ref "refs/remotes/origin/$ref_branch" "$ref_sha"
+                fi
+            done
+        fi
+        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
+            raw_cone=()
+            while IFS= read -r entry; do
+                entry="${entry#"${entry%%[![:space:]]*}"}"
+                entry="${entry%"${entry##*[![:space:]]}"}"
+                [ -n "$entry" ] && raw_cone+=("$entry")
+            done <<<"$ENACT_SPARSE_CONE"
+            cone=()
+            if [ "${#raw_cone[@]}" -gt 0 ]; then
+                for entry in "${raw_cone[@]}"; do
+                    case "$entry" in
+                        */.enact-direct-files)
+                            cone+=("$entry")
+                            ;;
+                        *)
+                            kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
+                            if [ "$kind" = "blob" ]; then
+                                case "$entry" in
+                                    */*) cone+=("${entry%/*}/.enact-direct-files") ;;
+                                esac
+                            else
+                                cone+=("$entry")
+                            fi
+                            ;;
+                    esac
+                done
+            fi
+            if [ "${#cone[@]}" -gt 0 ]; then
+                git sparse-checkout set --cone "${cone[@]}"
+            fi
+        fi
+        case "${GITHUB_REF:-}" in
+            refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
+            *) git checkout -q --force --detach "$GITHUB_SHA" ;;
+        esac
+        git log -1 --format='Checked out %H through the host mirror'
+      env:
+        ENACT_GIT_TOKEN: ${{ github.token }}
+        ENACT_SPARSE_CONE: |-
+          .enact
+          cue.mod
+          .github
+          bin
+    - name: Checkout Repository (sparse)
+      id: sparse_checkout
+      if: ${{ steps.runner_caches.outputs.host == '' || steps.host_checkout.outcome == 'failure' }}
+      continue-on-error: true
+      run: |
+        set -euo pipefail
+        url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+        export GIT_CONFIG_COUNT=1
+        export GIT_CONFIG_KEY_0=safe.directory
+        export GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+        header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
+        cd "$GITHUB_WORKSPACE"
+        # shellcheck disable=SC2015
+        find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        git init -q .
+        git remote add origin "$url"
+        git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
+        git config --local protocol.version 2
+        git config --local fetch.parallel 0
+        git config --local checkout.workers 0
+        git config --local index.threads 0
+        git config --local advice.detachedHead false
+        git config --local gc.auto 0
+        cone=()
+        while IFS= read -r entry; do
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            entry="${entry%"${entry##*[![:space:]]}"}"
+            [ -n "$entry" ] && cone+=("$entry")
+        done <<<"${ENACT_SPARSE_CONE:-}"
+        depth="${ENACT_FETCH_DEPTH:-1}"
+        fetch_args=(--no-tags --no-recurse-submodules)
+        if [ "$depth" != "0" ]; then
+            fetch_args+=("--depth=$depth")
+        fi
+        narrow_cone=0
+        if [ "${#cone[@]}" -gt 0 ] && [ "${#cone[@]}" -le 8 ]; then
+            narrow_cone=1
+            for entry in "${cone[@]}"; do
+                case "$entry" in
+                    . | ./ | .. | ../*)
+                        narrow_cone=0
+                        break
+                        ;;
+                    .* | cue.mod | cue.mod/* | bin | bin/* | */*)
+                        ;;
+                    *)
+                        narrow_cone=0
+                        break
+                        ;;
+                esac
+            done
+        fi
+        if [ "$narrow_cone" = 1 ]; then
+            fetch_args+=(--filter=blob:none)
+        fi
+        git fetch -q "${fetch_args[@]}" origin "$GITHUB_SHA" 2>/dev/null \
+            || git fetch -q "${fetch_args[@]}" origin "$GITHUB_REF"
+        if [ "${#cone[@]}" -gt 0 ]; then
+            normalized=()
+            for entry in "${cone[@]}"; do
+                case "$entry" in
+                    */.enact-direct-files)
+                        normalized+=("$entry")
+                        ;;
+                    *)
+                        kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
+                        if [ "$kind" = "blob" ]; then
+                            case "$entry" in
+                                */*) normalized+=("${entry%/*}/.enact-direct-files") ;;
+                            esac
+                        else
+                            normalized+=("$entry")
+                        fi
+                        ;;
+                esac
+            done
+            if [ "${#normalized[@]}" -gt 0 ]; then
+                git sparse-checkout set --cone "${normalized[@]}"
+            fi
+        fi
+        case "$GITHUB_REF" in
+            refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
+            *) git checkout -q --force --detach "$GITHUB_SHA" ;;
+        esac
+        git log -1 --format='Checked out %H (shallow sparse)'
+      env:
+        ENACT_FETCH_DEPTH: "1"
+        ENACT_GIT_TOKEN: ${{ github.token }}
+        ENACT_SPARSE_CONE: |-
+          .enact
+          cue.mod
+          .github
+          bin
+    - name: Install committed enact & enve builds
+      continue-on-error: true
+      run: |
+        P="$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/^darwin$/macos/')-$(uname -m | sed 's/^arm64$/aarch64/')"
+        E="${GITHUB_WORKSPACE:-$PWD}/bin/$P/enact"
+        [ -f "$E" ] || E="${GITHUB_WORKSPACE:-$PWD}/bin/enact"
+        [ -f "$E" ] || E="$(command -v enact || echo "$HOME/.cargo/bin/enact")"
+        chmod +x "$E" 2>/dev/null || true
+        "$E" --version >/dev/null 2>&1 || { echo "::error title=No enact for $P::$E does not run on this $P runner; commit its build as bin/$P/enact"; exit 1; }
+        "$E" ci install-binaries
+    - name: Probe & Verify Built Outputs
+      id: probe
+      continue-on-error: true
+      run: enact ci host-outputs probe-builds
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
+        AWS_REGION: auto
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
+        ENACT_CACHE_WRITE: read_only
+        ENACT_OUTPUTS_MATRIX: ${{ needs.detect.outputs.builds_playwright__build }}
+        ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
+    - name: Upload Verified Outputs Artifact
+      id: publish-artifact
+      if: ${{ steps.probe.outputs.verified == 'true' }}
+      continue-on-error: true
+      uses: actions/upload-artifact@v7
+      with:
+        compression-level: "0"
+        if-no-files-found: error
+        include-hidden-files: "true"
+        name: ${{ steps.probe.outputs.artifact_name }}
+        path: ${{ steps.probe.outputs.artifact_paths }}
+        retention-days: "1"
+    - name: Confirm Verified Outputs Handoff
+      id: confirm
+      run: |-
+        if [ "$VERIFIED" = "true" ] && [ "$UPLOAD_OUTCOME" = "success" ] && [ -n "$ARTIFACT_ID" ]; then
+          echo "hit=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "hit=false" >> "$GITHUB_OUTPUT"
+        fi
+      env:
+        ARTIFACT_ID: ${{ steps.publish-artifact.outputs.artifact-id }}
+        UPLOAD_OUTCOME: ${{ steps.publish-artifact.outcome }}
+        VERIFIED: ${{ steps.probe.outputs.verified }}
   summary:
     name: Consolidate Reach Map & Telemetry
     env:
@@ -514,7 +1150,9 @@ jobs:
     - detect
     - test
     - build-outputs--n8n-db--build
+    - lookup-outputs-cli--build
     - build-outputs-cli--build
+    - lookup-outputs-playwright--build
     - build-outputs-playwright--build
     - test-built--n8n-db--build-cli--build
     - test-built--n8n-db--build-cli--build-playwright--build
@@ -557,10 +1195,19 @@ jobs:
         export GIT_CONFIG_KEY_1=safe.directory
         export GIT_CONFIG_VALUE_1="$mirror"
         header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
-        refs=("+refs/heads/*:refs/heads/*")
-        case "$GITHUB_REF" in
-            refs/pull/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
+        base_ref="${GITHUB_BASE_REF:-${ENACT_BASE_REF:-}}"
+        depth="${ENACT_HOST_FETCH_DEPTH:-50}"
+        fetch_args=(--no-tags)
+        if [ "$depth" != "0" ]; then
+            fetch_args+=("--depth=$depth")
+        fi
+        refs=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*|refs/pull/*|refs/tags/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
         esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            refs+=("+refs/heads/$base_ref:refs/heads/$base_ref")
+        fi
         (
             flock 9
             if [ ! -f "$mirror/HEAD" ]; then
@@ -569,14 +1216,23 @@ jobs:
                 git -C "$mirror" config gc.auto 0
             fi
             ref_current=""
-            case "$GITHUB_REF" in
-                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+            case "${GITHUB_REF:-}" in
+                refs/heads/*|refs/pull/*|refs/tags/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
                 *) ref_current="$GITHUB_SHA" ;;
             esac
-            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+            base_missing=0
+            if [ -n "$base_ref" ] && ! git -C "$mirror" rev-parse --verify -q "refs/heads/$base_ref^{commit}" >/dev/null 2>&1; then
+                base_missing=1
+            fi
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || [ "$base_missing" = 1 ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                if [ "${#refs[@]}" -gt 0 ]; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "${refs[@]}" \
+                        || git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                else
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                fi
                 if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
                 fi
             fi
             touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
@@ -590,32 +1246,53 @@ jobs:
         git remote add origin "$url"
         git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
         git config --local gc.auto 0
-        git fetch -q --no-tags "$mirror" "+refs/heads/*:refs/remotes/origin/*"
-        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
-            mapfile -t raw_cone < <(printf '%s\n' "$ENACT_SPARSE_CONE" | sed '/^[[:space:]]*$/d')
-            cone=()
-            for entry in "${raw_cone[@]}"; do
-                case "$entry" in
-                    */.enact-direct-files)
-                        cone+=("$entry")
-                        ;;
-                    *)
-                        kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
-                        if [ "$kind" = "blob" ]; then
-                            case "$entry" in
-                                */*) cone+=("${entry%/*}/.enact-direct-files") ;;
-                            esac
-                        else
-                            cone+=("$entry")
-                        fi
-                        ;;
-                esac
+        mirror_branches=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*) mirror_branches+=("${GITHUB_REF#refs/heads/}") ;;
+        esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            mirror_branches+=("$base_ref")
+        fi
+        if [ "${#mirror_branches[@]}" -gt 0 ]; then
+            for ref_branch in "${mirror_branches[@]}"; do
+                ref_sha=$(git -C "$mirror" rev-parse --verify -q "refs/heads/$ref_branch^{commit}" 2>/dev/null || true)
+                if [ -n "$ref_sha" ]; then
+                    git update-ref "refs/remotes/origin/$ref_branch" "$ref_sha"
+                fi
             done
+        fi
+        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
+            raw_cone=()
+            while IFS= read -r entry; do
+                entry="${entry#"${entry%%[![:space:]]*}"}"
+                entry="${entry%"${entry##*[![:space:]]}"}"
+                [ -n "$entry" ] && raw_cone+=("$entry")
+            done <<<"$ENACT_SPARSE_CONE"
+            cone=()
+            if [ "${#raw_cone[@]}" -gt 0 ]; then
+                for entry in "${raw_cone[@]}"; do
+                    case "$entry" in
+                        */.enact-direct-files)
+                            cone+=("$entry")
+                            ;;
+                        *)
+                            kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
+                            if [ "$kind" = "blob" ]; then
+                                case "$entry" in
+                                    */*) cone+=("${entry%/*}/.enact-direct-files") ;;
+                                esac
+                            else
+                                cone+=("$entry")
+                            fi
+                            ;;
+                    esac
+                done
+            fi
             if [ "${#cone[@]}" -gt 0 ]; then
                 git sparse-checkout set --cone "${cone[@]}"
             fi
         fi
-        case "$GITHUB_REF" in
+        case "${GITHUB_REF:-}" in
             refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
             *) git checkout -q --force --detach "$GITHUB_SHA" ;;
         esac
@@ -741,9 +1418,9 @@ jobs:
       continue-on-error: true
       run: enact runs report --dir .enact/state/telemetry
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
+        AWS_ACCESS_KEY_ID: ${{ (env.ENACT_REMOTE_SAVE_EVENT == 'true') && (secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID) || secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
         AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ (env.ENACT_REMOTE_SAVE_EVENT == 'true') && (secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY) || secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
         ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
         ENACT_UPLOAD_REPORT: ${{ env.ENACT_REMOTE_SAVE_EVENT == 'true' }}
     - name: Upload Master Workflow Dashboard
@@ -770,7 +1447,7 @@ jobs:
         retention-days: "14"
     - name: Restore Reach Store
       id: reach-store
-      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
+      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
       continue-on-error: true
       uses: actions/cache/restore@v6
       with:
@@ -781,7 +1458,7 @@ jobs:
           enact-reach-${{ github.head_ref || github.ref_name }}-
           enact-reach-${{ github.base_ref || github.event.repository.default_branch }}-
     - name: Download Recorded Footprints
-      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
+      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
       continue-on-error: true
       uses: actions/download-artifact@v8
       with:
@@ -789,7 +1466,7 @@ jobs:
         pattern: enact-footprints-*
     - name: Consolidate the Reach Map
       id: consolidate_reach
-      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
+      if: ${{ !cancelled() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch) }}
       run: |-
         cd "${GITHUB_WORKSPACE}"
         if [ -n "$(find "$RUNNER_TEMP/enact-footprints" -name '*.bin' -print -quit 2>/dev/null)" ] || [ "$GITHUB_EVENT_NAME" = push ]; then
@@ -826,6 +1503,7 @@ jobs:
     if: ${{ needs.detect.outputs.matrix != '{"include":[]}' && needs.detect.outputs.matrix != '[]' && needs.detect.outputs.matrix != '' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
+      force_warm_suites: ${{ inputs.force_warm_suites }}
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
       matrix: ${{ needs.detect.outputs.matrix }}
       seed_caches: ${{ inputs.seed_caches }}
@@ -840,9 +1518,10 @@ jobs:
     - detect
     - build-outputs--n8n-db--build
     - build-outputs-cli--build
-    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built__n8n_db__build_cli__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build_cli__build != '[]' && needs.detect.outputs.built__n8n_db__build_cli__build != '' }}
+    if: ${{ !cancelled() && needs.detect.result == 'success' && needs.build-outputs--n8n-db--build.result != 'failure' && needs.build-outputs--n8n-db--build.result != 'cancelled' && needs.build-outputs-cli--build.result != 'failure' && needs.build-outputs-cli--build.result != 'cancelled' && needs.detect.outputs.built__n8n_db__build_cli__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build_cli__build != '[]' && needs.detect.outputs.built__n8n_db__build_cli__build != '' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
+      force_warm_suites: ${{ inputs.force_warm_suites }}
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
       matrix: ${{ needs.detect.outputs.built__n8n_db__build_cli__build }}
       seed_caches: ${{ inputs.seed_caches }}
@@ -858,9 +1537,10 @@ jobs:
     - build-outputs--n8n-db--build
     - build-outputs-cli--build
     - build-outputs-playwright--build
-    if: ${{ !cancelled() && !failure() && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '[]' && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '' }}
+    if: ${{ !cancelled() && needs.detect.result == 'success' && needs.build-outputs--n8n-db--build.result != 'failure' && needs.build-outputs--n8n-db--build.result != 'cancelled' && needs.build-outputs-cli--build.result != 'failure' && needs.build-outputs-cli--build.result != 'cancelled' && needs.build-outputs-playwright--build.result != 'failure' && needs.build-outputs-playwright--build.result != 'cancelled' && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '{"include":[]}' && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '[]' && needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build != '' }}
     uses: ./.github/workflows/enact-ci-matrix.yml
     with:
+      force_warm_suites: ${{ inputs.force_warm_suites }}
       history_input_artifact: ${{ needs.detect.outputs.history_input_artifact }}
       matrix: ${{ needs.detect.outputs.built__n8n_db__build_cli__build_playwright__build }}
       seed_caches: ${{ inputs.seed_caches }}
@@ -903,10 +1583,19 @@ jobs:
         export GIT_CONFIG_KEY_1=safe.directory
         export GIT_CONFIG_VALUE_1="$mirror"
         header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
-        refs=("+refs/heads/*:refs/heads/*")
-        case "$GITHUB_REF" in
-            refs/pull/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
+        base_ref="${GITHUB_BASE_REF:-${ENACT_BASE_REF:-}}"
+        depth="${ENACT_HOST_FETCH_DEPTH:-50}"
+        fetch_args=(--no-tags)
+        if [ "$depth" != "0" ]; then
+            fetch_args+=("--depth=$depth")
+        fi
+        refs=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*|refs/pull/*|refs/tags/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
         esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            refs+=("+refs/heads/$base_ref:refs/heads/$base_ref")
+        fi
         (
             flock 9
             if [ ! -f "$mirror/HEAD" ]; then
@@ -915,14 +1604,23 @@ jobs:
                 git -C "$mirror" config gc.auto 0
             fi
             ref_current=""
-            case "$GITHUB_REF" in
-                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+            case "${GITHUB_REF:-}" in
+                refs/heads/*|refs/pull/*|refs/tags/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
                 *) ref_current="$GITHUB_SHA" ;;
             esac
-            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+            base_missing=0
+            if [ -n "$base_ref" ] && ! git -C "$mirror" rev-parse --verify -q "refs/heads/$base_ref^{commit}" >/dev/null 2>&1; then
+                base_missing=1
+            fi
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || [ "$base_missing" = 1 ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                if [ "${#refs[@]}" -gt 0 ]; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "${refs[@]}" \
+                        || git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                else
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                fi
                 if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
                 fi
             fi
             touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
@@ -936,32 +1634,53 @@ jobs:
         git remote add origin "$url"
         git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
         git config --local gc.auto 0
-        git fetch -q --no-tags "$mirror" "+refs/heads/*:refs/remotes/origin/*"
-        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
-            mapfile -t raw_cone < <(printf '%s\n' "$ENACT_SPARSE_CONE" | sed '/^[[:space:]]*$/d')
-            cone=()
-            for entry in "${raw_cone[@]}"; do
-                case "$entry" in
-                    */.enact-direct-files)
-                        cone+=("$entry")
-                        ;;
-                    *)
-                        kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
-                        if [ "$kind" = "blob" ]; then
-                            case "$entry" in
-                                */*) cone+=("${entry%/*}/.enact-direct-files") ;;
-                            esac
-                        else
-                            cone+=("$entry")
-                        fi
-                        ;;
-                esac
+        mirror_branches=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*) mirror_branches+=("${GITHUB_REF#refs/heads/}") ;;
+        esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            mirror_branches+=("$base_ref")
+        fi
+        if [ "${#mirror_branches[@]}" -gt 0 ]; then
+            for ref_branch in "${mirror_branches[@]}"; do
+                ref_sha=$(git -C "$mirror" rev-parse --verify -q "refs/heads/$ref_branch^{commit}" 2>/dev/null || true)
+                if [ -n "$ref_sha" ]; then
+                    git update-ref "refs/remotes/origin/$ref_branch" "$ref_sha"
+                fi
             done
+        fi
+        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
+            raw_cone=()
+            while IFS= read -r entry; do
+                entry="${entry#"${entry%%[![:space:]]*}"}"
+                entry="${entry%"${entry##*[![:space:]]}"}"
+                [ -n "$entry" ] && raw_cone+=("$entry")
+            done <<<"$ENACT_SPARSE_CONE"
+            cone=()
+            if [ "${#raw_cone[@]}" -gt 0 ]; then
+                for entry in "${raw_cone[@]}"; do
+                    case "$entry" in
+                        */.enact-direct-files)
+                            cone+=("$entry")
+                            ;;
+                        *)
+                            kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
+                            if [ "$kind" = "blob" ]; then
+                                case "$entry" in
+                                    */*) cone+=("${entry%/*}/.enact-direct-files") ;;
+                                esac
+                            else
+                                cone+=("$entry")
+                            fi
+                            ;;
+                    esac
+                done
+            fi
             if [ "${#cone[@]}" -gt 0 ]; then
                 git sparse-checkout set --cone "${cone[@]}"
             fi
         fi
-        case "$GITHUB_REF" in
+        case "${GITHUB_REF:-}" in
             refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
             *) git checkout -q --force --detach "$GITHUB_SHA" ;;
         esac
@@ -1416,11 +2135,12 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-node-v3-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'pnpm-workspace.yaml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-node-v4-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'pnpm-workspace.yaml') }}
           path: |-
             .enact/state/pnpm-store
+            .enact/state/pnpm-cache
             node_modules/.cache
-          restore-keys: ${{ runner.os }}-${{ runner.arch }}-node-v3-
+          restore-keys: ${{ runner.os }}-${{ runner.arch }}-node-v4-
     - name: Record Restored Package Caches
       if: steps.runner_caches.outputs.host == '' && steps.node_l1_cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
       continue-on-error: true
@@ -1428,15 +2148,16 @@ jobs:
       env:
         ENACT_CACHE_DELTA: |-
           node_l1_cache .enact/state/pnpm-store
+          node_l1_cache .enact/state/pnpm-cache
           node_l1_cache node_modules/.cache
         ENACT_CACHE_HITS: node_l1_cache=${{ steps.node_l1_cache.outputs.cache-hit }}
     - name: Pull Dependencies via enve
       if: ${{ steps.node_l1_cache.outputs.cache-hit != 'true' }}
       run: enact ci deps pull --remote signed
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
         AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
         ENACT_ENVIRONMENT_DIRS: "[\"packages/@n8n/agents\",\"packages/@n8n/ai-utilities\",\"packages/@n8n/ai-workflow-builder.ee\",\"packages/@n8n/api-types\",\"packages/@n8n/app-sdk\",\"packages/@n8n/backend-common\",\"packages/@n8n/backend-network\",\"packages/@n8n/backend-services\",\"packages/@n8n/blob-storage\",\"packages/@n8n/chat-hub\",\"packages/@n8n/cli\",\"packages/@n8n/client-oauth2\",\"packages/@n8n/code-runtime-js\",\"packages/@n8n/code-task-contract\",\"packages/@n8n/codemirror-lang\",\"packages/@n8n/codemirror-lang-sql\",\"packages/@n8n/config\",\"packages/@n8n/crdt\",\"packages/@n8n/db\",\"packages/@n8n/decorators\",\"packages/@n8n/di\",\"packages/@n8n/engine\",\"packages/@n8n/errors\",\"packages/@n8n/eslint-config\",\"packages/@n8n/eslint-plugin-community-nodes\",\"packages/@n8n/expression-runtime\",\"packages/@n8n/imap\",\"packages/@n8n/inbound-auth\",\"packages/@n8n/instance-ai\",\"packages/@n8n/json-schema-to-zod\",\"packages/@n8n/leases\",\"packages/@n8n/mcp-apps\",\"packages/@n8n/mcp-browser\",\"packages/@n8n/mcp-browser-extension\",\"packages/@n8n/module-cli\",\"packages/@n8n/n8n-node-codegen\",\"packages/@n8n/node-cli\",\"packages/@n8n/node-engine-compatibility\",\"packages/@n8n/nodes-langchain\",\"packages/@n8n/permissions\",\"packages/@n8n/scan-community-package\",\"packages/@n8n/scheduler\",\"packages/@n8n/stylelint-config\",\"packages/@n8n/syslog-client\",\"packages/@n8n/task-runner\",\"packages/@n8n/task-runner-python\",\"packages/@n8n/telemetry\",\"packages/@n8n/tournament\",\"packages/@n8n/utils\",\"packages/@n8n/vitest-config\",\"packages/@n8n/workflow-engine-check\",\"packages/@n8n/workflow-sdk\",\"packages/cli\",\"packages/core\",\"packages/frontend/@n8n/chat\",\"packages/frontend/@n8n/composables\",\"packages/frontend/@n8n/design-system\",\"packages/frontend/@n8n/eslint-plugin-design-system\",\"packages/frontend/@n8n/frontend-constants\",\"packages/frontend/@n8n/frontend-module-sdk\",\"packages/frontend/@n8n/frontend-test-utils\",\"packages/frontend/@n8n/frontend-utils\",\"packages/frontend/@n8n/i18n\",\"packages/frontend/@n8n/rest-api-client\",\"packages/frontend/@n8n/stores\",\"packages/frontend/editor-ui\",\"packages/modules/apps/backend\",\"packages/modules/apps/frontend\",\"packages/modules/code-sandbox/backend\",\"packages/modules/data-table/backend\",\"packages/modules/execution-ledger/backend\",\"packages/modules/execution-limits/backend\",\"packages/modules/inbox/frontend\",\"packages/modules/insights/backend\",\"packages/modules/insights/frontend\",\"packages/modules/instance-registry/frontend\",\"packages/modules/mcp/frontend\",\"packages/modules/otel/frontend\",\"packages/modules/promotions/frontend\",\"packages/modules/quick-connect/backend\",\"packages/modules/self-healing/frontend\",\"packages/modules/type-availability-policies/frontend\",\"packages/modules/workflow-builder/backend\",\"packages/node-dev\",\"packages/nodes-base\",\"packages/quality/environments/containers\",\"packages/quality/policy/code-health\",\"packages/quality/policy/rules-engine\",\"packages/quality/testing/janitor\",\"packages/quality/testing/test-impact\",\"packages/workflow\"]"
         ENACT_ENVIRONMENT_FILES: "[\".enact/environments/browser/enve.cue\",\".enact/environments/checks/enve.cue\"]"
         ENACT_JOB_SERVICES: kafka,mysql,postgres,proxy,redis
@@ -1462,6 +2183,7 @@ jobs:
       env:
         ENACT_CACHE_DELTA: |-
           node_l1_cache .enact/state/pnpm-store
+          node_l1_cache .enact/state/pnpm-cache
           node_l1_cache node_modules/.cache
         ENACT_CACHE_HITS: node_l1_cache=${{ steps.node_l1_cache.outputs.cache-hit }}
     - parallel:
@@ -1473,4 +2195,5 @@ jobs:
           key: ${{ steps.node_l1_cache.outputs.cache-primary-key }}
           path: |-
             .enact/state/pnpm-store
+            .enact/state/pnpm-cache
             node_modules/.cache

@@ -79,8 +79,7 @@ test.describe(
 
 				await n8n.ndv.outputPanel.switchDisplayMode('schema');
 
-				const schemaItemsCount = await n8n.ndv.outputPanel.getSchemaItems().count();
-				expect(schemaItemsCount).toBeGreaterThan(0);
+				await expect.poll(() => n8n.ndv.outputPanel.getSchemaItems().count()).toBeGreaterThan(0);
 
 				await n8n.ndv.outputPanel.switchDisplayMode('json');
 			});

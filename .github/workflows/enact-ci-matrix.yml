@@ -3,6 +3,9 @@ name: n8n-platform matrix
 on:
   workflow_call:
     inputs:
+      force_warm_suites:
+        type: string
+        required: false
       history_input_artifact:
         type: string
         required: false
@@ -79,10 +82,19 @@ jobs:
         export GIT_CONFIG_KEY_1=safe.directory
         export GIT_CONFIG_VALUE_1="$mirror"
         header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$ENACT_GIT_TOKEN" | base64 | tr -d '\n')"
-        refs=("+refs/heads/*:refs/heads/*")
-        case "$GITHUB_REF" in
-            refs/pull/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
+        base_ref="${GITHUB_BASE_REF:-${ENACT_BASE_REF:-}}"
+        depth="${ENACT_HOST_FETCH_DEPTH:-50}"
+        fetch_args=(--no-tags)
+        if [ "$depth" != "0" ]; then
+            fetch_args+=("--depth=$depth")
+        fi
+        refs=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*|refs/pull/*|refs/tags/*) refs+=("+$GITHUB_REF:$GITHUB_REF") ;;
         esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            refs+=("+refs/heads/$base_ref:refs/heads/$base_ref")
+        fi
         (
             flock 9
             if [ ! -f "$mirror/HEAD" ]; then
@@ -91,14 +103,23 @@ jobs:
                 git -C "$mirror" config gc.auto 0
             fi
             ref_current=""
-            case "$GITHUB_REF" in
-                refs/heads/*|refs/pull/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
+            case "${GITHUB_REF:-}" in
+                refs/heads/*|refs/pull/*|refs/tags/*) ref_current=$(git -C "$mirror" rev-parse --verify -q "$GITHUB_REF^{commit}" 2>/dev/null || true) ;;
                 *) ref_current="$GITHUB_SHA" ;;
             esac
-            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags --prune "$url" "${refs[@]}"
+            base_missing=0
+            if [ -n "$base_ref" ] && ! git -C "$mirror" rev-parse --verify -q "refs/heads/$base_ref^{commit}" >/dev/null 2>&1; then
+                base_missing=1
+            fi
+            if [ -z "$(find "$mirror/HEAD" -mmin -1 2>/dev/null || true)" ] || [ "$ref_current" != "$GITHUB_SHA" ] || [ "$base_missing" = 1 ] || ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
+                if [ "${#refs[@]}" -gt 0 ]; then
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "${refs[@]}" \
+                        || git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                else
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
+                fi
                 if ! git -C "$mirror" cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then
-                    git -C "$mirror" -c "http.extraheader=$header" fetch -q --no-tags "$url" "$GITHUB_SHA"
+                    git -C "$mirror" -c "http.extraheader=$header" fetch -q "${fetch_args[@]}" "$url" "$GITHUB_SHA"
                 fi
             fi
             touch "$mirror" "$mirror/HEAD" 2>/dev/null || true
@@ -112,32 +133,53 @@ jobs:
         git remote add origin "$url"
         git config --local "http.$GITHUB_SERVER_URL/.extraheader" "$header"
         git config --local gc.auto 0
-        git fetch -q --no-tags "$mirror" "+refs/heads/*:refs/remotes/origin/*"
-        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
-            mapfile -t raw_cone < <(printf '%s\n' "$ENACT_SPARSE_CONE" | sed '/^[[:space:]]*$/d')
-            cone=()
-            for entry in "${raw_cone[@]}"; do
-                case "$entry" in
-                    */.enact-direct-files)
-                        cone+=("$entry")
-                        ;;
-                    *)
-                        kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
-                        if [ "$kind" = "blob" ]; then
-                            case "$entry" in
-                                */*) cone+=("${entry%/*}/.enact-direct-files") ;;
-                            esac
-                        else
-                            cone+=("$entry")
-                        fi
-                        ;;
-                esac
+        mirror_branches=()
+        case "${GITHUB_REF:-}" in
+            refs/heads/*) mirror_branches+=("${GITHUB_REF#refs/heads/}") ;;
+        esac
+        if [ -n "$base_ref" ] && [ "refs/heads/$base_ref" != "${GITHUB_REF:-}" ]; then
+            mirror_branches+=("$base_ref")
+        fi
+        if [ "${#mirror_branches[@]}" -gt 0 ]; then
+            for ref_branch in "${mirror_branches[@]}"; do
+                ref_sha=$(git -C "$mirror" rev-parse --verify -q "refs/heads/$ref_branch^{commit}" 2>/dev/null || true)
+                if [ -n "$ref_sha" ]; then
+                    git update-ref "refs/remotes/origin/$ref_branch" "$ref_sha"
+                fi
             done
+        fi
+        if [ -n "${ENACT_SPARSE_CONE:-}" ]; then
+            raw_cone=()
+            while IFS= read -r entry; do
+                entry="${entry#"${entry%%[![:space:]]*}"}"
+                entry="${entry%"${entry##*[![:space:]]}"}"
+                [ -n "$entry" ] && raw_cone+=("$entry")
+            done <<<"$ENACT_SPARSE_CONE"
+            cone=()
+            if [ "${#raw_cone[@]}" -gt 0 ]; then
+                for entry in "${raw_cone[@]}"; do
+                    case "$entry" in
+                        */.enact-direct-files)
+                            cone+=("$entry")
+                            ;;
+                        *)
+                            kind=$(git cat-file -t "$GITHUB_SHA:$entry" 2>/dev/null || true)
+                            if [ "$kind" = "blob" ]; then
+                                case "$entry" in
+                                    */*) cone+=("${entry%/*}/.enact-direct-files") ;;
+                                esac
+                            else
+                                cone+=("$entry")
+                            fi
+                            ;;
+                    esac
+                done
+            fi
             if [ "${#cone[@]}" -gt 0 ]; then
                 git sparse-checkout set --cone "${cone[@]}"
             fi
         fi
-        case "$GITHUB_REF" in
+        case "${GITHUB_REF:-}" in
             refs/heads/*) git checkout -q --force -B "${GITHUB_REF#refs/heads/}" "$GITHUB_SHA" ;;
             *) git checkout -q --force --detach "$GITHUB_SHA" ;;
         esac
@@ -255,26 +297,7 @@ jobs:
       id: outputs-host-lookup
       if: ${{ steps.runner_caches.outputs.host != '' && matrix.output_key != '' }}
       continue-on-error: true
-      run: |
-        set -euo pipefail
-        store="${ENACT_OUTPUTS_CACHE:-}"
-        entry="$store/${GITHUB_REPOSITORY:-repo}/$ENACT_OUTPUTS_KEY"
-        hit=false
-        if [ -n "$store" ] && [ -f "$entry/.enact-ready" ] && \
-            ENACT_OUTPUTS_VERIFY_ROOT="$entry" "${ENACT_OUTPUTS_VERIFIER:-enact}" ci host-outputs verify >/dev/null 2>&1; then
-            hit=true
-            while IFS= read -r pattern; do
-                [ -n "$pattern" ] || continue
-                # shellcheck disable=SC2086 # glob pattern from outputs.paths
-                for src in "$entry"/$pattern; do
-                    [ -e "$src" ] || [ -L "$src" ] || { hit=false; break 2; }
-                done
-            done <<<"$ENACT_OUTPUTS_PATHS"
-        fi
-        if [ "$hit" = true ]; then
-            touch "$entry/.enact-ready" 2>/dev/null || true
-        fi
-        printf 'cache-hit=%s\n' "$hit" >> "$GITHUB_OUTPUT"
+      run: enact ci host-outputs lookup
       env:
         ENACT_OUTPUTS_KEY: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
         ENACT_OUTPUTS_PATHS: ${{ matrix.output_paths }}
@@ -284,10 +307,13 @@ jobs:
       continue-on-error: true
       run: enact ci host-outputs remote-lookup
       env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
+        AWS_REGION: auto
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
         ENACT_CACHE_WRITE: read_only
         ENACT_OUTPUTS_KEY: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
         ENACT_OUTPUTS_PATHS: ${{ matrix.output_paths }}
-        ENACT_OUTPUTS_REMOTE_PUBLIC_URL: https://cache.tonky.dev
+        ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
     - name: Look Up Built Outputs
       id: outputs-lookup
       if: ${{ matrix.output_key != '' }}
@@ -364,12 +390,15 @@ jobs:
       continue-on-error: true
       run: enact ci host-outputs remote-restore
       env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
+        AWS_REGION: auto
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
         ENACT_CACHE_WRITE: read_only
         ENACT_OUTPUTS_NEEDED: ${{ toJson(matrix.output_keys) }}
         ENACT_OUTPUTS_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
         ENACT_OUTPUTS_PRODUCERS_FILE: ${{ runner.temp }}/enact-outputs-producers.json
-        ENACT_OUTPUTS_REMOTE_PUBLIC_URL: https://cache.tonky.dev
         ENACT_OUTPUTS_STEPS: ${{ toJson(steps) }}
+        ENACT_R2_BUCKET: ${{ secrets.R2_BUCKET || env.R2_BUCKET }}
     - name: Restore Built Outputs (@n8n/db:build)
       id: outputs--n8n-db--build
       if: ${{ (matrix.output_keys['-n8n-db--build'] != '' && steps.outputs-host.outputs['-n8n-db--build'] != 'true' && steps.outputs-remote.outputs['-n8n-db--build'] != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
@@ -543,11 +572,12 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v6
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-node-v3-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'pnpm-workspace.yaml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-node-v4-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'pnpm-workspace.yaml') }}
           path: |-
             .enact/state/pnpm-store
+            .enact/state/pnpm-cache
             node_modules/.cache
-          restore-keys: ${{ runner.os }}-${{ runner.arch }}-node-v3-
+          restore-keys: ${{ runner.os }}-${{ runner.arch }}-node-v4-
       - name: Restore Cache [node_build]
         id: cache_node_build
         if: ${{ (contains(format(',{0},', matrix.caches), ',node_build,') && steps.host_cache_node_build.outputs.hit != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
@@ -578,6 +608,7 @@ jobs:
           python_l1_cache /tmp/.cache/uv
           python_l1_cache /tmp/.cache/pip
           node_l1_cache .enact/state/pnpm-store
+          node_l1_cache .enact/state/pnpm-cache
           node_l1_cache node_modules/.cache
         ENACT_CACHE_HITS: |-
           python_l1_cache=${{ steps.python_l1_cache.outputs.cache-hit }}
@@ -661,9 +692,9 @@ jobs:
       if: ${{ !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: enact ci deps pull --component --remote signed
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
         AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
         ENACT_COMPONENT_DIR: ${{ matrix.component_dir }}
         ENACT_ENVIRONMENT_FILE: ${{ matrix.environment_file || '' }}
         ENACT_JOB_SERVICES: ${{ matrix.services }}
@@ -686,12 +717,14 @@ jobs:
       if: ${{ !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       run: eval "$ENACT_MATRIX_COMMAND"
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID || env.R2_READ_ACCESS_KEY_ID }}
         AWS_REGION: auto
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY || env.R2_READ_SECRET_ACCESS_KEY }}
         CI_COMPONENT: ${{ matrix.component }}
+        ENACT_CACHE_WRITE: read_only
         ENACT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         ENACT_ENVIRONMENT_FILE: ${{ matrix.environment_file || '' }}
+        ENACT_INPUT_FORCE_WARM_SUITES: ${{ inputs.force_warm_suites }}
         ENACT_MATRIX_COMMAND: ${{ matrix.command }}
         ENACT_MAX_PARALLEL: ${{ matrix.max_parallel }}
         ENACT_PREEMPTION_NOTICE_SEC: ${{ matrix.preemption_notice_sec }}
@@ -713,6 +746,28 @@ jobs:
         if [ "${oom:-0}" -gt 0 ] 2>/dev/null; then
         echo "::error::Container cgroup OOM-killed a process (oom_kill=${oom}, memory.peak=${peak}, memory.max=${limit})"
         fi
+        fi
+    - name: Diagnose Disk & Btrfs Qgroup on Failure
+      if: ${{ (failure()) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      run: |-
+        df -h || true
+        df -i || true
+        btrfs qgroup show -reF / 2>/dev/null || true
+    - name: Log Cgroup Memory & PSI Telemetry
+      if: ${{ (always()) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      run: |-
+        if [ -d /sys/fs/cgroup ]; then
+        anon=$(awk '$1 == "anon" { print $2 }' /sys/fs/cgroup/memory.stat 2>/dev/null || echo unknown)
+        kernel=$(awk '$1 == "kernel" { print $2 }' /sys/fs/cgroup/memory.stat 2>/dev/null || echo unknown)
+        peak=$(cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo unknown)
+        limit=$(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo unknown)
+        high=$(awk '$1 == "high" { print $2 }' /sys/fs/cgroup/memory.events 2>/dev/null || echo 0)
+        max_ev=$(awk '$1 == "max" { print $2 }' /sys/fs/cgroup/memory.events 2>/dev/null || echo 0)
+        oom=$(awk '$1 == "oom_kill" { print $2 }' /sys/fs/cgroup/memory.events 2>/dev/null || echo 0)
+        sampled=$(cat "${GHA_ANON_PEAK_FILE:-/dev/null}" 2>/dev/null || true)
+        [ -n "$sampled" ] || sampled="nonreclaim_peak_sampled=unknown"
+        psi=$(tr '\n' ' ' < /sys/fs/cgroup/memory.pressure 2>/dev/null || echo unavailable)
+        echo "cgroup telemetry: anon=${anon} kernel=${kernel} peak=${peak} max=${limit} events(high=${high:-0},max=${max_ev:-0},oom_kill=${oom:-0}) ${sampled} psi=${psi}"
         fi
     - name: Push Updated Dependencies to the Remote Cache
       if: ${{ (success() && env.ENACT_REMOTE_SAVE_EVENT == 'true' && env.ENACT_HAS_SIGNING_KEY == 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
@@ -743,7 +798,7 @@ jobs:
           .enact/state/runs/*/services/*.log
         retention-days: "1"
     - name: Upload Recorded Footprints
-      if: ${{ (always() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch)) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
+      if: ${{ (success() && (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref != github.event.repository.default_branch || github.event_name == 'workflow_dispatch' && inputs.warm_reach == 'true' && github.ref_name == github.event.repository.default_branch)) && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
       continue-on-error: true
       uses: actions/upload-artifact@v7
       with:
@@ -777,6 +832,7 @@ jobs:
           python_l1_cache /tmp/.cache/uv
           python_l1_cache /tmp/.cache/pip
           node_l1_cache .enact/state/pnpm-store
+          node_l1_cache .enact/state/pnpm-cache
           node_l1_cache node_modules/.cache
         ENACT_CACHE_HITS: |-
           python_l1_cache=${{ steps.python_l1_cache.outputs.cache-hit }}
@@ -800,6 +856,7 @@ jobs:
           key: ${{ steps.node_l1_cache.outputs.cache-primary-key }}
           path: |-
             .enact/state/pnpm-store
+            .enact/state/pnpm-cache
             node_modules/.cache
       - name: Save Cache [node_build]
         if: ${{ ((env.ENACT_SAVE_EVENT == 'true' && contains(format(',{0},', matrix.caches), ',node_build,') && (matrix.shard_index == '' || matrix.shard_index == 1 || matrix.shard_index == '1') && steps.host_cache_node_build.outputs.hit != 'true' && steps.cache_node_build.outputs.cache-primary-key != '' && (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch || !startsWith(steps.cache_node_build.outputs.cache-matched-key, format('node_build-{0}-{1}-{2}-', runner.os, matrix.task_id, hashFiles('package.json', 'pnpm-lock.yaml', 'enve.lock', 'helpers/typecheck-runner.sh'))))) && github.event_name != 'pull_request' && steps.cache_node_build.outputs.cache-hit != 'true') && !steps.skip.outputs.hit && steps.outputs-host-recover.outputs.cache-hit != 'true' }}
@@ -826,100 +883,29 @@ jobs:
       id: outputs-publish
       if: ${{ success() && steps.outputs-host-lookup.outputs.cache-hit == 'true' && (steps.outputs-lookup.outputs.cache-hit != 'true' || (github.event_name == 'schedule' || github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch) && steps.outputs-remote-lookup.outputs.cache-hit != 'true') && matrix.output_key != '' }}
       continue-on-error: true
-      run: |
-        set -euo pipefail
-        store="${ENACT_OUTPUTS_CACHE:-}"
-        entry="$store/${GITHUB_REPOSITORY:-repo}/$ENACT_OUTPUTS_KEY"
-        verify_outputs() {
-            ENACT_OUTPUTS_VERIFY_ROOT="$1" "${ENACT_OUTPUTS_VERIFIER:-enact}" ci host-outputs verify >/dev/null 2>&1
-        }
-        clone_item() {
-            rm -rf "$2"
-            mkdir -p "$(dirname "$2")"
-            cp -a --reflink=auto "$1" "$2" 2>/dev/null || { rm -rf "$2"; cp -a "$1" "$2"; }
-        }
-        case "$ENACT_OUTPUTS_MODE" in
-            restore)
-                hit=false
-                if [ -n "$store" ] && [ -f "$entry/.enact-ready" ] && verify_outputs "$entry"; then
-                    hit=true
-                    while IFS= read -r pattern; do
-                        [ -n "$pattern" ] || continue
-                        # shellcheck disable=SC2086 # glob pattern from outputs.paths
-                        for src in "$entry"/$pattern; do
-                            [ -e "$src" ] || [ -L "$src" ] || { hit=false; break 2; }
-                            rel="${src#"$entry"/}"
-                            clone_item "$src" "$rel" || { hit=false; break 2; }
-                        done
-                    done <<<"$ENACT_OUTPUTS_PATHS"
-                fi
-                if [ "$hit" = true ] && ! verify_outputs .; then hit=false; fi
-                if [ "$hit" = true ]; then
-                    touch "$entry/.enact-ready" 2>/dev/null || true
-                fi
-                printf 'cache-hit=%s\n' "$hit" >> "$GITHUB_OUTPUT"
-                ;;
-            save)
-                [ -n "$store" ] || exit 0
-                verify_outputs . || { echo "producer output integrity check failed" >&2; exit 1; }
-                if [ -f "$entry/.enact-ready" ] && verify_outputs "$entry"; then exit 0; fi
-                mkdir -p "$(dirname "$entry")"
-                tmp=$(mktemp -d "$entry.tmp.XXXXXX")
-                trap 'rm -rf "$tmp"' EXIT
-                while IFS= read -r pattern; do
-                    [ -n "$pattern" ] || continue
-                    # shellcheck disable=SC2086 # glob pattern from outputs.paths
-                    for src in $pattern; do
-                        [ -e "$src" ] || [ -L "$src" ] || exit 1
-                        clone_item "$src" "$tmp/$src"
-                    done
-                done <<<"$ENACT_OUTPUTS_PATHS"
-                verify_outputs "$tmp" || exit 1
-                touch "$tmp/.enact-ready"
-                [ ! -d "$entry" ] || rm -rf "$entry"
-                if ! mv -n "$tmp" "$entry" 2>/dev/null && [ ! -d "$entry" ]; then
-                    rm -rf "$entry"
-                    mv "$tmp" "$entry"
-                fi
-                repo_dir="$(dirname "$entry")"
-                max_entries="${ENACT_OUTPUTS_CACHE_MAX_ENTRIES:-8}"
-                min_free_mb="${ENACT_OUTPUTS_CACHE_MIN_FREE_MB:-5120}"
-                ready_files=()
-                while IFS= read -r ready; do
-                    [ -n "$ready" ] && ready_files+=("$ready")
-                done < <(ls -1dt "$repo_dir"/*/.enact-ready 2>/dev/null || true)
-                total="${#ready_files[@]}"
-                for (( idx = total - 1; idx >= 0; idx-- )); do
-                    cand_dir="$(dirname "${ready_files[$idx]}")"
-                    [ "$cand_dir" != "$entry" ] || continue
-                    evict=false
-                    if [ "$max_entries" -gt 0 ] && [ "$((idx + 1))" -gt "$max_entries" ]; then
-                        evict=true
-                    elif [ "$min_free_mb" -gt 0 ]; then
-                        free_mb="$(df -Pk "$store" 2>/dev/null | awk 'NR==2 {print int($4 / 1024)}')"
-                        if [ -n "$free_mb" ] && [ "$free_mb" -lt "$min_free_mb" ]; then
-                            evict=true
-                        fi
-                    fi
-                    if [ "$evict" = true ]; then
-                        rm -rf "$cand_dir" 2>/dev/null || true
-                    fi
-                done
-                ;;
-        esac
+      run: enact ci host-outputs restore-build
       env:
         ENACT_OUTPUTS_KEY: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
-        ENACT_OUTPUTS_MODE: restore
         ENACT_OUTPUTS_PATHS: ${{ matrix.output_paths }}
     - name: Cache Built Outputs
+      id: cache_outputs
       if: ${{ success() && (!steps.skip.outputs.hit || steps.outputs-publish.outputs.cache-hit == 'true') && matrix.output_key != '' }}
       continue-on-error: true
       uses: actions/cache/save@v6
       with:
         key: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
         path: ${{ matrix.output_paths }}
+    - name: Verify Built Outputs Cached
+      id: outputs_cached
+      if: ${{ success() && (!steps.skip.outputs.hit || steps.outputs-publish.outputs.cache-hit == 'true') && steps.cache_outputs.outcome == 'success' && matrix.output_key != '' }}
+      continue-on-error: true
+      uses: actions/cache/restore@v6
+      with:
+        key: enact-outputs-${{ matrix.output_slug }}-${{ runner.os }}-${{ runner.arch }}-${{ matrix.output_key }}
+        lookup-only: "true"
+        path: ${{ matrix.output_paths }}
     - name: Upload Built Outputs Artifact
-      if: ${{ success() && (!steps.skip.outputs.hit || steps.outputs-publish.outputs.cache-hit == 'true') && matrix.output_key != '' }}
+      if: ${{ success() && (!steps.skip.outputs.hit || steps.outputs-publish.outputs.cache-hit == 'true') && (steps.cache_outputs.outcome != 'success' || steps.outputs_cached.outputs.cache-hit != 'true') && matrix.output_key != '' }}
       continue-on-error: true
       uses: actions/upload-artifact@v7
       with:
