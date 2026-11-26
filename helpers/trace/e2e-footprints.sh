@@ -351,7 +351,7 @@ run_one_spec() {
           ENACT_FOOTPRINT_ROOT="$REPO_ROOT" \
           NODE_OPTIONS="$traced_node_opts" \
           ENACT_SKIPS_FILE="$WORK/skips/$idx.jsonl" \
-          "${PW_CMD[@]}" test --project=e2e --workers 1 --retries=1 \
+          "${PW_CMD[@]}" test --project=e2e --workers 1 --retries=2 \
           "${PW_EXTRA_ARGS[@]}" \
           --output="$WORK/results/$idx" \
           "--reporter=list,$RECORDERS_JS/playwright-attribution.mjs" \

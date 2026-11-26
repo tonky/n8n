@@ -19,6 +19,7 @@ test.describe(
 				apiKey: 'sk-123',
 			});
 
+			await expect(n8n.ndv.getCredentialSelect()).not.toHaveValue('');
 			await n8n.page.keyboard.press('Escape');
 
 			await expect(n8n.canvas.getNodeIssuesByName('OpenAI Chat Model')).toHaveCount(0);
